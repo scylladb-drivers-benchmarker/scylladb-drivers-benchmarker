@@ -1,0 +1,5 @@
+backends:
+  - name: scylladb-nodejs-rs-driver
+    benchmark-name: select
+    build-command: npm run build
+    run-command: node benchmark/logic/select.js scylladb-nodejs-rs-driver

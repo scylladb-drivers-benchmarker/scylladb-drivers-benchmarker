@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::config::config_traits::{Configuration, ConfigurationList};
+use crate::config::{
+    backend::BackendConfigList,
+    config_traits::{Configuration, ConfigurationList},
+};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
@@ -20,6 +23,7 @@ pub struct BenchmarkConfig {
 }
 
 impl Configuration for BenchmarkConfig {
+    type ConfigListType = BenchmarkConfigList;
     fn name(&self) -> String {
         self.name.clone()
     }

@@ -12,6 +12,7 @@ pub struct BackendConfig {
 }
 
 impl Configuration for BackendConfig {
+    type ConfigListType = BackendConfigList;
     fn name(&self) -> String {
         self.name.clone()
     }
@@ -20,6 +21,7 @@ impl Configuration for BackendConfig {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub struct BackendConfigList {
+    #[serde(rename = "backends")]
     pub configs: Vec<BackendConfig>,
 }
 
@@ -52,5 +54,24 @@ build-command: npm run build
 run-command: node benchmark/logic/select.js scylladb-nodejs-rs-driver
 ";
         assert_eq!(serialized, expected);
+    }
+
+    #[test]
+    fn find_config() {
+        let config = |name| BackendConfig {
+            name: "name: ".to_string() + name,
+            benchmark_name: "benchmark_".to_string() + name,
+            build_command: "build_cmd_".to_string() + name,
+            run_command: "run_cmd_".to_string() + name,
+        };
+
+        let backend_config_list = BackendConfigList {
+            configs: vec![config("a"), config("b")],
+        };
+
+        assert!(backend_config_list.find_config("name: c").is_none());
+
+        let found = backend_config_list.find_config("name: a").unwrap();
+        assert_eq!(found, config("a"));
     }
 }
