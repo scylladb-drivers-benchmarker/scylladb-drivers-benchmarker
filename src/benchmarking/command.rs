@@ -42,14 +42,19 @@ impl Command {
         }
 
         if it.had_error {
-            let erroneous = arguments.last().expect("Shlex should first mark had_error before stopping");
+            let erroneous = arguments
+                .last()
+                .expect("Shlex should first mark had_error before stopping");
             Err(String::from("Wrong argument: ") + erroneous)
         } else {
             Ok(Command { program, arguments })
         }
     }
 
-    pub fn new_args<Args: Iterator<Item = impl ToString>>(program: String, arguments: Args) -> Self {
+    pub fn new_args<Args: Iterator<Item = impl ToString>>(
+        program: String,
+        arguments: Args,
+    ) -> Self {
         Command {
             program,
             arguments: arguments.map(|item| item.to_string()).collect(),

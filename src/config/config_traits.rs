@@ -1,4 +1,6 @@
-use serde::{de::DeserializeOwned};
+use std::fmt::Debug;
+
+use serde::de::DeserializeOwned;
 
 pub trait Configuration {
     fn name(&self) -> String;

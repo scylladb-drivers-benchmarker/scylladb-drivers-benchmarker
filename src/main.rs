@@ -1,7 +1,7 @@
 mod benchmarking;
+mod config;
 mod database;
 mod plotting;
-mod config;
 
 use crate::database::Database;
 
