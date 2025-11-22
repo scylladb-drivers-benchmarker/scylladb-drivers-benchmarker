@@ -1,10 +1,12 @@
 use sqlite::Connection;
 
-use crate::{PathBuf, benchmarking};
+use crate::PathBuf;
+use sqlite::State;
 pub struct Database {
     connection: Connection,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BenchmarkParams {
     commit_hash: String,
     benchmark_type: String,
@@ -12,6 +14,7 @@ pub struct BenchmarkParams {
     measurement_method: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BenchmarkResult {
     data_json: Option<String>,
 }
@@ -38,7 +41,7 @@ impl BenchmarkResult {
     }
 
     pub fn isTimeout(&self) -> bool {
-        return self.data_json.is_none();
+        self.data_json.is_none()
     }
 }
 
@@ -56,7 +59,7 @@ impl Database {
                 benchmark_argument INTEGER NOT NULL,
                 measurement_method TEXT NOT NULL,
                 data_json TEXT,
-                UNIQUE(commit_hash, benchmark_type, benchmark_argument, measurement_method),
+                UNIQUE(commit_hash, benchmark_type, benchmark_argument, measurement_method)
             );
             ",
         )?;
@@ -109,9 +112,13 @@ impl Database {
         stmt.bind((3, params.benchmark_argument.to_string().as_str()))?;
         stmt.bind((4, params.measurement_method.as_str()))?;
 
-        stmt.next()?;
-
-        Ok(Some(BenchmarkResult::new(stmt.read(0)?)))
+        match stmt.next()? {
+            State::Row => {
+                let data: Option<String> = stmt.read(0)?;
+                Ok(Some(BenchmarkResult::new(data)))
+            }
+            State::Done => Ok(None),
+        }
     }
 
     pub fn data_exists(&self, params: BenchmarkParams) -> Result<bool, sqlite::Error> {
@@ -119,36 +126,73 @@ impl Database {
     }
 }
 
+#[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-    use uuid::Uuid;
-    use std::fs;
+    use crate::database::*;
+    use tempfile::NamedTempFile;
 
-    fn tmp_db_path() -> PathBuf {
-        let filename = format!("test_db_{}.sqlite", Uuid::new_v4());
-        PathBuf::from(filename)
-    }
-
-    fn cleanup(path: &PathBuf) {
-        let _ = fs::remove_file(path);
+    fn get_db() -> (Database, NamedTempFile) {
+        let file = NamedTempFile::new().unwrap();
+        let path = file.path().to_path_buf();
+        (Database::new(path).unwrap(), file)
     }
 
     #[test]
-    fn insert_get() {
+    fn simple_insert_get() {
+        let (db, _file) = get_db();
+        let params = BenchmarkParams::new("abc123".into(), "speed".into(), 42, "cold".into());
+        let result = BenchmarkResult::new(Some("result_result ".into()));
 
+        db.insert_data(params.clone(), result).unwrap();
+
+        let retrieved = db.get_data(params.clone()).unwrap().unwrap();
+
+        assert!(db.data_exists(params).unwrap());
+        assert!(!retrieved.isTimeout());
+        assert_eq!(retrieved.data_json.unwrap(), "result_result ");
     }
 
     #[test]
-    fn get_doesnt_exist(){
+    fn insert_get_empty_and_timeout() {
+        let (db, _file) = get_db();
 
+        let params1 = BenchmarkParams::new("abc123".into(), "speed".into(), 42, "cold".into());
+        let result_empty = BenchmarkResult::new(Some("".into()));
+
+        let params2 = BenchmarkParams::new("abc124".into(), "speed".into(), 42, "cold".into());
+        let result_timeout = BenchmarkResult::new(None);
+
+        db.insert_data(params1.clone(), result_empty).unwrap();
+        db.insert_data(params2.clone(), result_timeout).unwrap();
+
+        let retrieved_empty = db.get_data(params1).unwrap().unwrap();
+        let retrieved_timeout = db.get_data(params2).unwrap().unwrap();
+
+        assert!(retrieved_timeout.isTimeout());
+        assert_eq!(retrieved_empty.data_json.unwrap(), "");
     }
 
     #[test]
-    fn double_insert(){
+    fn get_doesnt_exist() {
+        let (db, _file) = get_db();
 
+        let params = BenchmarkParams::new("missing".into(), "none".into(), 123, "nope".into());
+
+        let result = db.get_data(params).unwrap();
+
+        assert!(result.is_none());
     }
 
-    fn timeout_test(){
+    #[test]
+    fn double_insert() {
+        let (db, _file) = get_db();
+        let params = BenchmarkParams::new("abc123".into(), "speed".into(), 42, "cold".into());
+        let result1 = BenchmarkResult::new(Some("result_result ".into()));
+        let result2 = BenchmarkResult::new(Some("result_result_result ".into()));
 
+        db.insert_data(params.clone(), result1.clone()).unwrap();
+
+        assert!(db.insert_data(params.clone(), result1).is_err());
+        assert!(db.insert_data(params, result2).is_err());
     }
 }
