@@ -15,7 +15,7 @@ use clap::Subcommand;
 
 #[derive(Debug, Subcommand)]
 enum SubCommand {
-    Benchmark(benchmarking::BackendArguments),
+    Benchmark(benchmarking::BenchmarkingArguments),
     Plot(plotting::FrontendArguments),
 }
 
