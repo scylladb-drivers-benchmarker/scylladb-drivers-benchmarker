@@ -28,14 +28,13 @@ impl BenchmarkResult {
 }
 
 impl Database {
-    pub fn new(path: PathBuf) -> Database {
+    pub fn new(path: PathBuf) -> Result<Database, sqlite::Error> {
         let db = Database {
-            connection: Connection::open(path).expect("couldn't access database"),
+            connection: Connection::open(path)?,
         };
 
-        db.connection
-            .execute(
-                "
+        db.connection.execute(
+            "
             CREATE TABLE IF NOT EXISTS Benchmarks (
                 commit_hash TEXT NOT NULL,
                 benchmark_type TEXT NOT NULL,
@@ -45,66 +44,70 @@ impl Database {
                 UNIQUE(commit_hash, benchmark_type, benchmark_argument, measurement_method),
             );
             ",
-            )
-            .unwrap();
+        )?;
 
-        db
+        Ok(db)
     }
 
-    pub fn insert_data(&self, params: BenchmarkParams, result: BenchmarkResult) {
-        let mut stmt = self
-            .connection
-            .prepare(
-                "
+    pub fn insert_data(
+        &self,
+        params: BenchmarkParams,
+        result: BenchmarkResult,
+    ) -> Result<(), sqlite::Error> {
+        let mut stmt = self.connection.prepare(
+            "
                 INSERT INTO Benchmarks
                 (commit_hash, benchmark_type, benchmark_argument, measurement_method, data_json)
                 VALUES (?, ?, ?, ?, ?);
                 ",
-            )
-            .unwrap();
+        )?;
 
-        stmt.bind((1, params.commit_hash.as_str())).unwrap();
-        stmt.bind((2, params.benchmark_type.as_str())).unwrap();
-        stmt.bind((3, params.benchmark_argument.to_string().as_str()))
-            .unwrap();
-        stmt.bind((4, params.measurement_method.as_str())).unwrap();
+        stmt.bind((1, params.commit_hash.as_str()))?;
+        stmt.bind((2, params.benchmark_type.as_str()))?;
+        stmt.bind((3, params.benchmark_argument.to_string().as_str()))?;
+        stmt.bind((4, params.measurement_method.as_str()))?;
 
         if !result.isTimeout() {
-            stmt.bind((5, result.data_json.unwrap().as_str())).unwrap();
+            stmt.bind((5, result.data_json.unwrap().as_str()))?;
         }
 
-        stmt.next().unwrap();
+        stmt.next()?;
+        Ok(())
     }
 
-    pub fn get_data(&self, params: BenchmarkParams) -> Option<BenchmarkResult> {
-        let mut stmt = self
-            .connection
-            .prepare(
-                "
+    pub fn get_data(
+        &self,
+        params: BenchmarkParams,
+    ) -> Result<Option<BenchmarkResult>, sqlite::Error> {
+        let mut stmt = self.connection.prepare(
+            "
                 SELECT data_json from  Benchmarks
                 WHERE commit_hash = ? 
                     and benchmark_type = ?
                     and benchmark_argument = ?
                     and measurement_method = ?;
                 ",
-            )
-            .unwrap();
+        )?;
 
-        stmt.bind((1, params.commit_hash.as_str())).unwrap();
-        stmt.bind((2, params.benchmark_type.as_str())).unwrap();
-        stmt.bind((3, params.benchmark_argument.to_string().as_str()))
-            .unwrap();
-        stmt.bind((4, params.measurement_method.as_str())).unwrap();
+        stmt.bind((1, params.commit_hash.as_str()))?;
+        stmt.bind((2, params.benchmark_type.as_str()))?;
+        stmt.bind((3, params.benchmark_argument.to_string().as_str()))?;
+        stmt.bind((4, params.measurement_method.as_str()))?;
 
-        stmt.next().unwrap();
-        let data_json: String = stmt.read(0).unwrap();
+        stmt.next()?;
+        let data_json: String = stmt.read(0)?;
 
-        return Some(BenchmarkResult {
+        Ok(Some(BenchmarkResult {
             data_json: Some(data_json),
-        });
+        }))
     }
 
-    pub fn data_exists(&self, params: BenchmarkParams) -> bool {
-        self.get_data(params).is_some()
+    pub fn data_exists(&self, params: BenchmarkParams) -> Result<bool, sqlite::Error> {
+        Ok(self.get_data(params)?.is_some())
     }
+}
+
+mod tests {
+    #[test]
+    fn test() {}
 }
