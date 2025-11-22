@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::config::config_traits::Configuration;
+use crate::config::config_traits::{Configuration, ConfigurationList};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub struct BackendConfig {
     pub name: String,
@@ -17,10 +17,18 @@ impl Configuration for BackendConfig {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub struct BackendConfigList {
-    pub benchmarks: Vec<BackendConfig>,
+    pub configs: Vec<BackendConfig>,
+}
+
+impl ConfigurationList for BackendConfigList {
+    type ConfigType = BackendConfig;
+
+    fn configs(&self) -> impl Iterator<Item = Self::ConfigType> {
+        self.configs.iter().cloned()
+    }
 }
 
 #[cfg(test)]

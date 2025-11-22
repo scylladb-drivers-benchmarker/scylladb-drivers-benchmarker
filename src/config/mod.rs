@@ -22,3 +22,29 @@ pub fn find_config<ConfigListType: ConfigurationList>(
             name: config_name,
         }))
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::config::backend::BackendConfigList;
+
+    use super::*;
+
+    #[test]
+    fn find_config() {
+        let config = |name| BackendConfig {
+            name: "name: ".to_string() + name,
+            benchmark_name: "benchmark_".to_string() + name,
+            build_command: "build_cmd_".to_string() + name,
+            run_command: "run_cmd_".to_string() + name,
+        };
+
+        let backend_config_list = BackendConfigList {
+            configs: vec![config("a"), config("b")],
+        };
+
+        assert!(backend_config_list.find_config("name: c").is_none());
+
+        let found = backend_config_list.find_config("name: a").unwrap();
+        assert_eq!(found, config("a"));
+    }
+}

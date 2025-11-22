@@ -2,14 +2,14 @@ use serde::{Deserialize, Serialize};
 
 use crate::config::config_traits::{Configuration, ConfigurationList};
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub enum ProgressType {
     Multiplicative,
     Additive,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub struct BenchmarkConfig {
     pub name: String,
@@ -25,7 +25,7 @@ impl Configuration for BenchmarkConfig {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub struct BenchmarkConfigList {
     #[serde(rename = "benchmarks")]

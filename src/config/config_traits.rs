@@ -6,7 +6,7 @@ pub trait Configuration {
     fn name(&self) -> String;
 }
 
-pub trait ConfigurationList: DeserializeOwned {
+pub trait ConfigurationList: DeserializeOwned+ Debug + Clone + Eq {
     type ConfigType: Configuration;
     fn configs(&self) -> impl Iterator<Item = Self::ConfigType>;
     fn find_config(&self, config_name: &str) -> Option<Self::ConfigType> {
