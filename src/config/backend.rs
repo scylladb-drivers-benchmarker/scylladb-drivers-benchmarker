@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::config::config_traits::Configuration;
+
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct BackendConfig {
@@ -7,6 +9,12 @@ pub struct BackendConfig {
     pub benchmark_name: String,
     pub build_command: String,
     pub run_command: String,
+}
+
+impl Configuration for BackendConfig {
+    fn name(&self) -> String {
+        self.name.clone()
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]

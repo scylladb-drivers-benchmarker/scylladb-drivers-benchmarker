@@ -1,13 +1,15 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+use crate::config::config_traits::{Configuration, ConfigurationList};
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 #[serde(rename_all = "kebab-case")]
 pub enum ProgressType {
     Multiplicative,
     Additive,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub struct BenchmarkConfig {
     pub name: String,
@@ -17,10 +19,25 @@ pub struct BenchmarkConfig {
     pub progress_type: ProgressType,
 }
 
+impl Configuration for BenchmarkConfig {
+    fn name(&self) -> String {
+        self.name.clone()
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct BenchmarkConfigList {
-    pub benchmarks: Vec<BenchmarkConfig>,
+    #[serde(rename = "benchmarks")]
+    pub configs: Vec<BenchmarkConfig>,
+}
+
+impl ConfigurationList for BenchmarkConfigList {
+    type ConfigType = BenchmarkConfig;
+
+    fn configs(&self) -> impl Iterator<Item = Self::ConfigType> {
+        self.configs.iter().cloned()
+    }
 }
 
 #[cfg(test)]
@@ -66,7 +83,7 @@ progress-type: multiplicative
         };
 
         let config_list = BenchmarkConfigList {
-            benchmarks: vec!(config1, config2)
+            configs: vec![config1, config2],
         };
 
         let serialized: String = serde_yml::to_string(&config_list).unwrap();
