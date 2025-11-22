@@ -1,3 +1,5 @@
+mod command;
+
 use super::database::*;
 
 use clap::Parser;
