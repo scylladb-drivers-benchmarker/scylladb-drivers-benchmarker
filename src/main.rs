@@ -1,4 +1,5 @@
 mod benchmarking;
+mod config;
 mod database;
 mod plotting;
 
@@ -14,8 +15,8 @@ fn default_database_location() -> PathBuf {
 use clap::Subcommand;
 
 #[derive(Debug, Subcommand)]
-enum Command {
-    Benchmark(benchmarking::BackendArguments),
+enum SubCommand {
+    Benchmark(benchmarking::BenchmarkingArguments),
     Plot(plotting::FrontendArguments),
 }
 
@@ -23,16 +24,16 @@ enum Command {
 #[clap(name = "my-app", version)]
 pub struct App {
     #[clap(subcommand)]
-    command: Command,
+    command: SubCommand,
 }
 fn main() {
     let _db = Database::new(default_database_location()); // TODO use default database location or provided in argument (config?)
     let args = App::parse();
     match args.command {
-        Command::Benchmark(back_args) => {
+        SubCommand::Benchmark(back_args) => {
             println!("{:?}", back_args);
         }
-        Command::Plot(plot_args) => {
+        SubCommand::Plot(plot_args) => {
             println!("{:?}", plot_args);
         }
     }
