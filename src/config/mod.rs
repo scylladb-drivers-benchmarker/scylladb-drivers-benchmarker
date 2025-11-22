@@ -1,5 +1,5 @@
-mod backend;
-mod benchmark;
+pub mod backend;
+pub mod benchmark;
 mod config_errors;
 mod config_traits;
 
@@ -9,12 +9,12 @@ use backend::BackendConfig;
 use config_errors::ConfigurationNotFound;
 use config_traits::{Configuration, ConfigurationList};
 
-pub fn find_config<ConfigListType: ConfigurationList>(
+pub fn find_config<ConfigType: Configuration>(
     config_name: &str,
     config_path: &Path,
-) -> Result<ConfigListType::ConfigType, Box<dyn Error>> {
+) -> Result<ConfigType, Box<dyn Error>> {
     let file = std::fs::File::open(config_path)?;
-    let config_list: ConfigListType = serde_yml::from_reader(file)?;
+    let config_list: ConfigType::ConfigListType = serde_yml::from_reader(file)?;
     config_list
         .find_config(config_name)
         .ok_or(Box::new(ConfigurationNotFound {
@@ -24,17 +24,13 @@ pub fn find_config<ConfigListType: ConfigurationList>(
 }
 
 mod tests {
-    use crate::config::{
-        backend::{BackendConfig, BackendConfigList},
-        find_config,
-    };
-    use std::path::Path;
+    use super::*;
 
     #[test]
     fn open_config() {
-        let config: BackendConfig = find_config::<BackendConfigList>(
+        let config: BackendConfig = find_config(
             "scylladb-nodejs-rs-driver",
-            Path::new("./tests/backend_config.yml"),
+            Path::new("./configs/backend_config.yml"),
         )
         .unwrap();
         assert_eq!(
