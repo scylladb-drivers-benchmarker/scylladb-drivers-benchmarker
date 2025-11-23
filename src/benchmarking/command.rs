@@ -1,6 +1,7 @@
 use shlex::Shlex;
 
 /// Struct used for parsing command from configs
+#[derive(Debug, Clone)]
 pub struct Command {
     program: String,
     arguments: Vec<String>,
@@ -61,24 +62,24 @@ impl Command {
         }
     }
 
-    fn add_argument(&mut self, argument: String) {
+    pub fn add_argument(&mut self, argument: String) {
         self.arguments.push(argument);
     }
 
-    fn with_arg(mut self, argument: String) -> Self {
+    pub fn with_arg(mut self, argument: String) -> Self {
         self.add_argument(argument);
         self
     }
 
-    fn get_program(&self) -> &str {
+    pub fn get_program(&self) -> &str {
         self.program.as_str()
     }
 
-    fn get_args(&self) -> impl Iterator<Item = impl AsRef<str>> {
+    pub fn get_args(&self) -> impl Iterator<Item = impl AsRef<str>> {
         self.arguments.iter()
     }
 
-    fn process(self) -> std::process::Command {
+    pub fn process(self) -> std::process::Command {
         let mut command = std::process::Command::new(self.get_program());
         command.args(self.arguments);
         command
