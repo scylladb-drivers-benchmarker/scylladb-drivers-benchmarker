@@ -1,4 +1,8 @@
+use std::ops::Mul;
+
 use serde::{Deserialize, Serialize};
+use serde_yml::mapping::Iter;
+use sqlite::Type;
 
 use crate::config::{
     backend::BackendConfigList,
@@ -26,6 +30,39 @@ impl Configuration for BenchmarkConfig {
     type ConfigListType = BenchmarkConfigList;
     fn name(&self) -> String {
         self.name.clone()
+    }
+}
+
+impl BenchmarkConfig {
+    pub fn iter_points(&self) -> impl Iterator<Item = u32> {
+        struct ReturnIterator {
+            pub starting_step: u32,
+            pub step_progress: u32,
+            pub progress_type: ProgressType,
+        }
+        impl Iterator for ReturnIterator {
+            type Item = u32;
+
+            fn next(&mut self) -> Option<Self::Item> {
+                let ret = self.starting_step;
+                match self.progress_type {
+                    ProgressType::Additive => {
+                        self.starting_step += self.step_progress;
+                    }
+                    ProgressType::Multiplicative => {
+                        self.starting_step *= self.step_progress;
+                    }
+                }
+                Some(ret)
+            }
+        }
+
+        ReturnIterator {
+            starting_step: self.starting_step,
+            step_progress: self.step_progress,
+            progress_type: self.progress_type,
+        }
+        .take(self.no_steps as usize)
     }
 }
 
