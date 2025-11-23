@@ -13,7 +13,7 @@ pub struct SourceCode {
 pub struct CompiledSource {}
 
 pub fn compile(
-    compilation_command: String,
+    compilation_command: &str,
     source_code: SourceCode,
 ) -> Result<CompiledSource, Box<dyn Error>> {
     let mut command = Command::new(compilation_command)?.process();
@@ -31,12 +31,12 @@ pub struct Executor {
 }
 
 impl Executor {
-    pub fn new(_: CompiledSource, execution_command: String) -> Result<Executor, Box<dyn Error>> {
+    pub fn new(_: CompiledSource, execution_command: &str) -> Result<Executor, Box<dyn Error>> {
         let command = Command::new(execution_command)?;
         Ok(Executor { command })
     }
 
-    pub fn measure(&mut self, instrumentation: String) -> Result<(), Box<dyn Error>> {
+    pub fn measure(&mut self, instrumentation: &str) -> Result<(), Box<dyn Error>> {
         let instrumentation_command = Command::new(instrumentation)?;
         self.command = instrumentation_command.with_arg(self.command.to_string());
         Ok(())

@@ -30,8 +30,8 @@ impl Command {
     /// assert_eq!(args[3], "--author");
     /// assert_eq!(args[4], "This is a commit author");
     /// ```
-    pub fn new(command: String) -> Result<Self, String> {
-        let mut it = Shlex::new(command.as_ref());
+    pub fn new(command: &str) -> Result<Self, String> {
+        let mut it = Shlex::new(command);
         let program: String = it.next().ok_or("Program name not given")?;
         if it.had_error {
             return Err("Failed parsing program name.".to_string());
@@ -49,6 +49,13 @@ impl Command {
             Err(String::from("Wrong argument: ") + erroneous)
         } else {
             Ok(Command { program, arguments })
+        }
+    }
+
+    pub fn new_program(program: String) -> Self {
+        Command {
+            program,
+            arguments: Vec::new(),
         }
     }
 
@@ -75,13 +82,38 @@ impl Command {
         self.program.as_str()
     }
 
-    pub fn get_args(&self) -> impl Iterator<Item = impl AsRef<str>> {
-        self.arguments.iter()
+    pub fn get_args(&self) -> &Vec<String> {
+        &self.arguments
     }
 
     pub fn process(self) -> std::process::Command {
         let mut command = std::process::Command::new(self.get_program());
         command.args(self.arguments);
         command
+    }
+}
+
+/// Utility macro to create an explicit command.
+/// ```
+/// let command = cmd!("git", "status", "-s");
+/// assert_eq!(command.get_program(), "git");
+/// assert_eq!(command.get_args(), vec!("status", "-s"))
+/// ```
+#[macro_export]
+macro_rules! cmd {
+    ( $program:expr, $( $arg:expr ), *) => {
+        Command::new_args(String::from($program), vec!($(String::from($arg), )*).iter())
+    };
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn cmd_macro() {
+        let command = cmd!("git", "status", "-s");
+        assert_eq!(command.get_program(), "git");
+        assert_eq!(*command.get_args(), vec!("status", "-s"))
     }
 }
