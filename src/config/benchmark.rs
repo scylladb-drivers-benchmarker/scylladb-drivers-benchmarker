@@ -11,23 +11,15 @@ pub enum ProgressType {
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
-pub struct BenchmarkConfig {
-    pub name: String,
+pub struct BenchmarkData {
     pub starting_step: u32,
     pub no_steps: u32,
     pub step_progress: u32,
     pub progress_type: ProgressType,
 }
 
-impl Configuration for BenchmarkConfig {
-    type ConfigListType = BenchmarkConfigList;
-    fn name(&self) -> String {
-        self.name.clone()
-    }
-}
-
-impl BenchmarkConfig {
-    pub fn iter_points(&self) -> impl Iterator<Item = u32> {
+impl BenchmarkData {
+    pub fn benchmark_points(&self) -> impl Iterator<Item = u32> {
         struct ReturnIterator {
             pub starting_step: u32,
             pub step_progress: u32,
@@ -61,6 +53,22 @@ impl BenchmarkConfig {
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
+pub struct BenchmarkConfig {
+    pub name: String,
+
+    #[serde(flatten)]
+    pub data: BenchmarkData,
+}
+
+impl Configuration for BenchmarkConfig {
+    type ConfigListType = BenchmarkConfigList;
+    fn name(&self) -> String {
+        self.name.clone()
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
 pub struct BenchmarkConfigList {
     #[serde(rename = "benchmarks")]
     pub configs: Vec<BenchmarkConfig>,
@@ -82,10 +90,12 @@ mod tests {
     fn serialize_benchmark_config() {
         let config = BenchmarkConfig {
             name: "benchmark_name".to_string(),
-            starting_step: 1,
-            no_steps: 5,
-            step_progress: 2,
-            progress_type: ProgressType::Multiplicative,
+            data: BenchmarkData {
+                starting_step: 1,
+                no_steps: 5,
+                step_progress: 2,
+                progress_type: ProgressType::Multiplicative,
+            },
         };
 
         let serialized: String = serde_yml::to_string(&config).unwrap();
@@ -102,18 +112,22 @@ progress-type: multiplicative
     fn serialize_benchmark_config_list() {
         let config1 = BenchmarkConfig {
             name: "benchmark_name1".to_string(),
-            starting_step: 1,
-            no_steps: 5,
-            step_progress: 2,
-            progress_type: ProgressType::Multiplicative,
+            data: BenchmarkData {
+                starting_step: 1,
+                no_steps: 5,
+                step_progress: 2,
+                progress_type: ProgressType::Multiplicative,
+            },
         };
 
         let config2 = BenchmarkConfig {
             name: "benchmark_name2".to_string(),
-            starting_step: 2,
-            no_steps: 6,
-            step_progress: 3,
-            progress_type: ProgressType::Additive,
+            data: BenchmarkData {
+                starting_step: 2,
+                no_steps: 6,
+                step_progress: 3,
+                progress_type: ProgressType::Additive,
+            },
         };
 
         let config_list = BenchmarkConfigList {

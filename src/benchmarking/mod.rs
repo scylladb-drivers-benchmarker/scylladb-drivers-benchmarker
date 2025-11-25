@@ -65,6 +65,11 @@ fn main(args: &BenchmarkingArguments, database: &Database) -> Result<(), Box<dyn
         find_config(&args.benchmark_name, &args.driver_config_path)?;
     let backend_config: BackendConfig = find_config(&args.driver_name, &args.driver_config_path)?;
 
+    let BenchmarkConfig {
+        name: benchmark_name,
+        data: benchmark_data,
+    } = benchmark_config;
+
     let git_hash: CommitHash = CommitHash::from_repository()?;
 
     let compiled_source = compile(
@@ -78,8 +83,8 @@ fn main(args: &BenchmarkingArguments, database: &Database) -> Result<(), Box<dyn
     benchmark(
         database,
         &executor,
-        benchmark_config.iter_points(),
+        benchmark_data.benchmark_points(),
         git_hash,
-        benchmark_config.name.clone(),
+        benchmark_name,
     )
 }
