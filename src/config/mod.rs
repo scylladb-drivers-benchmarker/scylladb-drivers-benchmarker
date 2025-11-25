@@ -23,9 +23,12 @@ pub fn find_config<ConfigType: Configuration>(
 }
 
 mod tests {
+    #[allow(unused_imports)]
     use crate::config::backend::BackendConfig;
-
-    use super::*;
+    #[allow(unused_imports)]
+    use crate::config::find_config;
+    #[allow(unused_imports)]
+    use std::path::Path;
 
     #[test]
     fn open_config() {
