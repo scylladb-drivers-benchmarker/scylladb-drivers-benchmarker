@@ -1,12 +1,9 @@
-use std::path::Path;
 
 use crate::cmd;
 use crate::command::Command;
 use std::error::Error;
 use std::fmt;
-use std::io::Stderr;
-use std::path::PathBuf;
-use std::process::{ExitStatus, Output};
+use std::process::ExitStatus;
 
 #[derive(Debug)]
 pub struct GitFailed {

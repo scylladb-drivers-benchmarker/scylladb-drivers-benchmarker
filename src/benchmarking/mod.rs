@@ -4,25 +4,20 @@ use std::{
     error::Error,
     iter::zip,
     path::PathBuf,
-    process::{self, Output},
 };
 
-use crate::{
-    cmd,
-    commit_hash::{self, CommitHash},
-};
-use crate::command::Command;
-use execution::{CompiledSource, Executor, SourceCode, compile};
+use crate::commit_hash::CommitHash;
+use execution::{Executor, SourceCode, compile};
 
 use crate::config::{
-    backend::{self, BackendConfig},
-    benchmark::{self, BenchmarkConfig, BenchmarkConfigList},
+    backend::BackendConfig,
+    benchmark::BenchmarkConfig,
     find_config,
 };
 
 use super::database::*;
 
-use clap::{Parser, builder::Str};
+use clap::Parser;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]

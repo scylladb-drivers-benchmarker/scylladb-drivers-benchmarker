@@ -1,7 +1,7 @@
 use std::{
     error::Error,
-    path::{Path, PathBuf},
-    process::{self, Output},
+    path::PathBuf,
+    process::Output,
 };
 
 use crate::command::Command;

@@ -5,7 +5,6 @@ mod config_traits;
 
 use std::{error::Error, path::Path};
 
-use backend::BackendConfig;
 use config_errors::ConfigurationNotFound;
 use config_traits::{Configuration, ConfigurationList};
 
@@ -24,6 +23,8 @@ pub fn find_config<ConfigType: Configuration>(
 }
 
 mod tests {
+    use crate::config::backend::BackendConfig;
+
     use super::*;
 
     #[test]
