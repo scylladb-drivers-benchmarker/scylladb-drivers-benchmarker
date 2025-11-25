@@ -1,10 +1,6 @@
-use std::{
-    error::Error,
-    path::PathBuf,
-    process::Output,
-};
+use std::{error::Error, path::PathBuf, process::Output};
 
-use crate::command::Command;
+use crate::{command::Command, database};
 
 pub struct SourceCode {
     pub path: Option<PathBuf>,
@@ -25,6 +21,8 @@ pub fn compile(
     command.output()?;
     Ok(CompiledSource {})
 }
+
+pub type ErrBenchmarkResult = Result<database::BenchmarkResult, Box<dyn Error>>;
 
 pub struct Executor {
     command: Command,
@@ -50,5 +48,15 @@ impl Executor {
             .process()
             .output()?;
         Ok(output)
+    }
+
+    pub fn command(&self) -> &Command {
+        &self.command
+    }
+
+    pub fn run(&self, param: u32) -> ErrBenchmarkResult {
+        let output = self.execute(param)?;
+        let output = String::from_utf8(output.stdout)?;
+        Ok(database::BenchmarkResult::new(Some(output)))
     }
 }

@@ -43,7 +43,7 @@ impl Command {
         }
 
         let mut arguments: Vec<String> = Vec::new();
-        while let Some(next_value) = it.next() {
+        for next_value in it.by_ref() {
             arguments.push(next_value);
         }
 
@@ -83,16 +83,16 @@ impl Command {
         self
     }
 
-    pub fn get_program(&self) -> &str {
+    pub fn program(&self) -> &str {
         self.program.as_str()
     }
 
-    pub fn get_args(&self) -> &Vec<String> {
+    pub fn args(&self) -> &Vec<String> {
         &self.arguments
     }
 
     pub fn process(self) -> std::process::Command {
-        let mut command = std::process::Command::new(self.get_program());
+        let mut command = std::process::Command::new(self.program());
         command.args(self.arguments);
         command
     }
@@ -118,7 +118,7 @@ mod test {
     #[test]
     fn cmd_macro() {
         let command = cmd!("git", "status", "-s");
-        assert_eq!(command.get_program(), "git");
-        assert_eq!(*command.get_args(), vec!("status", "-s"))
+        assert_eq!(command.program(), "git");
+        assert_eq!(*command.args(), vec!("status", "-s"))
     }
 }
