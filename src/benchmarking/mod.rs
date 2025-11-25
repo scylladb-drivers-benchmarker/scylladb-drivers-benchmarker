@@ -33,33 +33,6 @@ pub struct BenchmarkingArguments {
     pub instrumentation: String,
 }
 
-fn save_benchmark_results(
-    args: &BenchmarkingArguments,
-    git_hash: CommitHash,
-    results: impl Iterator<Item = ErrBenchmarkResult>,
-    benchmark_config: &BenchmarkConfig,
-    database: &Database,
-) -> Result<(), Box<dyn Error>> {
-    for (param, result) in zip(benchmark_config.iter_points(), results) {
-        match result {
-            Err(error) => {
-                return Err(error);
-            }
-            Ok(correct) => database.insert_data(
-                BenchmarkParams::new(
-                    git_hash.clone(),
-                    args.benchmark_name.clone(),
-                    param.into(),
-                    args.instrumentation.clone(),
-                ),
-                correct,
-            )?,
-        }
-    }
-
-    Ok(())
-}
-
 fn benchmark(
     database: &Database,
     executor: &Executor,
