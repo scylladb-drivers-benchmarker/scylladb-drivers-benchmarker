@@ -4,7 +4,7 @@ use std::{
     process::{self, Output},
 };
 
-use crate::benchmarking::command::Command;
+use crate::command::Command;
 
 pub struct SourceCode {
     pub path: Option<PathBuf>,

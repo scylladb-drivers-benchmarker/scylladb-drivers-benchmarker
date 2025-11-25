@@ -1,5 +1,3 @@
-mod command;
-mod errors;
 mod execution;
 
 use std::{
@@ -9,17 +7,17 @@ use std::{
     process::{self, Output},
 };
 
-use command::Command;
+use crate::{
+    cmd,
+    commit_hash::{self, CommitHash},
+};
+use crate::command::Command;
 use execution::{CompiledSource, Executor, SourceCode, compile};
 
-use crate::{
-    benchmarking::errors::{GitFailed, WrongCommitHash},
-    cmd,
-    config::{
-        backend::{self, BackendConfig},
-        benchmark::{self, BenchmarkConfig, BenchmarkConfigList},
-        find_config,
-    },
+use crate::config::{
+    backend::{self, BackendConfig},
+    benchmark::{self, BenchmarkConfig, BenchmarkConfigList},
+    find_config,
 };
 
 use super::database::*;
@@ -70,7 +68,7 @@ fn benchmark(
 
 fn save_benchmark_results(
     args: &BenchmarkingArguments,
-    git_hash: String,
+    git_hash: CommitHash,
     results: Vec<String>,
     benchmark_config: &BenchmarkConfig,
     backend_config: &BackendConfig,
@@ -96,25 +94,7 @@ fn main(args: &BenchmarkingArguments, database: &Database) -> Result<(), Box<dyn
         find_config(&args.benchmark_name, &args.driver_config_path)?;
     let backend_config: BackendConfig = find_config(&args.driver_name, &args.driver_config_path)?;
 
-    let git_get_hash = cmd!("git", "rev-parse", "--verify", "HEAD");
-    let output = git_get_hash.process().output()?;
-
-    let git_hash = String::from_utf8(output.stdout)?;
-
-    if !output.status.success() {
-        return Err(Box::new(GitFailed {
-            status: output.status,
-            stderr: output.stderr,
-        }));
-    }
-
-    if !git_hash.chars().all(|char| char.is_alphanumeric()) {
-        return Err(Box::new(WrongCommitHash {
-            got: git_hash,
-            reason: "git hashes should be alphanumeric".to_string(),
-        }));
-    }
-
+    let git_hash = CommitHash::from_repository()?;
     let results = benchmark(args, &benchmark_config, &backend_config)?;
     save_benchmark_results(
         args,

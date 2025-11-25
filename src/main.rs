@@ -2,6 +2,8 @@ mod benchmarking;
 mod config;
 mod database;
 mod plotting;
+mod commit_hash;
+mod command;
 
 use crate::database::Database;
 

@@ -1,6 +1,6 @@
 use sqlite::Connection;
 
-use crate::PathBuf;
+use crate::{PathBuf, commit_hash::CommitHash};
 use sqlite::State;
 pub struct Database {
     connection: Connection,
@@ -8,7 +8,7 @@ pub struct Database {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BenchmarkParams {
-    commit_hash: String,
+    commit_hash: CommitHash,
     benchmark_type: String,
     benchmark_argument: u64,
     measurement_method: String,
@@ -21,7 +21,7 @@ pub struct BenchmarkResult {
 
 impl BenchmarkParams {
     pub fn new(
-        commit_hash: String,
+        commit_hash: CommitHash,
         benchmark_type: String,
         benchmark_argument: u64,
         measurement_method: String,
@@ -140,7 +140,12 @@ mod tests {
     #[test]
     fn simple_insert_get() {
         let (db, _file) = get_db();
-        let params = BenchmarkParams::new("abc123".into(), "speed".into(), 42, "cold".into());
+        let params = BenchmarkParams::new(
+            CommitHash::new_unchecked("abc123".into()),
+            "speed".into(),
+            42,
+            "cold".into(),
+        );
         let result = BenchmarkResult::new(Some("result_result ".into()));
 
         db.insert_data(params.clone(), result).unwrap();
@@ -156,10 +161,20 @@ mod tests {
     fn insert_get_empty_and_timeout() {
         let (db, _file) = get_db();
 
-        let params1 = BenchmarkParams::new("abc123".into(), "speed".into(), 42, "cold".into());
+        let params1 = BenchmarkParams::new(
+            CommitHash::new_unchecked("abc123".into()),
+            "speed".into(),
+            42,
+            "cold".into(),
+        );
         let result_empty = BenchmarkResult::new(Some("".into()));
 
-        let params2 = BenchmarkParams::new("abc124".into(), "speed".into(), 42, "cold".into());
+        let params2 = BenchmarkParams::new(
+            CommitHash::new_unchecked("abc124".into()),
+            "speed".into(),
+            42,
+            "cold".into(),
+        );
         let result_timeout = BenchmarkResult::new(None);
 
         db.insert_data(params1.clone(), result_empty).unwrap();
@@ -176,7 +191,12 @@ mod tests {
     fn get_doesnt_exist() {
         let (db, _file) = get_db();
 
-        let params = BenchmarkParams::new("missing".into(), "none".into(), 123, "nope".into());
+        let params = BenchmarkParams::new(
+            CommitHash::new_unchecked("missing".into()),
+            "none".into(),
+            123,
+            "nope".into(),
+        );
 
         let result = db.get_data(params).unwrap();
 
@@ -186,7 +206,12 @@ mod tests {
     #[test]
     fn double_insert() {
         let (db, _file) = get_db();
-        let params = BenchmarkParams::new("abc123".into(), "speed".into(), 42, "cold".into());
+        let params = BenchmarkParams::new(
+            CommitHash::new_unchecked("abc123".into()),
+            "speed".into(),
+            42,
+            "cold".into(),
+        );
         let result1 = BenchmarkResult::new(Some("result_result ".into()));
         let result2 = BenchmarkResult::new(Some("result_result_result ".into()));
 
