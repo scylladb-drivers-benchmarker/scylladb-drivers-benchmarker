@@ -1,3 +1,5 @@
+use core::fmt;
+
 use shlex::Shlex;
 
 /// Struct used for parsing command from configs
@@ -7,14 +9,17 @@ pub struct Command {
     arguments: Vec<String>,
 }
 
-impl ToString for Command {
-    fn to_string(&self) -> String {
-        self.arguments
-            .iter()
-            .fold(self.program.clone(), |string, arg| string + arg)
+impl fmt::Display for Command {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.program)?;
+
+        for arg in &self.arguments {
+            write!(f, " {}", arg)?;
+        }
+        
+        Ok(())
     }
 }
-
 impl Command {
     /// Create a new command from a shell formatted string.
     /// ```
