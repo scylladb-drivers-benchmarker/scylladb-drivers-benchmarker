@@ -60,7 +60,7 @@ fn benchmark(
     Ok(())
 }
 
-fn main(args: &BenchmarkingArguments, database: &Database) -> Result<(), Box<dyn Error>> {
+pub fn main(args: &BenchmarkingArguments, database: &Database) -> Result<(), Box<dyn Error>> {
     let benchmark_config: BenchmarkConfig =
         find_config(&args.benchmark_name, &args.driver_config_path)?;
     let backend_config: BackendConfig = find_config(&args.driver_name, &args.driver_config_path)?;

@@ -10,7 +10,7 @@ mod utilities;
 use crate::database::Database;
 
 use clap::Parser;
-use std::path::PathBuf;
+use std::{error::Error, path::PathBuf};
 
 fn default_database_location() -> PathBuf {
     dirs::home_dir().unwrap().join("benchmarker.db")
@@ -30,15 +30,16 @@ pub struct App {
     #[clap(subcommand)]
     command: SubCommand,
 }
-fn main() {
-    let _db = Database::new(default_database_location()); // TODO use default database location or provided in argument (config?)
+fn main() -> Result<(), Box<dyn Error>> {
+    let _db = Database::new(default_database_location())?; // TODO use default database location or provided in argument (config?)
     let args = App::parse();
     match args.command {
-        SubCommand::Benchmark(back_args) => {
-            println!("{:?}", back_args);
+        SubCommand::Benchmark(benchmarking_args) => {
+            benchmarking::main(&benchmarking_args, &_db)?;
         }
         SubCommand::Plot(plot_args) => {
             println!("{:?}", plot_args);
         }
     }
+    Ok(())
 }
