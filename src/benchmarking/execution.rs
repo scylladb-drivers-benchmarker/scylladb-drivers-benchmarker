@@ -1,5 +1,6 @@
 use std::{error::Error, path::PathBuf, process::Output};
 
+use crate::utilities::BenchmarkRecord;
 use crate::{command::Command, database};
 
 pub struct SourceCode {
@@ -22,7 +23,7 @@ pub fn compile(
     Ok(CompiledSource {})
 }
 
-pub type ErrBenchmarkResult = Result<database::BenchmarkResult, Box<dyn Error>>;
+pub type ErrBenchmarkResult = Result<BenchmarkRecord, Box<dyn Error>>;
 
 pub struct Executor {
     command: Command,
@@ -57,6 +58,6 @@ impl Executor {
     pub fn run(&self, param: u32) -> ErrBenchmarkResult {
         let output = self.execute(param)?;
         let output = String::from_utf8(output.stdout)?;
-        Ok(database::BenchmarkResult::new(Some(output)))
+        Ok(BenchmarkRecord::new(Some(output)))
     }
 }

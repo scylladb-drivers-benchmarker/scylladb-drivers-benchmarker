@@ -1,4 +1,3 @@
-
 use serde::{Deserialize, Serialize};
 
 use crate::config::config_traits::{Configuration, ConfigurationList};

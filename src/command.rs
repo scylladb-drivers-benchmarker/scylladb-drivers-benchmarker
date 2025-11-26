@@ -16,7 +16,7 @@ impl fmt::Display for Command {
         for arg in &self.arguments {
             write!(f, " {}", arg)?;
         }
-        
+
         Ok(())
     }
 }

@@ -2,10 +2,8 @@ mod execution;
 
 use std::{error::Error, iter::zip, path::PathBuf};
 
-use crate::{
-    benchmarking::execution::ErrBenchmarkResult,
-    commit_hash::CommitHash,
-};
+use crate::utilities::BenchmarkParams;
+use crate::{benchmarking::execution::ErrBenchmarkResult, commit_hash::CommitHash};
 use execution::{Executor, SourceCode, compile};
 
 use crate::config::{backend::BackendConfig, benchmark::BenchmarkConfig, find_config};

@@ -1,4 +1,3 @@
-
 use crate::cmd;
 use crate::command::Command;
 use std::error::Error;
@@ -75,7 +74,7 @@ impl CommitHash {
 
     pub fn as_str(&self) -> &str {
         self.value.as_str()
-    } 
+    }
 
     pub fn value(&self) -> &String {
         &self.value

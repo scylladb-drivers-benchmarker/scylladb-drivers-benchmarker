@@ -1,48 +1,13 @@
 use sqlite::Connection;
 
-use crate::{PathBuf, commit_hash::CommitHash};
+use crate::PathBuf;
+use crate::commit_hash::CommitHash;
+use crate::utilities::BenchmarkParams;
+use crate::utilities::BenchmarkRecord;
+
 use sqlite::State;
 pub struct Database {
     connection: Connection,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BenchmarkParams {
-    commit_hash: CommitHash,
-    benchmark_type: String,
-    benchmark_argument: u64,
-    measurement_method: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BenchmarkResult {
-    data_json: Option<String>,
-}
-
-impl BenchmarkParams {
-    pub fn new(
-        commit_hash: CommitHash,
-        benchmark_type: String,
-        benchmark_argument: u64,
-        measurement_method: String,
-    ) -> BenchmarkParams {
-        BenchmarkParams {
-            commit_hash,
-            benchmark_type,
-            benchmark_argument,
-            measurement_method,
-        }
-    }
-}
-
-impl BenchmarkResult {
-    pub fn new(data_json: Option<String>) -> BenchmarkResult {
-        BenchmarkResult { data_json }
-    }
-
-    pub fn isTimeout(&self) -> bool {
-        self.data_json.is_none()
-    }
 }
 
 impl Database {
@@ -70,7 +35,7 @@ impl Database {
     pub fn insert_data(
         &self,
         params: BenchmarkParams,
-        result: BenchmarkResult,
+        result: BenchmarkRecord,
     ) -> Result<(), sqlite::Error> {
         let mut stmt = self.connection.prepare(
             "
@@ -85,7 +50,7 @@ impl Database {
         stmt.bind((3, params.benchmark_argument.to_string().as_str()))?;
         stmt.bind((4, params.measurement_method.as_str()))?;
 
-        if !result.isTimeout() {
+        if !result.is_timeout() {
             stmt.bind((5, result.data_json.unwrap().as_str()))?;
         }
 
@@ -96,7 +61,7 @@ impl Database {
     pub fn get_data(
         &self,
         params: BenchmarkParams,
-    ) -> Result<Option<BenchmarkResult>, sqlite::Error> {
+    ) -> Result<Option<BenchmarkRecord>, sqlite::Error> {
         let mut stmt = self.connection.prepare(
             "
                 SELECT data_json from  Benchmarks
@@ -115,7 +80,7 @@ impl Database {
         match stmt.next()? {
             State::Row => {
                 let data: Option<String> = stmt.read(0)?;
-                Ok(Some(BenchmarkResult::new(data)))
+                Ok(Some(BenchmarkRecord::new(data)))
             }
             State::Done => Ok(None),
         }
@@ -146,14 +111,14 @@ mod tests {
             42,
             "cold".into(),
         );
-        let result = BenchmarkResult::new(Some("result_result ".into()));
+        let result = BenchmarkRecord::new(Some("result_result ".into()));
 
         db.insert_data(params.clone(), result).unwrap();
 
         let retrieved = db.get_data(params.clone()).unwrap().unwrap();
 
         assert!(db.data_exists(params).unwrap());
-        assert!(!retrieved.isTimeout());
+        assert!(!retrieved.is_timeout());
         assert_eq!(retrieved.data_json.unwrap(), "result_result ");
     }
 
@@ -167,7 +132,7 @@ mod tests {
             42,
             "cold".into(),
         );
-        let result_empty = BenchmarkResult::new(Some("".into()));
+        let result_empty = BenchmarkRecord::new(Some("".into()));
 
         let params2 = BenchmarkParams::new(
             CommitHash::new_unchecked("abc124".into()),
@@ -175,7 +140,7 @@ mod tests {
             42,
             "cold".into(),
         );
-        let result_timeout = BenchmarkResult::new(None);
+        let result_timeout = BenchmarkRecord::new(None);
 
         db.insert_data(params1.clone(), result_empty).unwrap();
         db.insert_data(params2.clone(), result_timeout).unwrap();
@@ -183,7 +148,7 @@ mod tests {
         let retrieved_empty = db.get_data(params1).unwrap().unwrap();
         let retrieved_timeout = db.get_data(params2).unwrap().unwrap();
 
-        assert!(retrieved_timeout.isTimeout());
+        assert!(retrieved_timeout.is_timeout());
         assert_eq!(retrieved_empty.data_json.unwrap(), "");
     }
 
@@ -212,8 +177,8 @@ mod tests {
             42,
             "cold".into(),
         );
-        let result1 = BenchmarkResult::new(Some("result_result ".into()));
-        let result2 = BenchmarkResult::new(Some("result_result_result ".into()));
+        let result1 = BenchmarkRecord::new(Some("result_result ".into()));
+        let result2 = BenchmarkRecord::new(Some("result_result_result ".into()));
 
         db.insert_data(params.clone(), result1.clone()).unwrap();
 

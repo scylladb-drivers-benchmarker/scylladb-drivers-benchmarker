@@ -1,10 +1,11 @@
 #[allow(dead_code)]
 mod benchmarking;
+mod command;
+mod commit_hash;
 mod config;
 mod database;
 mod plotting;
-mod commit_hash;
-mod command;
+mod utilities;
 
 use crate::database::Database;
 
