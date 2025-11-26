@@ -31,46 +31,39 @@ pub struct BenchmarkingArguments {
     pub instrumentation: String,
 }
 
-fn benchmark(
-    database: &Database,
-    executor: &Executor,
-    benchmark_points: impl Iterator<Item = u32>,
-    commit_hash: CommitHash,
-    benchmark_name: String,
-) -> Result<(), Box<dyn Error>> {
-    let measurement_method: String = executor.command().program().into();
+pub fn main(args: &BenchmarkingArguments, database: &Database) -> Result<(), Box<dyn Error>> {
+    let backend_config: BackendConfig = find_config(&args.driver_name, &args.driver_config_path)?;
+
+    let BenchmarkConfig {
+        name: benchmark_name,
+        data: benchmark_data,
+    } = find_config(&args.benchmark_name, &args.driver_config_path)?;
+
+    let commit_hash: CommitHash = CommitHash::from_repository()?;
 
     let benchmark_params = |param: u32| {
         BenchmarkParams::new(
             commit_hash.clone(),
             benchmark_name.clone(),
             param.into(),
-            measurement_method.clone(),
+            args.instrumentation.clone(),
         )
     };
 
-    for param in benchmark_points {
-        if database.data_exists(benchmark_params(param))? {
-            continue;
-        }
-        let benchmark_result = executor.run(param)?;
-        database.insert_data(benchmark_params(param), benchmark_result)?;
+    let points = benchmark_data
+        .benchmark_points()
+        .filter_map(|point| {
+            match database.data_exists(benchmark_params(point)) {
+                Ok(true) => Some(Ok(point)), 
+                Ok(false) => None,
+                Err(e) => Some(Err(e)),
+            }
+        })
+        .collect::<Result<Vec<u32>, sqlite::Error>>()?;
+
+    if points.is_empty() {
+        return Ok(());
     }
-
-    Ok(())
-}
-
-pub fn main(args: &BenchmarkingArguments, database: &Database) -> Result<(), Box<dyn Error>> {
-    let benchmark_config: BenchmarkConfig =
-        find_config(&args.benchmark_name, &args.driver_config_path)?;
-    let backend_config: BackendConfig = find_config(&args.driver_name, &args.driver_config_path)?;
-
-    let BenchmarkConfig {
-        name: benchmark_name,
-        data: benchmark_data,
-    } = benchmark_config;
-
-    let git_hash: CommitHash = CommitHash::from_repository()?;
 
     let compiled_source = compile(
         backend_config.build_command.as_str(),
@@ -80,11 +73,10 @@ pub fn main(args: &BenchmarkingArguments, database: &Database) -> Result<(), Box
     let mut executor = Executor::new(compiled_source, backend_config.run_command.as_str())?;
     executor.measure(args.instrumentation.as_ref())?;
 
-    benchmark(
-        database,
-        &executor,
-        benchmark_data.benchmark_points(),
-        git_hash,
-        benchmark_name,
-    )
+    for point in points {
+        let benchmark_result = executor.run(point)?;
+        database.insert_data(benchmark_params(point), benchmark_result)?;
+    }
+
+    Ok(())
 }
