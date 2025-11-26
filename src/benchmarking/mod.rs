@@ -4,7 +4,7 @@ use std::{error::Error, iter::zip, path::PathBuf};
 
 use crate::utilities::BenchmarkParams;
 use crate::{benchmarking::execution::ErrBenchmarkResult, commit_hash::CommitHash};
-use execution::{Executor, SourceCode, compile};
+use execution::{Executor, SourceCode, build_source};
 
 use crate::config::{backend::BackendConfig, benchmark::BenchmarkConfig, find_config};
 
@@ -65,12 +65,12 @@ pub fn main(args: &BenchmarkingArguments, database: &Database) -> Result<(), Box
         return Ok(());
     }
 
-    let compiled_source = compile(
+    let built_source = build_source(
         backend_config.build_command.as_str(),
         SourceCode { path: None },
     )?;
 
-    let mut executor = Executor::new(compiled_source, backend_config.run_command.as_str())?;
+    let mut executor = Executor::new(built_source, backend_config.run_command.as_str())?;
     executor.measure(args.instrumentation.as_ref())?;
 
     for point in points {

@@ -7,20 +7,20 @@ pub struct SourceCode {
     pub path: Option<PathBuf>,
 }
 
-pub struct CompiledSource {}
+pub struct BuiltSource {}
 
-pub fn compile(
-    compilation_command: &str,
+pub fn build_source(
+    build_command: &str,
     source_code: SourceCode,
-) -> Result<CompiledSource, Box<dyn Error>> {
-    let mut command = Command::new(compilation_command)?.process();
+) -> Result<BuiltSource, Box<dyn Error>> {
+    let mut command = Command::new(build_command)?.process();
 
     if let Some(path) = source_code.path {
         command.current_dir(path);
     }
 
     command.output()?;
-    Ok(CompiledSource {})
+    Ok(BuiltSource {})
 }
 
 pub type ErrBenchmarkResult = Result<BenchmarkRecord, Box<dyn Error>>;
@@ -30,7 +30,7 @@ pub struct Executor {
 }
 
 impl Executor {
-    pub fn new(_: CompiledSource, execution_command: &str) -> Result<Executor, Box<dyn Error>> {
+    pub fn new(_: BuiltSource, execution_command: &str) -> Result<Executor, Box<dyn Error>> {
         let command = Command::new(execution_command)?;
         Ok(Executor { command })
     }
