@@ -1,3 +1,5 @@
+use std::error::Error;
+
 use crate::commit_hash::CommitHash;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -7,6 +9,9 @@ pub struct BenchmarkParams {
     pub benchmark_argument: u64,
     pub measurement_method: String,
 }
+
+pub type BenchmarkResult = Result<BenchmarkRecord, Box<dyn Error>>;
+
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BenchmarkRecord {
