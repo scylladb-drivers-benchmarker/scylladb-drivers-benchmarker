@@ -105,7 +105,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn command_from_str() -> Result<(), Box<dyn Error + 'static>> {
+    fn command_from_str() -> Result<(), Box<dyn Error>> {
         let mut command = Command::from_str("git commit -m \"This is a commit message\"")?;
         command.add_argument("--author".to_owned());
         command.add_argument("This is a commit author".to_owned());
@@ -118,6 +118,28 @@ mod test {
         assert_eq!(args[3], "--author");
         assert_eq!(args[4], "This is a commit author");
         Ok(())
+    }
+
+    #[test]
+    fn program() {
+        let command = Command::new_program("git".to_owned());
+        assert!(command.program() == "git");
+        assert!(*command.args() == Vec::<String>::new());
+    }
+
+    #[test]
+    fn with_args() {
+        let command = Command::new_args(
+            "git".to_owned(),
+            vec!["--author", "Author", "-m", "\"This is a commit message\""].into_iter(),
+        );
+        assert_eq!(command.program(), "git".to_owned());
+
+        let args: &Vec<String> = command.args();
+        assert_eq!(args[0], "--author");
+        assert_eq!(args[1], "Author");
+        assert_eq!(args[2], "-m");
+        assert_eq!(args[3], "\"This is a commit message\"");
     }
 
     #[test]
