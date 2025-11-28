@@ -2,7 +2,7 @@ use std::str::FromStr;
 use std::{error::Error, path::PathBuf, process::Output};
 
 use crate::utilities::BenchmarkRecord;
-use crate::{command::Command, database};
+use crate::command::Command;
 
 pub struct SourceCode {
     pub path: Option<PathBuf>,

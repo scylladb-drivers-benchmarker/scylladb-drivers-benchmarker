@@ -1,17 +1,16 @@
 mod execution;
 
 use std::path::Path;
-use std::{error::Error, iter::zip, path::PathBuf};
+use std::error::Error;
 
 use crate::config::backend::BackendConfigList;
 use crate::config::config_traits::ConfigurationList;
-use crate::config::{backend, open_config};
-use crate::utilities::{BenchmarkParams, BenchmarkResult};
-use crate::{benchmarking::execution::ErrBenchmarkResult, commit_hash::CommitHash};
+use crate::config::open_config;
+use crate::utilities::BenchmarkParams;
+use crate::commit_hash::CommitHash;
 use execution::{Executor, SourceCode, build_source};
-use serde_yml::mapping::Iter;
 
-use crate::config::{backend::BackendConfig, benchmark::BenchmarkConfig, find_config};
+use crate::config::{backend::BackendConfig, benchmark::BenchmarkConfig};
 
 use super::database::*;
 
