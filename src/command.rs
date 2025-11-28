@@ -1,4 +1,5 @@
 use core::fmt;
+use std::str::FromStr;
 
 use shlex::Shlex;
 
@@ -20,22 +21,11 @@ impl fmt::Display for Command {
         Ok(())
     }
 }
-impl Command {
-    /// Create a new command from a shell formatted string.
-    /// ```
-    /// let command = Command::new("git commit -m \"This is a commit message\"".to_owned());
-    /// command.add_argument("--author");
-    /// command.add_argument("This is a commit author")
-    /// let process_cmd = command.process();
-    /// assert!(process_cmd.get_program() == "git");
-    /// let args: Vec<&OsStr> = process_cmd.get_args().collect();
-    /// assert_eq!(args[0], "commit");
-    /// assert_eq!(args[1], "-m");
-    /// assert_eq!(args[2], "This is a commit message");
-    /// assert_eq!(args[3], "--author");
-    /// assert_eq!(args[4], "This is a commit author");
-    /// ```
-    pub fn new(command: &str) -> Result<Self, String> {
+
+impl FromStr for Command {
+    type Err = String;
+
+    fn from_str(command: &str) -> Result<Self, Self::Err> {
         let mut it = Shlex::new(command);
         let program: String = it.next().ok_or("Program name not given")?;
         if it.had_error {
@@ -56,7 +46,9 @@ impl Command {
             Ok(Command { program, arguments })
         }
     }
+}
 
+impl Command {
     pub fn new_program(program: String) -> Self {
         Command {
             program,
@@ -99,11 +91,6 @@ impl Command {
 }
 
 /// Utility macro to create an explicit command.
-/// ```
-/// let command = cmd!("git", "status", "-s");
-/// assert_eq!(command.get_program(), "git");
-/// assert_eq!(command.get_args(), vec!("status", "-s"))
-/// ```
 #[macro_export]
 macro_rules! cmd {
     ( $program:expr, $( $arg:expr ), *) => {
@@ -113,7 +100,25 @@ macro_rules! cmd {
 
 #[cfg(test)]
 mod test {
+    use std::{error::Error, ffi::OsStr};
+
     use super::*;
+
+    #[test]
+    fn command_from_str() -> Result<(), Box<dyn Error + 'static>> {
+        let mut command = Command::from_str("git commit -m \"This is a commit message\"")?;
+        command.add_argument("--author".to_owned());
+        command.add_argument("This is a commit author".to_owned());
+        let process_cmd = command.process();
+        assert!(process_cmd.get_program() == "git");
+        let args: Vec<&OsStr> = process_cmd.get_args().collect();
+        assert_eq!(args[0], "commit");
+        assert_eq!(args[1], "-m");
+        assert_eq!(args[2], "This is a commit message");
+        assert_eq!(args[3], "--author");
+        assert_eq!(args[4], "This is a commit author");
+        Ok(())
+    }
 
     #[test]
     fn cmd_macro() {

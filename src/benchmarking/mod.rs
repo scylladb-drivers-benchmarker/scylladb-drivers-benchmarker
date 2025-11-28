@@ -1,10 +1,15 @@
 mod execution;
 
+use std::path::Path;
 use std::{error::Error, iter::zip, path::PathBuf};
 
-use crate::utilities::BenchmarkParams;
+use crate::config::backend::BackendConfigList;
+use crate::config::config_traits::ConfigurationList;
+use crate::config::{backend, open_config};
+use crate::utilities::{BenchmarkParams, BenchmarkResult};
 use crate::{benchmarking::execution::ErrBenchmarkResult, commit_hash::CommitHash};
 use execution::{Executor, SourceCode, build_source};
+use serde_yml::mapping::Iter;
 
 use crate::config::{backend::BackendConfig, benchmark::BenchmarkConfig, find_config};
 
@@ -16,54 +21,52 @@ use clap::Parser;
 #[command(version, about, long_about = None)]
 pub struct BenchmarkingArguments {
     #[arg(short, long)]
-    pub benchmark_name: String,
-
-    #[arg(long, default_value = "./config.yml")]
-    pub benchmark_config_path: PathBuf,
-
-    #[arg(short, long)]
     pub driver_name: String,
 
-    #[arg(long, default_value = "./config.yml")]
-    pub driver_config_path: PathBuf,
-
     #[arg(short, long)]
-    pub instrumentation: String,
+    pub measurement_method: String,
 }
 
-pub fn main(args: &BenchmarkingArguments, database: &Database) -> Result<(), Box<dyn Error>> {
-    let backend_config: BackendConfig = find_config(&args.driver_name, &args.driver_config_path)?;
-
+pub fn main(
+    database: &Database,
+    commit_hash: CommitHash,
+    benchmark_config: BenchmarkConfig,
+    backend_config_path: &Path,
+    measurement_method: String,
+) -> Result<(), Box<dyn Error>> {
     let BenchmarkConfig {
         name: benchmark_name,
         data: benchmark_data,
-    } = find_config(&args.benchmark_name, &args.driver_config_path)?;
-
-    let commit_hash: CommitHash = CommitHash::from_repository()?;
+    } = benchmark_config;
 
     let benchmark_params = |param: u32| {
         BenchmarkParams::new(
             commit_hash.clone(),
             benchmark_name.clone(),
             param.into(),
-            args.instrumentation.clone(),
+            measurement_method.clone(),
         )
     };
 
     let points = benchmark_data
         .benchmark_points()
-        .filter_map(|point| {
-            match database.data_exists(benchmark_params(point)) {
-                Ok(true) => Some(Ok(point)), 
+        .filter_map(
+            |point| match database.data_exists(benchmark_params(point)) {
+                Ok(true) => Some(Ok(point)),
                 Ok(false) => None,
                 Err(e) => Some(Err(e)),
-            }
-        })
+            },
+        )
         .collect::<Result<Vec<u32>, sqlite::Error>>()?;
 
     if points.is_empty() {
         return Ok(());
     }
+
+    let backend_config: BackendConfig = open_config::<BackendConfigList>(backend_config_path)?
+        .configs()
+        .find(|config| config.benchmark_name == benchmark_name)
+        .expect("backend not found"); // TODO: fix
 
     let built_source = build_source(
         backend_config.build_command.as_str(),
@@ -71,11 +74,11 @@ pub fn main(args: &BenchmarkingArguments, database: &Database) -> Result<(), Box
     )?;
 
     let mut executor = Executor::new(built_source, backend_config.run_command.as_str())?;
-    executor.measure(args.instrumentation.as_ref())?;
+    executor.measure(measurement_method.as_str())?;
 
-    for point in points {
+    for point in points.iter().cloned() {
         let benchmark_result = executor.run(point)?;
-        database.insert_data(benchmark_params(point), benchmark_result)?;
+        database.insert_data(benchmark_params(point.into()), benchmark_result)?;
     }
 
     Ok(())

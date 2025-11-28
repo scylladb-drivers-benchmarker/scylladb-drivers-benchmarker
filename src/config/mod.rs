@@ -1,19 +1,25 @@
 pub mod backend;
 pub mod benchmark;
-mod config_errors;
-mod config_traits;
+pub mod config_errors;
+pub mod config_traits;
 
 use std::{error::Error, path::Path};
 
 use config_errors::ConfigurationNotFound;
 use config_traits::{Configuration, ConfigurationList};
 
+pub fn open_config<ConfigListType: ConfigurationList>(
+    config_path: &Path,
+) -> Result<ConfigListType, Box<dyn Error>> {
+    let file = std::fs::File::open(config_path)?;
+    return Ok(serde_yml::from_reader(file)?);
+}
+
 pub fn find_config<ConfigType: Configuration>(
     config_name: &str,
     config_path: &Path,
 ) -> Result<ConfigType, Box<dyn Error>> {
-    let file = std::fs::File::open(config_path)?;
-    let config_list: ConfigType::ConfigListType = serde_yml::from_reader(file)?;
+    let config_list: ConfigType::ConfigListType = open_config(config_path)?;
     config_list
         .find_config(config_name)
         .ok_or(Box::new(ConfigurationNotFound {

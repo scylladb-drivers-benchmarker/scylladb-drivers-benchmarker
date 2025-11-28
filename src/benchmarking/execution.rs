@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use std::{error::Error, path::PathBuf, process::Output};
 
 use crate::utilities::BenchmarkRecord;
@@ -13,7 +14,7 @@ pub fn build_source(
     build_command: &str,
     source_code: SourceCode,
 ) -> Result<BuiltSource, Box<dyn Error>> {
-    let mut command = Command::new(build_command)?.process();
+    let mut command = Command::from_str(build_command)?.process();
 
     if let Some(path) = source_code.path {
         command.current_dir(path);
@@ -31,13 +32,13 @@ pub struct Executor {
 
 impl Executor {
     pub fn new(_: BuiltSource, execution_command: &str) -> Result<Executor, Box<dyn Error>> {
-        let command = Command::new(execution_command)?;
+        let command = Command::from_str(execution_command)?;
         Ok(Executor { command })
     }
 
-    pub fn measure(&mut self, instrumentation: &str) -> Result<(), Box<dyn Error>> {
-        let instrumentation_command = Command::new(instrumentation)?;
-        self.command = instrumentation_command.with_arg(self.command.to_string());
+    pub fn measure(&mut self, measurement_method: &str) -> Result<(), Box<dyn Error>> {
+        let measurement_method_command = Command::from_str(measurement_method)?;
+        self.command = measurement_method_command.with_arg(self.command.to_string());
         Ok(())
     }
 

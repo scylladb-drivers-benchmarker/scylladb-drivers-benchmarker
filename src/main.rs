@@ -1,45 +1,122 @@
-#[allow(dead_code)]
-mod benchmarking;
-mod command;
-mod commit_hash;
-mod config;
-mod database;
-mod plotting;
-mod utilities;
-
-use crate::database::Database;
-
 use clap::Parser;
-use std::{error::Error, path::PathBuf};
+use std::{error::Error, path::PathBuf, str::FromStr};
 
-fn default_database_location() -> PathBuf {
-    dirs::home_dir().unwrap().join("benchmarker.db")
+use clap;
+
+#[derive(Parser, Debug, Clone, PartialEq, Eq)]
+pub struct RepositoryWithCommits {
+    repo_path: PathBuf,
+    commits: Vec<String>,
 }
 
-use clap::Subcommand;
+impl FromStr for RepositoryWithCommits {
+    type Err = Box<dyn Error + Send + Sync>;
 
-#[derive(Debug, Subcommand)]
-enum SubCommand {
-    Benchmark(benchmarking::BenchmarkingArguments),
-    Plot(plotting::FrontendArguments),
+    fn from_str(string: &str) -> Result<Self, Self::Err> {
+        let mut parts = string.split(':');
+        let repo_path = parts.next().expect("repo path not supplied"); // TODO: fix
+
+        let commits: Vec<String> = parts.map(str::to_owned).collect();
+
+        Ok(RepositoryWithCommits {
+            repo_path: PathBuf::from_str(repo_path)?,
+            commits,
+        })
+    }
+}
+
+#[derive(Debug, clap::Subcommand)]
+enum AppSubcommand {
+    Plot {
+        #[arg(short, long)]
+        visualization_kind: Option<String>,
+
+        #[arg(short, long)]
+        from: Vec<RepositoryWithCommits>,
+    },
+    Run {
+        #[arg(long, default_value = "./config.yml")]
+        backend_config_path: PathBuf,
+    },
 }
 
 #[derive(Debug, Parser)]
-#[clap(name = "my-app", version)]
-pub struct App {
+#[clap(name = "my-app", version, about)]
+struct App {
+    #[arg(short, long)]
+    #[clap(default_value = "time")]
+    measurement_method: String,
+
+    benchmark_name: String,
+
+    #[arg(long, default_value = "./config.yml")]
+    benchmark_config_path: PathBuf,
+
     #[clap(subcommand)]
-    command: SubCommand,
+    subcommand: AppSubcommand,
 }
+
 fn main() -> Result<(), Box<dyn Error>> {
-    let _db = Database::new(default_database_location())?; // TODO use default database location or provided in argument (config?)
     let args = App::parse();
-    match args.command {
-        SubCommand::Benchmark(benchmarking_args) => {
-            benchmarking::main(&benchmarking_args, &_db)?;
-        }
-        SubCommand::Plot(plot_args) => {
-            println!("{:?}", plot_args);
-        }
+    match args.subcommand {
+        AppSubcommand::Run {
+            backend_config_path,
+        } => scylladb_drivers_benchmarker::run_benchmarks(
+            &args.benchmark_name,
+            &args.benchmark_config_path,
+            args.measurement_method,
+            backend_config_path.as_path(),
+        ),
+        AppSubcommand::Plot { .. } => scylladb_drivers_benchmarker::plot_benchmarks(),
     }
-    Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use std::path::Path;
+
+    use clap::Parser;
+
+    use crate::{App, AppSubcommand, RepositoryWithCommits};
+
+    #[test]
+    fn basic_run() {
+        let args = App::parse_from(vec!["scylladb-drivers-benchmarker", "select", "run"]);
+        assert_eq!(args.measurement_method, "time");
+        assert_eq!(args.benchmark_name, "select");
+        assert!(matches!(args.subcommand, AppSubcommand::Run { .. }));
+    }
+
+    #[test]
+    fn advanced_plot() {
+        let args = App::parse_from(vec![
+            "scylladb-drivers-benchmarker",
+            "select",
+            "plot",
+            "--from=repo:branch",
+            "--from", "repo2:commit", 
+        ]);
+        assert_eq!(args.measurement_method, "time");
+        assert_eq!(args.benchmark_name, "select");
+
+        let AppSubcommand::Plot {
+            visualization_kind,
+            from,
+        } = args.subcommand
+        else {
+            panic!("Not a plot");
+        };
+
+        assert_eq!(visualization_kind, None);
+        assert_eq!(
+            from,
+            vec!(RepositoryWithCommits {
+                repo_path: Path::new("repo").to_path_buf(),
+                commits: vec!("branch".to_owned())
+            }, RepositoryWithCommits {
+                repo_path: Path::new("repo2").to_path_buf(),
+                commits: vec!("commit".to_owned())
+            })
+        );
+    }
 }
