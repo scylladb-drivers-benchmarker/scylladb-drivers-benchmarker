@@ -1,6 +1,7 @@
+use std::path::PathBuf;
+
 use sqlite::Connection;
 
-use crate::PathBuf;
 use crate::commit_hash::CommitHash;
 use crate::utilities::BenchmarkParams;
 use crate::utilities::BenchmarkRecord;
