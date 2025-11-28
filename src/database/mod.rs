@@ -93,7 +93,7 @@ impl Database {
 
 #[cfg(test)]
 mod tests {
-    use crate::database::*;
+    use crate::{commit_hash::CommitHash, database::*};
     use tempfile::NamedTempFile;
 
     fn get_db() -> (Database, NamedTempFile) {

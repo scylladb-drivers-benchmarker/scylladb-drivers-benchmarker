@@ -1,4 +1,5 @@
 use clap::Parser;
+use scylladb_drivers_benchmarker::database::Database;
 use std::{error::Error, path::PathBuf, str::FromStr};
 
 use clap;
@@ -44,6 +45,9 @@ enum AppSubcommand {
 #[clap(name = "my-app", version, about)]
 struct App {
     #[arg(short, long)]
+    dp_path: Option<PathBuf>,
+
+    #[arg(short, long)]
     #[clap(default_value = "time")]
     measurement_method: String,
 
@@ -56,12 +60,22 @@ struct App {
     subcommand: AppSubcommand,
 }
 
+fn default_db_path() -> std::path::PathBuf {
+    dirs::home_dir().unwrap().join("benchmarker.db")
+}
+
+
 fn main() -> Result<(), Box<dyn Error>> {
     let args = App::parse();
+
+    let dp_path = args.dp_path.unwrap_or_else(default_db_path);
+    let database = Database::new(dp_path)?;
+    
     match args.subcommand {
         AppSubcommand::Run {
             backend_config_path,
         } => scylladb_drivers_benchmarker::run_benchmarks(
+            &database,
             &args.benchmark_name,
             &args.benchmark_config_path,
             args.measurement_method,
