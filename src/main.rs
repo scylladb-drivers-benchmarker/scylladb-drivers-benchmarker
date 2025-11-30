@@ -1,30 +1,8 @@
 use clap::Parser;
-use scylladb_drivers_benchmarker::database::Database;
-use std::{error::Error, path::PathBuf, str::FromStr};
+use scylladb_drivers_benchmarker::{database::Database, RepositoryWithCommits};
+use std::{error::Error, path::PathBuf};
 
 use clap;
-
-#[derive(Parser, Debug, Clone, PartialEq, Eq)]
-pub struct RepositoryWithCommits {
-    repo_path: PathBuf,
-    commits: Vec<String>,
-}
-
-impl FromStr for RepositoryWithCommits {
-    type Err = Box<dyn Error + Send + Sync>;
-
-    fn from_str(string: &str) -> Result<Self, Self::Err> {
-        let mut parts = string.split(':');
-        let repo_path = parts.next().expect("repo path not supplied"); // TODO: fix
-
-        let commits: Vec<String> = parts.map(str::to_owned).collect();
-
-        Ok(RepositoryWithCommits {
-            repo_path: PathBuf::from_str(repo_path)?,
-            commits,
-        })
-    }
-}
 
 #[derive(Debug, clap::Subcommand)]
 enum AppSubcommand {
@@ -81,7 +59,17 @@ fn main() -> Result<(), Box<dyn Error>> {
             args.measurement_method,
             backend_config_path.as_path(),
         ),
-        AppSubcommand::Plot { .. } => scylladb_drivers_benchmarker::plot_benchmarks(),
+        AppSubcommand::Plot { 
+            visualization_kind,
+            from
+         } => scylladb_drivers_benchmarker::plot_benchmarks(
+            &database,
+            &args.benchmark_name,
+            &args.benchmark_config_path,
+            args.measurement_method,
+            visualization_kind,
+            from,
+        ),
     }
 }
 
