@@ -12,7 +12,6 @@ pub struct BenchmarkParams {
 
 pub type BenchmarkResult = Result<BenchmarkRecord, Box<dyn Error>>;
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BenchmarkRecord {
     pub data_json: Option<String>,

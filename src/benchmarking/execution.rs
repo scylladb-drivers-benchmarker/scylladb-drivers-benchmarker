@@ -1,8 +1,8 @@
 use std::str::FromStr;
 use std::{error::Error, path::PathBuf, process::Output};
 
-use crate::utilities::BenchmarkRecord;
 use crate::command::Command;
+use crate::utilities::BenchmarkRecord;
 
 pub struct SourceCode {
     pub path: Option<PathBuf>,

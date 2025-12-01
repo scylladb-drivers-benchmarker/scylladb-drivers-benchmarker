@@ -1,6 +1,14 @@
-use std::{error::Error, path::{Path, PathBuf}, str::FromStr};
+use std::{
+    error::Error,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
-use crate::{commit_hash::CommitHash, config::{benchmark::BenchmarkConfig, find_config}, database::Database};
+use crate::{
+    commit_hash::CommitHash,
+    config::{benchmark::BenchmarkConfig, find_config},
+    database::Database,
+};
 
 use clap::Parser;
 
@@ -45,7 +53,13 @@ pub fn run_benchmarks(
     let benchmark_config: BenchmarkConfig = find_config(&benchmark_name, &benchmark_config_path)?;
 
     let commit_hash: CommitHash = CommitHash::from_repository()?;
-    benchmarking::main(&database, commit_hash, benchmark_config, backend_config_path, measurement_method)
+    benchmarking::main(
+        &database,
+        commit_hash,
+        benchmark_config,
+        backend_config_path,
+        measurement_method,
+    )
 }
 
 pub fn plot_benchmarks(
@@ -63,12 +77,13 @@ pub fn plot_benchmarks(
         .iter()
         .flat_map(|repo| {
             let repo_name = repo.repo_path.to_string_lossy();
-            
-            repo.commits.iter().map(move |commit|
-                format!("{}@{}", repo_name, commit)
-            )
-        }).collect();
-    
+
+            repo.commits
+                .iter()
+                .map(move |commit| format!("{}@{}", repo_name, commit))
+        })
+        .collect();
+
     plotting::main(
         &database,
         &benchmark_name,
@@ -76,5 +91,6 @@ pub fn plot_benchmarks(
         measurement_method,
         visualization_kind,
         &commit_hashes,
-        &names)
+        &names,
+    )
 }

@@ -1,5 +1,5 @@
 use clap::Parser;
-use scylladb_drivers_benchmarker::{database::Database, RepositoryWithCommits};
+use scylladb_drivers_benchmarker::{RepositoryWithCommits, database::Database};
 use std::{error::Error, path::PathBuf};
 
 use clap;
@@ -42,13 +42,12 @@ fn default_db_path() -> std::path::PathBuf {
     dirs::home_dir().unwrap().join("benchmarker.db")
 }
 
-
 fn main() -> Result<(), Box<dyn Error>> {
     let args = App::parse();
 
     let dp_path = args.dp_path.unwrap_or_else(default_db_path);
     let database = Database::new(dp_path)?;
-    
+
     match args.subcommand {
         AppSubcommand::Run {
             backend_config_path,
@@ -59,10 +58,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             args.measurement_method,
             backend_config_path.as_path(),
         ),
-        AppSubcommand::Plot { 
+        AppSubcommand::Plot {
             visualization_kind,
-            from
-         } => scylladb_drivers_benchmarker::plot_benchmarks(
+            from,
+        } => scylladb_drivers_benchmarker::plot_benchmarks(
             &database,
             &args.benchmark_name,
             &args.benchmark_config_path,
@@ -96,7 +95,8 @@ mod test {
             "select",
             "plot",
             "--from=repo:branch",
-            "--from", "repo2:commit", 
+            "--from",
+            "repo2:commit",
         ]);
         assert_eq!(args.measurement_method, "time");
         assert_eq!(args.benchmark_name, "select");
@@ -112,13 +112,16 @@ mod test {
         assert_eq!(visualization_kind, None);
         assert_eq!(
             from,
-            vec!(RepositoryWithCommits {
-                repo_path: Path::new("repo").to_path_buf(),
-                commits: vec!("branch".to_owned())
-            }, RepositoryWithCommits {
-                repo_path: Path::new("repo2").to_path_buf(),
-                commits: vec!("commit".to_owned())
-            })
+            vec!(
+                RepositoryWithCommits {
+                    repo_path: Path::new("repo").to_path_buf(),
+                    commits: vec!("branch".to_owned())
+                },
+                RepositoryWithCommits {
+                    repo_path: Path::new("repo2").to_path_buf(),
+                    commits: vec!("commit".to_owned())
+                }
+            )
         );
     }
 }

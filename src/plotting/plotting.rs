@@ -1,9 +1,9 @@
 use std::error::Error;
 
-use crate::database::Database;
-use crate::utilities::{BenchmarkParams};
-use crate::config::benchmark::BenchmarkConfig;
 use crate::commit_hash::CommitHash;
+use crate::config::benchmark::BenchmarkConfig;
+use crate::database::Database;
+use crate::utilities::BenchmarkParams;
 
 pub struct PlotData {
     pub points: Vec<u32>,
@@ -15,7 +15,7 @@ impl PlotData {
         database: &Database,
         benchmark_config: &BenchmarkConfig,
         commit_hashes: &Vec<CommitHash>,
-        measurement_method: String
+        measurement_method: String,
     ) -> Result<PlotData, Box<dyn Error>> {
         let points = benchmark_config
             .data
@@ -29,14 +29,12 @@ impl PlotData {
                     database,
                     commit_hash,
                     benchmark_config,
-                    measurement_method.clone()
+                    measurement_method.clone(),
                 )
-            }).collect::<Result<Vec<Vec<Option<u64>>>, Box<dyn Error>>>()?;
-
-            Ok(PlotData {
-                points,
-                results,
             })
+            .collect::<Result<Vec<Vec<Option<u64>>>, Box<dyn Error>>>()?;
+
+        Ok(PlotData { points, results })
     }
 }
 
@@ -44,7 +42,7 @@ pub fn get_benchmark_results(
     database: &Database,
     commit_hash: &CommitHash,
     benchmark_config: &BenchmarkConfig,
-    measurement_method: String
+    measurement_method: String,
 ) -> Result<Vec<Option<u64>>, Box<dyn Error>> {
     let BenchmarkConfig {
         name: benchmark_name,
@@ -70,7 +68,8 @@ pub fn get_benchmark_results(
                 .and_then(|text| text.parse::<u64>().ok());
 
             Ok(value)
-        }).collect::<Result<Vec<Option<u64>>, _>>()?;
+        })
+        .collect::<Result<Vec<Option<u64>>, _>>()?;
 
     Ok(results)
 }
