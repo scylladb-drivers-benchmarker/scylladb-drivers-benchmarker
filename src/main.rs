@@ -23,7 +23,7 @@ enum AppSubcommand {
 #[clap(name = "my-app", version, about)]
 struct App {
     #[arg(short, long)]
-    dp_path: Option<PathBuf>,
+    db_path: Option<PathBuf>,
 
     #[arg(short, long)]
     #[clap(default_value = "time")]
@@ -45,8 +45,8 @@ fn default_db_path() -> std::path::PathBuf {
 fn main() -> Result<(), Box<dyn Error>> {
     let args = App::parse();
 
-    let dp_path = args.dp_path.unwrap_or_else(default_db_path);
-    let database = Database::new(dp_path)?;
+    let db_path = args.db_path.unwrap_or_else(default_db_path);
+    let database = Database::new(db_path)?;
 
     match args.subcommand {
         AppSubcommand::Run {
