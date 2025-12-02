@@ -9,8 +9,8 @@ use serde::de::DeserializeOwned;
 
 use std::fmt::Debug;
 
+use plotters::coord::types::{RangedCoordf64, RangedCoordu32};
 use plotters::prelude::*;
-use plotters::coord::types::{RangedCoordu32, RangedCoordf64};
 
 pub enum VisKind {
     Linear,
@@ -107,8 +107,10 @@ pub trait PlottableResult<'a, BC> {
     fn add_to_plot(&self, backend: &mut BC) -> Result<(), Box<dyn std::error::Error>>;
 }
 
-pub trait SingleSeries<T> 
-where T: PlottableValue + PartialOrd + Into<f64>{
+pub trait SingleSeries<T>
+where
+    T: PlottableValue + PartialOrd + Into<f64>,
+{
     fn series(&self) -> Vec<Option<f64>>;
     fn range(&self) -> Option<(f64, f64)>;
 }
@@ -118,9 +120,15 @@ pub struct LinearSeries<T: PlottableValue> {
 }
 
 impl<T> SingleSeries<T> for LinearSeries<T>
-where T: PlottableValue + PartialOrd + Into<f64>{
+where
+    T: PlottableValue + PartialOrd + Into<f64>,
+{
     fn series(&self) -> Vec<Option<f64>> {
-        self.y.iter().cloned().map(|y| y.map(|v| v.into())).collect()
+        self.y
+            .iter()
+            .cloned()
+            .map(|y| y.map(|v| v.into()))
+            .collect()
     }
 
     fn range(&self) -> Option<(f64, f64)> {
@@ -145,9 +153,15 @@ pub struct LogSeries<T: PlottableValue> {
 }
 
 impl<T> SingleSeries<T> for LogSeries<T>
-where T: PlottableValue + PartialOrd + Into<f64>{
+where
+    T: PlottableValue + PartialOrd + Into<f64>,
+{
     fn series(&self) -> Vec<Option<f64>> {
-        self.y.iter().cloned().map(|y| y.map(|v| v.into().log10())).collect()
+        self.y
+            .iter()
+            .cloned()
+            .map(|y| y.map(|v| v.into().log10()))
+            .collect()
     }
 
     fn range(&self) -> Option<(f64, f64)> {
@@ -172,7 +186,7 @@ pub struct PlottableSeries {
     points: Vec<u32>,
     series: Vec<Option<f64>>,
     color: PaletteColor<Palette99>,
-    range: Option<(f64, f64)>
+    range: Option<(f64, f64)>,
 }
 
 impl PlottableSeries {
@@ -181,7 +195,7 @@ impl PlottableSeries {
         points: Vec<u32>,
         series: Vec<Option<f64>>,
         color: PaletteColor<Palette99>,
-        range: Option<(f64, f64)>
+        range: Option<(f64, f64)>,
     ) -> Self {
         PlottableSeries {
             name,
@@ -197,12 +211,19 @@ impl PlottableSeries {
     }
 }
 
-impl<'a> PlottableResult<'a, ChartContext<'a, BitMapBackend<'a>, Cartesian2d<RangedCoordu32, RangedCoordf64>>> 
-    for PlottableSeries 
+impl<'a>
+    PlottableResult<
+        'a,
+        ChartContext<'a, BitMapBackend<'a>, Cartesian2d<RangedCoordu32, RangedCoordf64>>,
+    > for PlottableSeries
 {
     fn add_to_plot(
-        &self, 
-        chart: &mut ChartContext<'a, BitMapBackend<'a>, Cartesian2d<RangedCoordu32, RangedCoordf64>>
+        &self,
+        chart: &mut ChartContext<
+            'a,
+            BitMapBackend<'a>,
+            Cartesian2d<RangedCoordu32, RangedCoordf64>,
+        >,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let color = self.color.to_rgba();
         let name = self.name.clone();
@@ -240,11 +261,11 @@ pub struct SeriesPlot {
 }
 
 impl SeriesPlot {
-    pub fn new(
-        benchmark_name: String,
-        results: Vec<PlottableSeries>,
-    ) -> Self {
-        SeriesPlot { benchmark_name, results }
+    pub fn new(benchmark_name: String, results: Vec<PlottableSeries>) -> Self {
+        SeriesPlot {
+            benchmark_name,
+            results,
+        }
     }
 }
 
@@ -253,11 +274,15 @@ impl SeriesPlot {
         plot_data: PlotData<T>,
         benchmark_name: String,
         names: &Vec<String>,
-        visualization_kind: VisKind
+        visualization_kind: VisKind,
     ) -> Result<Self, Box<dyn Error>> {
         let mut results = Vec::new();
 
-        for (id, (name, series_values)) in names.into_iter().zip(plot_data.results.into_iter()).enumerate() {
+        for (id, (name, series_values)) in names
+            .into_iter()
+            .zip(plot_data.results.into_iter())
+            .enumerate()
+        {
             let series: Box<dyn SingleSeries<T>> = match visualization_kind {
                 VisKind::Linear => Box::new(LinearSeries { y: series_values }),
                 VisKind::Log => Box::new(LogSeries { y: series_values }),
@@ -294,9 +319,7 @@ impl Plot for SeriesPlot {
 
         let (mut y_min, mut y_max) = self.results.iter().filter_map(|r| r.range()).fold(
             (f64::INFINITY, f64::NEG_INFINITY),
-            |(min_acc, max_acc), (min, max)| {
-                (min_acc.min(min), max_acc.max(max))
-            },
+            |(min_acc, max_acc), (min, max)| (min_acc.min(min), max_acc.max(max)),
         );
 
         if !y_min.is_finite() {
@@ -310,14 +333,14 @@ impl Plot for SeriesPlot {
         root.fill(&WHITE)?;
 
         let mut chart = ChartBuilder::on(&root)
-        .caption(
-            format!("Benchmark {} Results", &self.benchmark_name),
-            ("sans-serif", 40),
-        )
-        .margin(10)
-        .x_label_area_size(30)
-        .y_label_area_size(40)
-        .build_cartesian_2d(x_start..x_end, y_min..y_max)?;
+            .caption(
+                format!("Benchmark {} Results", &self.benchmark_name),
+                ("sans-serif", 40),
+            )
+            .margin(10)
+            .x_label_area_size(30)
+            .y_label_area_size(40)
+            .build_cartesian_2d(x_start..x_end, y_min..y_max)?;
 
         chart.configure_mesh().draw()?;
 

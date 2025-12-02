@@ -6,7 +6,7 @@ use crate::commit_hash::CommitHash;
 use crate::config::benchmark::BenchmarkConfig;
 use crate::database::Database;
 
-use plotting::{PlotData, VisKind, SeriesPlot, Plot};
+use plotting::{Plot, PlotData, SeriesPlot, VisKind};
 
 // TODO: this overall is terrible
 pub fn main(
@@ -21,7 +21,7 @@ pub fn main(
     if let None = visualization_kind {
         return Err(format!("No visualization kind").into());
     }
-    
+
     match visualization_kind.as_deref() {
         Some("log") => {
             let plot_data: PlotData<f64> = PlotData::new(
@@ -40,13 +40,13 @@ pub fn main(
 
             plot.plot()?;
             Ok(())
-        },
+        }
         Some("linear") => {
             let plot_data: PlotData<f64> = PlotData::new(
-            database,
-            benchmark_config,
-            commit_hashes,
-            measurement_method,
+                database,
+                benchmark_config,
+                commit_hashes,
+                measurement_method,
             )?;
 
             let plot = SeriesPlot::from_plot_data(
