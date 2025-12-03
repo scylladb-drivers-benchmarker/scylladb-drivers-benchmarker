@@ -66,7 +66,7 @@ pub fn plot_benchmarks(
     database: &Database,
     benchmark_name: &str,
     benchmark_config_path: &Path,
-    measurement_method: String,
+    measurement_method: &str,
     visualization_kind: Option<String>,
     from: Vec<RepositoryWithCommits>,
 ) -> Result<(), Box<dyn Error>> {

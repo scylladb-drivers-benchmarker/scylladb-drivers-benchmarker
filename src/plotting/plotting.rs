@@ -40,7 +40,7 @@ impl<T: PlottableValue> PlotData<T> {
         database: &Database,
         benchmark_config: &BenchmarkConfig,
         commit_hashes: &Vec<CommitHash>,
-        measurement_method: String,
+        measurement_method: &str,
     ) -> Result<PlotData<T>, Box<dyn Error>> {
         let points = benchmark_config
             .data
@@ -54,7 +54,7 @@ impl<T: PlottableValue> PlotData<T> {
                     database,
                     commit_hash,
                     benchmark_config,
-                    measurement_method.clone(),
+                    measurement_method,
                 )
             })
             .collect::<Result<Vec<Vec<Option<T>>>, Box<dyn Error>>>()?;
@@ -66,7 +66,7 @@ impl<T: PlottableValue> PlotData<T> {
         database: &Database,
         commit_hash: &CommitHash,
         benchmark_config: &BenchmarkConfig,
-        measurement_method: String,
+        measurement_method: &str,
     ) -> Result<Vec<Option<T>>, Box<dyn Error>> {
         let BenchmarkConfig {
             name: benchmark_name,
@@ -78,7 +78,7 @@ impl<T: PlottableValue> PlotData<T> {
                 commit_hash.clone(),
                 benchmark_name.clone(),
                 param.into(),
-                measurement_method.clone(),
+                measurement_method.to_string(),
             )
         };
 
@@ -104,7 +104,7 @@ pub trait Plot {
 }
 
 pub trait PlottableResult<'a, BC> {
-    fn add_to_plot(&self, backend: &mut BC) -> Result<(), Box<dyn std::error::Error>>;
+    fn add_to_plot(&self, backend_or_chart: &mut BC) -> Result<(), Box<dyn std::error::Error>>;
 }
 
 pub trait SingleSeries<T>
@@ -207,7 +207,7 @@ impl PlottableSeries {
     }
 
     fn range(&self) -> Option<(f64, f64)> {
-        self.range.clone()
+        self.range
     }
 }
 

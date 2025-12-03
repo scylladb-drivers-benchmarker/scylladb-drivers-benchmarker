@@ -65,7 +65,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             &database,
             &args.benchmark_name,
             &args.benchmark_config_path,
-            args.measurement_method,
+            &args.measurement_method,
             visualization_kind,
             from,
         ),

@@ -13,7 +13,7 @@ pub fn main(
     database: &Database,
     benchmark_name: &str,
     benchmark_config: &BenchmarkConfig,
-    measurement_method: String,
+    measurement_method: &str,
     visualization_kind: Option<String>,
     commit_hashes: &Vec<CommitHash>,
     names: &Vec<String>,
@@ -60,6 +60,6 @@ pub fn main(
             Ok(())
         }
         Some(other) => return Err(format!("Unknown visualization kind: {}", other).into()),
-        None => return Ok(()), // optional, already handled above
+        None => return Ok(()),
     }
 }
