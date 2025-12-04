@@ -9,7 +9,7 @@ use crate::database::Database;
 use plotting::{Plot, PlotData, SeriesPlot, VisKind};
 
 // TODO: this overall is terrible
-pub fn main(
+pub fn plot(
     database: &Database,
     benchmark_name: &str,
     benchmark_config: &BenchmarkConfig,

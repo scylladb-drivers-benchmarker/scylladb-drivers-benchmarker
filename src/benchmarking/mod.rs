@@ -26,7 +26,7 @@ pub struct BenchmarkingArguments {
     pub measurement_method: String,
 }
 
-pub fn main(
+pub fn benchmark(
     database: &Database,
     commit_hash: CommitHash,
     benchmark_config: BenchmarkConfig,
