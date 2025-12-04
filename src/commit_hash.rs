@@ -3,6 +3,7 @@ use crate::command::Command;
 use std::error::Error;
 use std::fmt;
 use std::process::ExitStatus;
+use std::path::Path;
 
 #[derive(Debug)]
 pub struct GitFailed {
@@ -66,6 +67,32 @@ impl CommitHash {
         }
 
         Ok(CommitHash { value })
+    }
+
+    pub fn new(path: &Path, commit: String) -> CommitHash{
+        let git_get_hash = cmd!("git", "rev-parse", "--verify", &commit);
+
+        // Todo unwrap
+        let output = git_get_hash.process().current_dir(path).output().unwrap();
+
+        if !output.status.success() {
+            panic!(
+                "git rev-parse failed for '{}': {}",
+                commit,
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
+
+        let value = String::from_utf8(output.stdout).unwrap();
+        for char in value.chars() {
+            assert!(
+                char.is_lowercase() || char.is_ascii_digit(),
+                "Got an incorrect git hash from a passing git process. Character: {} is not a number or a lowercase letter.",
+                char
+            );
+        }
+
+        CommitHash { value }
     }
 
     pub fn from_repository() -> Result<CommitHash, Box<dyn Error>> {
