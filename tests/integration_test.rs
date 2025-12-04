@@ -1,4 +1,4 @@
-use assert_cmd::cargo;
+use assert_cmd::{Command, cargo};
 
 mod local;
 
@@ -6,18 +6,14 @@ mod local;
 fn basic() {
     let db = local::LocalDatabase::new();
 
-    assert_cmd::Command::cargo_bin("scylladb-drivers-benchmarker")
-        .unwrap()
-        .args([
-            "-d",
-            db.file
-                .path()
-                .as_os_str()
-                .to_str()
-                .expect("database file should exist"),
-            "select",
-            "run",
-        ])
-        .assert()
-        .success();
+    let mut command = std::process::Command::new(cargo::cargo_bin!("scylladb-drivers-benchmarker"));
+    command
+        .arg("-d")
+        .arg(db.file.path().as_os_str())
+        .arg("select")
+        .arg("run");
+    let output = command.output().unwrap();
+    println!("my_stdout: {:?}", output.stdout);
+    println!("my_stderr: {:?}", String::from_utf8_lossy(output.stderr.as_slice()));
+    assert!(output.status.success());
 }
