@@ -20,11 +20,11 @@ impl Database {
             "
             CREATE TABLE IF NOT EXISTS Benchmarks (
                 commit_hash TEXT NOT NULL,
-                benchmark_type TEXT NOT NULL,
-                benchmark_argument INTEGER NOT NULL,
+                benchmark_name TEXT NOT NULL,
+                benchmark_point INTEGER NOT NULL,
                 measurement_method TEXT NOT NULL,
                 data_json TEXT,
-                UNIQUE(commit_hash, benchmark_type, benchmark_argument, measurement_method)
+                UNIQUE(commit_hash, benchmark_name, benchmark_point, measurement_method)
             );
             ",
         )?;
@@ -40,14 +40,14 @@ impl Database {
         let mut stmt = self.connection.prepare(
             "
                 INSERT INTO Benchmarks
-                (commit_hash, benchmark_type, benchmark_argument, measurement_method, data_json)
+                (commit_hash, benchmark_name, benchmark_point, measurement_method, data_json)
                 VALUES (?, ?, ?, ?, ?);
                 ",
         )?;
 
         stmt.bind((1, params.commit_hash.as_str()))?;
-        stmt.bind((2, params.benchmark_type.as_str()))?;
-        stmt.bind((3, params.benchmark_argument.to_string().as_str()))?;
+        stmt.bind((2, params.benchmark_name.as_str()))?;
+        stmt.bind((3, params.benchmark_point.to_string().as_str()))?;
         stmt.bind((4, params.measurement_method.as_str()))?;
 
         if !result.is_timeout() {
@@ -66,15 +66,15 @@ impl Database {
             "
                 SELECT data_json from  Benchmarks
                 WHERE commit_hash = ? 
-                    and benchmark_type = ?
-                    and benchmark_argument = ?
+                    and benchmark_name = ?
+                    and benchmark_point = ?
                     and measurement_method = ?;
                 ",
         )?;
 
         stmt.bind((1, params.commit_hash.as_str()))?;
-        stmt.bind((2, params.benchmark_type.as_str()))?;
-        stmt.bind((3, params.benchmark_argument.to_string().as_str()))?;
+        stmt.bind((2, params.benchmark_name.as_str()))?;
+        stmt.bind((3, params.benchmark_point.to_string().as_str()))?;
         stmt.bind((4, params.measurement_method.as_str()))?;
 
         match stmt.next()? {

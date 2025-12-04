@@ -2,7 +2,7 @@ use std::str::FromStr;
 use std::{error::Error, path::PathBuf, process::Output};
 
 use crate::command::Command;
-use crate::utilities::BenchmarkRecord;
+use crate::utilities::{BenchmarkPoint, BenchmarkRecord};
 
 pub struct SourceCode {
     pub path: Option<PathBuf>,
@@ -42,7 +42,7 @@ impl Executor {
         Ok(())
     }
 
-    pub fn execute(&self, param: u32) -> Result<Output, Box<dyn Error>> {
+    pub fn execute(&self, param: BenchmarkPoint) -> Result<Output, Box<dyn Error>> {
         let output: Output = self
             .command
             .clone()
@@ -56,7 +56,7 @@ impl Executor {
         &self.command
     }
 
-    pub fn run(&self, param: u32) -> ErrBenchmarkResult {
+    pub fn run(&self, param: BenchmarkPoint) -> ErrBenchmarkResult {
         let output = self.execute(param)?;
         let output = String::from_utf8(output.stdout)?;
         Ok(BenchmarkRecord::new(Some(output)))

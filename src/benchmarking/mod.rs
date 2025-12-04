@@ -7,7 +7,7 @@ use crate::commit_hash::CommitHash;
 use crate::config::backend::BackendConfigList;
 use crate::config::config_traits::ConfigurationList;
 use crate::config::open_config;
-use crate::utilities::BenchmarkParams;
+use crate::utilities::{BenchmarkPoint, BenchmarkParams};
 use execution::{Executor, SourceCode, build_source};
 
 use crate::config::{backend::BackendConfig, benchmark::BenchmarkConfig};
@@ -38,7 +38,7 @@ pub fn benchmark(
         data: benchmark_data,
     } = benchmark_config;
 
-    let benchmark_params = |param: u32| {
+    let benchmark_params = |param: BenchmarkPoint| {
         BenchmarkParams::new(
             commit_hash.clone(),
             benchmark_name.clone(),
@@ -56,7 +56,7 @@ pub fn benchmark(
                 Err(e) => Some(Err(e)),
             },
         )
-        .collect::<Result<Vec<u32>, sqlite::Error>>()?;
+        .collect::<Result<Vec<BenchmarkPoint>, sqlite::Error>>()?;
 
     if points.is_empty() {
         return Ok(());

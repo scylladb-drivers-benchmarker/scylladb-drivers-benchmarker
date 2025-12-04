@@ -5,11 +5,13 @@ use std::str::FromStr;
 
 use crate::commit_hash::CommitHash;
 
+pub type BenchmarkPoint = u64;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BenchmarkParams {
     pub commit_hash: CommitHash,
-    pub benchmark_type: String,
-    pub benchmark_argument: u64,
+    pub benchmark_name: String,
+    pub benchmark_point: BenchmarkPoint,
     pub measurement_method: String,
 }
 
@@ -23,14 +25,14 @@ pub struct BenchmarkRecord {
 impl BenchmarkParams {
     pub fn new(
         commit_hash: CommitHash,
-        benchmark_type: String,
-        benchmark_argument: u64,
+        benchmark_name: String,
+        benchmark_point: u64,
         measurement_method: String,
     ) -> BenchmarkParams {
         BenchmarkParams {
             commit_hash,
-            benchmark_type,
-            benchmark_argument,
+            benchmark_name,
+            benchmark_point,
             measurement_method,
         }
     }

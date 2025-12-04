@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::config::config_traits::{Configuration, ConfigurationList};
+use crate::utilities::{BenchmarkPoint};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
@@ -12,21 +13,21 @@ pub enum ProgressType {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub struct BenchmarkData {
-    pub starting_step: u32,
-    pub no_steps: u32,
-    pub step_progress: u32,
+    pub starting_step: BenchmarkPoint,
+    pub no_steps: BenchmarkPoint,
+    pub step_progress: BenchmarkPoint,
     pub progress_type: ProgressType,
 }
 
 impl BenchmarkData {
-    pub fn benchmark_points(&self) -> impl Iterator<Item = u32> {
+    pub fn benchmark_points(&self) -> impl Iterator<Item = BenchmarkPoint> {
         struct ReturnIterator {
-            pub starting_step: u32,
-            pub step_progress: u32,
+            pub starting_step: BenchmarkPoint,
+            pub step_progress: BenchmarkPoint,
             pub progress_type: ProgressType,
         }
         impl Iterator for ReturnIterator {
-            type Item = u32;
+            type Item = BenchmarkPoint;
 
             fn next(&mut self) -> Option<Self::Item> {
                 let ret = self.starting_step;

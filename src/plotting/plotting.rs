@@ -3,13 +3,13 @@ use std::error::Error;
 use crate::commit_hash::CommitHash;
 use crate::config::benchmark::BenchmarkConfig;
 use crate::database::Database;
-use crate::utilities::BenchmarkParams;
+use crate::utilities::{BenchmarkPoint,BenchmarkParams};
 
 use serde::de::DeserializeOwned;
 
 use std::fmt::Debug;
 
-use plotters::coord::types::{RangedCoordf64, RangedCoordu32};
+use plotters::coord::types::{RangedCoordf64, RangedCoordu64};
 use plotters::prelude::*;
 
 pub enum VisKind {
@@ -31,7 +31,7 @@ where
 }
 
 pub struct PlotData<T: PlottableValue> {
-    pub points: Vec<u32>,
+    pub points: Vec<BenchmarkPoint>,
     pub results: Vec<Vec<Option<T>>>,
 }
 
@@ -45,7 +45,7 @@ impl<T: PlottableValue> PlotData<T> {
         let points = benchmark_config
             .data
             .benchmark_points()
-            .collect::<Vec<u32>>();
+            .collect::<Vec<BenchmarkPoint>>();
 
         let results = commit_hashes
             .iter()
@@ -73,7 +73,7 @@ impl<T: PlottableValue> PlotData<T> {
             data: benchmark_data,
         } = benchmark_config;
 
-        let benchmark_params = |param: u32| {
+        let benchmark_params = |param: u64| {
             BenchmarkParams::new(
                 commit_hash.clone(),
                 benchmark_name.clone(),
@@ -183,7 +183,7 @@ where
 
 pub struct PlottableSeries {
     name: String,
-    points: Vec<u32>,
+    points: Vec<BenchmarkPoint>,
     series: Vec<Option<f64>>,
     color: PaletteColor<Palette99>,
     range: Option<(f64, f64)>,
@@ -192,7 +192,7 @@ pub struct PlottableSeries {
 impl PlottableSeries {
     pub fn new(
         name: String,
-        points: Vec<u32>,
+        points: Vec<BenchmarkPoint>,
         series: Vec<Option<f64>>,
         color: PaletteColor<Palette99>,
         range: Option<(f64, f64)>,
@@ -214,7 +214,7 @@ impl PlottableSeries {
 impl<'a>
     PlottableResult<
         'a,
-        ChartContext<'a, BitMapBackend<'a>, Cartesian2d<RangedCoordu32, RangedCoordf64>>,
+        ChartContext<'a, BitMapBackend<'a>, Cartesian2d<RangedCoordu64, RangedCoordf64>>,
     > for PlottableSeries
 {
     fn add_to_plot(
@@ -222,14 +222,14 @@ impl<'a>
         chart: &mut ChartContext<
             'a,
             BitMapBackend<'a>,
-            Cartesian2d<RangedCoordu32, RangedCoordf64>,
+            Cartesian2d<RangedCoordu64, RangedCoordf64>,
         >,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let color = self.color.to_rgba();
         let name = self.name.clone();
         let y_max = chart.as_coord_spec().y_spec().range().end;
 
-        let mut line_points: Vec<(u32, f64)> = Vec::new();
+        let mut line_points: Vec<(BenchmarkPoint, f64)> = Vec::new();
 
         for (&x, y_opt) in self.points.iter().zip(self.series.iter()) {
             match y_opt {
