@@ -45,7 +45,6 @@ pub fn plot_benchmarks(
 ) -> Result<(), Box<dyn Error>> {
     let benchmark_config: BenchmarkConfig = find_config(&benchmark_name, &benchmark_config_path)?;
 
-    let commit_hashes = vec![]; // TODO: how to get hashes here? from_repo? new_unchecked? whats the format
     let names = from
         .iter()
         .flat_map(|repo| {
@@ -55,6 +54,11 @@ pub fn plot_benchmarks(
                 .iter()
                 .map(move |commit| format!("{}@{}", repo_name, commit))
         })
+        .collect();
+
+    let commit_hashes: Vec<CommitHash> = from
+        .into_iter()
+        .flat_map(|repo| repo.to_commit_hashes())
         .collect();
 
     plotting::plot(

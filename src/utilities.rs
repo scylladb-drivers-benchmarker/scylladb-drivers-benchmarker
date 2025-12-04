@@ -69,7 +69,7 @@ impl FromStr for RepositoryWithCommits {
 }
 
 impl RepositoryWithCommits {
-    fn to_commit_hashes(self) -> Vec<CommitHash> {
+    pub fn to_commit_hashes(self) -> Vec<CommitHash> {
         self.commits
             .into_iter()
             .map(|x| CommitHash::new(&self.repo_path, x))

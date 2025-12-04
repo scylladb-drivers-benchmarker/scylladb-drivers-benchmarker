@@ -77,7 +77,7 @@ pub fn benchmark(
 
     for point in points.iter().cloned() {
         let benchmark_result = executor.run(point)?;
-        database.insert_data(benchmark_params(point.into()), benchmark_result)?;
+        database.insert_data(benchmark_params(point), benchmark_result)?;
     }
 
     Ok(())

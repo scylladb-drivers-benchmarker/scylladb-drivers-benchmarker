@@ -12,7 +12,7 @@ pub fn open_config<ConfigListType: ConfigurationList>(
     config_path: &Path,
 ) -> Result<ConfigListType, Box<dyn Error>> {
     let file = std::fs::File::open(config_path)?;
-    return Ok(serde_yml::from_reader(file)?);
+    Ok(serde_yml::from_reader(file)?)
 }
 
 pub fn find_config<ConfigType: Configuration>(
