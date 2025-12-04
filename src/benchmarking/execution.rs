@@ -1,8 +1,10 @@
+use std::path::PathBuf;
+use std::process::Output;
 use std::str::FromStr;
-use std::{error::Error, path::PathBuf, process::Output};
 
-use crate::command::Command;
-use crate::utilities::{BenchmarkPoint, BenchmarkRecord};
+use crate::command::{Command, CommandParsingError};
+use crate::utilities::{BenchmarkPoint, BenchmarkRecord, BenchmarkResult};
+use thiserror::Error;
 
 pub struct SourceCode {
     pub path: Option<PathBuf>,
@@ -10,11 +12,29 @@ pub struct SourceCode {
 
 pub struct BuiltSource {}
 
+#[derive(Debug, Error)]
+pub enum CompileError {
+    #[error("parsing of compile command failed <- {0}")]
+    CommandParsingError(
+        #[from]
+        #[source]
+        CommandParsingError,
+    ),
+
+    #[error("compilation failed <- {0}")]
+    CompilationRunningError(
+        #[from]
+        #[source]
+        std::io::Error,
+    ),
+}
+
 pub fn build_source(
     build_command: &str,
     source_code: SourceCode,
-) -> Result<BuiltSource, Box<dyn Error>> {
-    let mut command = Command::from_str(build_command)?.process();
+) -> Result<BuiltSource, CompileError> {
+    let command = Command::from_str(build_command)?;
+    let mut command = command.process();
 
     if let Some(path) = source_code.path {
         command.current_dir(path);
@@ -24,25 +44,23 @@ pub fn build_source(
     Ok(BuiltSource {})
 }
 
-pub type ErrBenchmarkResult = Result<BenchmarkRecord, Box<dyn Error>>;
-
 pub struct Executor {
     command: Command,
 }
 
 impl Executor {
-    pub fn new(_: BuiltSource, execution_command: &str) -> Result<Executor, Box<dyn Error>> {
+    pub fn new(_: BuiltSource, execution_command: &str) -> Result<Executor, CommandParsingError> {
         let command = Command::from_str(execution_command)?;
         Ok(Executor { command })
     }
 
-    pub fn measure(&mut self, measurement_method: &str) -> Result<(), Box<dyn Error>> {
-        let measurement_method_command = Command::from_str(measurement_method)?;
-        self.command = measurement_method_command.with_arg(self.command.to_string());
-        Ok(())
+    pub fn with_measure(self, measurement_method: Command) -> Executor {
+        Executor {
+            command: measurement_method.with_arg(self.command.to_string()),
+        }
     }
 
-    pub fn execute(&self, param: BenchmarkPoint) -> Result<Output, Box<dyn Error>> {
+    pub fn execute(&self, param: BenchmarkPoint) -> std::io::Result<Output> {
         let output: Output = self
             .command
             .clone()
@@ -56,7 +74,7 @@ impl Executor {
         &self.command
     }
 
-    pub fn run(&self, param: BenchmarkPoint) -> ErrBenchmarkResult {
+    pub fn run(&self, param: BenchmarkPoint) -> BenchmarkResult {
         let output = self.execute(param)?;
         let output = String::from_utf8(output.stdout)?;
         Ok(BenchmarkRecord::new(Some(output)))
