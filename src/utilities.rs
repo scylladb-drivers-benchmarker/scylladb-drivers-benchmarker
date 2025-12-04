@@ -1,4 +1,7 @@
 use std::error::Error;
+use std::path::PathBuf;
+use std::str::FromStr;
+use clap::Parser;
 
 use crate::commit_hash::CommitHash;
 
@@ -40,5 +43,28 @@ impl BenchmarkRecord {
 
     pub fn is_timeout(&self) -> bool {
         self.data_json.is_none()
+    }
+}
+
+
+#[derive(Parser, Debug, Clone, PartialEq, Eq)]
+pub struct RepositoryWithCommits {
+    pub repo_path: PathBuf,
+    pub commits: Vec<String>,
+}
+
+impl FromStr for RepositoryWithCommits {
+    type Err = Box<dyn Error + Send + Sync>;
+
+    fn from_str(string: &str) -> Result<Self, Self::Err> {
+        let mut parts = string.split(':');
+        let repo_path = parts.next().expect("repo path not supplied"); // TODO: fix
+
+        let commits: Vec<String> = parts.map(str::to_owned).collect();
+
+        Ok(RepositoryWithCommits {
+            repo_path: PathBuf::from_str(repo_path)?,
+            commits,
+        })
     }
 }

@@ -1,16 +1,14 @@
 use std::{
     error::Error,
-    path::{Path, PathBuf},
-    str::FromStr,
+    path::Path,
 };
 
 use crate::{
     commit_hash::CommitHash,
     config::{benchmark::BenchmarkConfig, find_config},
     database::Database,
+    utilities::RepositoryWithCommits,
 };
-
-use clap::Parser;
 
 #[allow(dead_code)]
 mod benchmarking;
@@ -19,29 +17,7 @@ mod commit_hash;
 mod config;
 pub mod database;
 mod plotting;
-mod utilities;
-
-#[derive(Parser, Debug, Clone, PartialEq, Eq)]
-pub struct RepositoryWithCommits {
-    pub repo_path: PathBuf,
-    pub commits: Vec<String>,
-}
-
-impl FromStr for RepositoryWithCommits {
-    type Err = Box<dyn Error + Send + Sync>;
-
-    fn from_str(string: &str) -> Result<Self, Self::Err> {
-        let mut parts = string.split(':');
-        let repo_path = parts.next().expect("repo path not supplied"); // TODO: fix
-
-        let commits: Vec<String> = parts.map(str::to_owned).collect();
-
-        Ok(RepositoryWithCommits {
-            repo_path: PathBuf::from_str(repo_path)?,
-            commits,
-        })
-    }
-}
+pub mod utilities;
 
 pub fn run_benchmarks(
     database: &Database,
