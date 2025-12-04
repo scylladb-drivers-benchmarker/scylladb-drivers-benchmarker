@@ -2,8 +2,8 @@ use crate::cmd;
 use crate::command::Command;
 use std::error::Error;
 use std::fmt;
-use std::process::ExitStatus;
 use std::path::Path;
+use std::process::ExitStatus;
 
 #[derive(Debug)]
 pub struct GitFailed {
@@ -69,7 +69,7 @@ impl CommitHash {
         Ok(CommitHash { value })
     }
 
-    pub fn new(path: &Path, commit: String) -> CommitHash{
+    pub fn new(path: &Path, commit: String) -> CommitHash {
         let git_get_hash = cmd!("git", "rev-parse", "--verify", &commit);
 
         // Todo unwrap

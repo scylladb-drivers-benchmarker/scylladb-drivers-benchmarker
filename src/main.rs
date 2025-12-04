@@ -1,5 +1,5 @@
 use clap::Parser;
-use scylladb_drivers_benchmarker::{utilities::RepositoryWithCommits, database::Database};
+use scylladb_drivers_benchmarker::{database::Database, utilities::RepositoryWithCommits};
 use std::{error::Error, path::PathBuf};
 
 use clap;

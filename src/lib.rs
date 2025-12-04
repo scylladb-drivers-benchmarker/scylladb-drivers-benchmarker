@@ -1,7 +1,4 @@
-use std::{
-    error::Error,
-    path::Path,
-};
+use std::{error::Error, path::Path};
 
 use crate::{
     commit_hash::CommitHash,
@@ -18,12 +15,6 @@ mod config;
 pub mod database;
 mod plotting;
 pub mod utilities;
-
-impl RepositoryWithCommits{
-    fn to_commit_hashes(self) -> Vec<CommitHash>{
-        self.commits.into_iter().map(|x| CommitHash::new(&self.repo_path,x)).collect()
-    }
-}
 
 pub fn run_benchmarks(
     database: &Database,

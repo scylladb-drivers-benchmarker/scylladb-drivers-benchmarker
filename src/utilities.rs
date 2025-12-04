@@ -1,7 +1,7 @@
+use clap::Parser;
 use std::error::Error;
 use std::path::PathBuf;
 use std::str::FromStr;
-use clap::Parser;
 
 use crate::commit_hash::CommitHash;
 
@@ -46,7 +46,6 @@ impl BenchmarkRecord {
     }
 }
 
-
 #[derive(Parser, Debug, Clone, PartialEq, Eq)]
 pub struct RepositoryWithCommits {
     pub repo_path: PathBuf,
@@ -66,5 +65,14 @@ impl FromStr for RepositoryWithCommits {
             repo_path: PathBuf::from_str(repo_path)?,
             commits,
         })
+    }
+}
+
+impl RepositoryWithCommits {
+    fn to_commit_hashes(self) -> Vec<CommitHash> {
+        self.commits
+            .into_iter()
+            .map(|x| CommitHash::new(&self.repo_path, x))
+            .collect()
     }
 }
