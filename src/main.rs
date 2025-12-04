@@ -2,8 +2,6 @@ use clap::Parser;
 use scylladb_drivers_benchmarker::{database::Database, utilities::RepositoryWithCommits};
 use std::{error::Error, path::PathBuf};
 
-use clap;
-
 #[derive(Debug, clap::Subcommand)]
 enum AppSubcommand {
     Plot {

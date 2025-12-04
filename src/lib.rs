@@ -23,11 +23,11 @@ pub fn run_benchmarks(
     measurement_method: String,
     backend_config_path: &Path,
 ) -> Result<(), Box<dyn Error>> {
-    let benchmark_config: BenchmarkConfig = find_config(&benchmark_name, &benchmark_config_path)?;
+    let benchmark_config: BenchmarkConfig = find_config(benchmark_name, benchmark_config_path)?;
 
     let commit_hash: CommitHash = CommitHash::from_repository()?;
     benchmarking::benchmark(
-        &database,
+        database,
         commit_hash,
         benchmark_config,
         backend_config_path,
@@ -43,7 +43,7 @@ pub fn plot_benchmarks(
     visualization_kind: Option<String>,
     from: Vec<RepositoryWithCommits>,
 ) -> Result<(), Box<dyn Error>> {
-    let benchmark_config: BenchmarkConfig = find_config(&benchmark_name, &benchmark_config_path)?;
+    let benchmark_config: BenchmarkConfig = find_config(benchmark_name, benchmark_config_path)?;
 
     let names = from
         .iter()
@@ -62,8 +62,8 @@ pub fn plot_benchmarks(
         .collect();
 
     plotting::plot(
-        &database,
-        &benchmark_name,
+        database,
+        benchmark_name,
         &benchmark_config,
         measurement_method,
         visualization_kind,
