@@ -1,4 +1,7 @@
-mod plotting;
+mod data;
+mod result;
+mod series;
+mod plot;
 
 use std::error::Error;
 
@@ -6,7 +9,9 @@ use crate::commit_hash::CommitHash;
 use crate::config::benchmark::BenchmarkConfig;
 use crate::database::Database;
 
-use plotting::{Plot, PlotData, SeriesPlot, VisKind};
+use data::PlotData;
+use plot::{Plot, SeriesPlot};
+use series::VisKind;
 
 // TODO: this overall is terrible
 pub fn plot(
