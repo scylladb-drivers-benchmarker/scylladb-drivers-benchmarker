@@ -1,6 +1,6 @@
 use super::data::PlottableValue;
 
-pub(crate) enum VisKind {
+pub enum VisKind {
     Linear,
     Log,
 }
