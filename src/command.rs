@@ -26,7 +26,11 @@ pub enum CommandParsingError {
     #[error("program not given")]
     ProgramNotGiven,
     #[error("failed parsing <- {0}")]
-    FailedShlexing( #[from] #[source] shell_words::ParseError),
+    FailedShlexing(
+        #[from]
+        #[source]
+        shell_words::ParseError,
+    ),
 }
 
 impl FromStr for Command {
