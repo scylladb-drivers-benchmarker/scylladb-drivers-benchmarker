@@ -11,60 +11,40 @@ use crate::database::Database;
 
 use data::PlotData;
 use plot::{Plot, SeriesPlot};
-use series::VisKind;
+pub use series::VisKind;
 
-// TODO: this overall is terrible
+pub enum PlotKind {
+    Series(VisKind),
+    Flamegraph,
+}
+
 pub fn plot(
+    plot_kind: PlotKind,
     database: &Database,
     benchmark_name: &str,
     benchmark_config: &BenchmarkConfig,
     measurement_method: &str,
-    visualization_kind: Option<String>,
-    commit_hashes: &Vec<CommitHash>,
+    commit_hashes: &[CommitHash],
     names: &Vec<String>,
 ) -> Result<(), Box<dyn Error>> {
-    if let None = visualization_kind {
-        return Err(format!("No visualization kind").into());
-    }
 
-    match visualization_kind.as_deref() {
-        Some("log") => {
+    match plot_kind {
+        PlotKind::Series(vis_kind) => {
+            // Not sure how to handle this f64 here.
+            // Ideally type would be inferred wrt 'measurement_method',
+            // but no such functionality is implemented.
+            // Only later abstractions would require Into<64>, as they do now.
             let plot_data: PlotData<f64> = PlotData::new(
-                database,
-                benchmark_config,
-                commit_hashes,
-                measurement_method,
+                &database,
+                &benchmark_config,
+                &commit_hashes,
+                &measurement_method,
             )?;
 
-            let plot = SeriesPlot::from_plot_data(
-                plot_data,
-                benchmark_name.to_string(),
-                &names,
-                VisKind::Log,
-            )?;
+            let plot = SeriesPlot::from_plot_data(plot_data, benchmark_name.to_string(), &names, vis_kind)?;
 
-            plot.plot()?;
-            Ok(())
+            plot.plot()
         }
-        Some("linear") => {
-            let plot_data: PlotData<f64> = PlotData::new(
-                database,
-                benchmark_config,
-                commit_hashes,
-                measurement_method,
-            )?;
-
-            let plot = SeriesPlot::from_plot_data(
-                plot_data,
-                benchmark_name.to_string(),
-                &names,
-                VisKind::Linear,
-            )?;
-
-            plot.plot()?;
-            Ok(())
-        }
-        Some(other) => return Err(format!("Unknown visualization kind: {}", other).into()),
-        None => return Ok(()),
+        PlotKind::Flamegraph => Err(format!("No visualization kind").into())
     }
 }

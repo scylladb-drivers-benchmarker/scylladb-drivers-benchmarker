@@ -1,10 +1,7 @@
 use std::{error::Error, path::Path};
 
 use crate::{
-    commit_hash::CommitHash,
-    config::{benchmark::BenchmarkConfig, find_config},
-    database::Database,
-    utilities::RepositoryWithCommits,
+    commit_hash::CommitHash, config::{benchmark::BenchmarkConfig, find_config}, database::Database, utilities::RepositoryWithCommits
 };
 
 #[allow(dead_code)]
@@ -61,13 +58,42 @@ pub fn plot_benchmarks(
         .flat_map(|repo| repo.to_commit_hashes())
         .collect();
 
-    plotting::plot(
-        database,
-        benchmark_name,
-        &benchmark_config,
-        measurement_method,
-        visualization_kind,
-        &commit_hashes,
-        &names,
-    )
+    match measurement_method {
+        "time" => {
+            // Default to linear if no vis kind provided
+            let vis_kind = match visualization_kind.as_deref() {
+                Some("log") => crate::plotting::VisKind::Log,
+                _ => crate::plotting::VisKind::Linear,
+            };
+
+            plotting::plot(
+                plotting::PlotKind::Series(vis_kind),
+                database,
+                benchmark_name,
+                &benchmark_config,
+                measurement_method,
+                &commit_hashes,
+                &names,
+            )
+        }
+
+        "flamegraph" => {
+            // Should not provide vis_kind
+            if visualization_kind.is_some() {
+                return Err("Visualization kind should not be provided for flamegraph".into());
+            }
+
+            plotting::plot(
+                plotting::PlotKind::Flamegraph,
+                database,
+                benchmark_name,
+                &benchmark_config,
+                measurement_method,
+                &commit_hashes,
+                &names,
+            )
+        }
+
+        other => Err(format!("Unknown measurement method: {}", other).into()),
+    }
 }
