@@ -1,7 +1,7 @@
 mod data;
-mod result;
-mod series;
 mod plot;
+mod render;
+mod series;
 
 use std::error::Error;
 
@@ -9,7 +9,7 @@ use crate::commit_hash::CommitHash;
 use crate::config::benchmark::BenchmarkConfig;
 use crate::database::Database;
 
-use data::PlotData;
+use data::BenchmarkDataset;
 use plot::{Plot, SeriesPlot};
 pub use series::VisKind;
 
@@ -27,24 +27,24 @@ pub fn plot(
     commit_hashes: &[CommitHash],
     names: &Vec<String>,
 ) -> Result<(), Box<dyn Error>> {
-
     match plot_kind {
         PlotKind::Series(vis_kind) => {
             // Not sure how to handle this f64 here.
             // Ideally type would be inferred wrt 'measurement_method',
             // but no such functionality is implemented.
             // Only later abstractions would require Into<64>, as they do now.
-            let plot_data: PlotData<f64> = PlotData::new(
+            let dataset: BenchmarkDataset<f64> = BenchmarkDataset::new(
                 &database,
                 &benchmark_config,
                 &commit_hashes,
                 &measurement_method,
             )?;
 
-            let plot = SeriesPlot::from_plot_data(plot_data, benchmark_name.to_string(), &names, vis_kind)?;
+            let plot =
+                SeriesPlot::from_dataset(dataset, benchmark_name.to_string(), &names, vis_kind)?;
 
             plot.plot()
         }
-        PlotKind::Flamegraph => Err(format!("No visualization kind").into())
+        PlotKind::Flamegraph => Err(format!("No visualization kind").into()),
     }
 }

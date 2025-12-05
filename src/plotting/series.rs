@@ -16,8 +16,7 @@ pub(crate) struct LogSeries<T: SeriesValue> {
     pub y: Vec<Option<T>>,
 }
 
-
-pub(crate) enum SeriesKind<T: SeriesValue> {
+pub(crate) enum ValueTransformation<T: SeriesValue> {
     Linear(LinearSeries<T>),
     Log(LogSeries<T>),
 }
@@ -28,8 +27,12 @@ fn calc_range<T: SeriesValue>(iter: impl Iterator<Item = T>) -> Option<(T, T)> {
     let (mut min, mut max) = (first.clone(), first);
 
     for v in iter {
-        if v < min { min = v.clone() }
-        if v > max { max = v.clone() }
+        if v < min {
+            min = v.clone()
+        }
+        if v > max {
+            max = v.clone()
+        }
     }
 
     Some((min, max))
@@ -65,18 +68,18 @@ impl<T: SeriesValue> LogSeries<T> {
     }
 }
 
-impl<T: SeriesValue> SeriesKind<T> {
+impl<T: SeriesValue> ValueTransformation<T> {
     pub fn series(&self) -> Vec<Option<f64>> {
         match self {
-            SeriesKind::Linear(s) => s.series(),
-            SeriesKind::Log(s) => s.series(),
+            ValueTransformation::Linear(s) => s.series(),
+            ValueTransformation::Log(s) => s.series(),
         }
     }
 
     pub fn range(&self) -> Option<(f64, f64)> {
         match self {
-            SeriesKind::Linear(s) => s.range(),
-            SeriesKind::Log(s) => s.range(),
+            ValueTransformation::Linear(s) => s.range(),
+            ValueTransformation::Log(s) => s.range(),
         }
     }
 }
