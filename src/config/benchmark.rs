@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::config::config_traits::{Configuration, ConfigurationList};
-use crate::utilities::{BenchmarkPoint};
+use crate::utilities::BenchmarkPoint;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
