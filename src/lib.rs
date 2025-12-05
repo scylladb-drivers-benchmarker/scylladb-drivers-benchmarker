@@ -1,7 +1,10 @@
 use std::{error::Error, path::Path};
 
 use crate::{
-    commit_hash::CommitHash, config::{benchmark::BenchmarkConfig, find_config}, database::Database, utilities::RepositoryWithCommits
+    commit_hash::CommitHash,
+    config::{benchmark::BenchmarkConfig, find_config},
+    database::Database,
+    utilities::RepositoryWithCommits,
 };
 
 #[allow(dead_code)]

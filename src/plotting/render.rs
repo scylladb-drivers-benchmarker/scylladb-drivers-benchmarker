@@ -1,12 +1,12 @@
 use crate::utilities::BenchmarkPoint;
+use plotters::coord::types::{RangedCoordf64, RangedCoordu64};
 use plotters::prelude::*;
-use plotters::coord::types::{RangedCoordu64, RangedCoordf64};
 
-pub(crate) trait PlottableResult<'a, BC> {
+pub(crate) trait Renderable<'a, BC> {
     fn add_to_plot(&self, backend_or_chart: &mut BC) -> Result<(), Box<dyn std::error::Error>>;
 }
 
-pub(crate) struct PlottableSeries {
+pub(crate) struct RenderableSeries {
     pub name: String,
     pub points: Vec<BenchmarkPoint>,
     pub series: Vec<Option<f64>>,
@@ -14,7 +14,7 @@ pub(crate) struct PlottableSeries {
     pub range: Option<(f64, f64)>,
 }
 
-impl PlottableSeries {
+impl RenderableSeries {
     pub(crate) fn new(
         name: String,
         points: Vec<BenchmarkPoint>,
@@ -22,7 +22,7 @@ impl PlottableSeries {
         color: PaletteColor<Palette99>,
         range: Option<(f64, f64)>,
     ) -> Self {
-        PlottableSeries {
+        RenderableSeries {
             name,
             points,
             series,
@@ -37,10 +37,8 @@ impl PlottableSeries {
 }
 
 impl<'a>
-    PlottableResult<
-        'a,
-        ChartContext<'a, BitMapBackend<'a>, Cartesian2d<RangedCoordu64, RangedCoordf64>>,
-    > for PlottableSeries
+    Renderable<'a, ChartContext<'a, BitMapBackend<'a>, Cartesian2d<RangedCoordu64, RangedCoordf64>>>
+    for RenderableSeries
 {
     fn add_to_plot(
         &self,

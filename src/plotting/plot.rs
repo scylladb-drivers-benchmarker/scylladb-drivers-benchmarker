@@ -1,7 +1,7 @@
+use super::data::BenchmarkDataset;
+use super::render::{Renderable, RenderableSeries};
+use super::series::{LinearSeries, LogSeries, SeriesValue, ValueTransformation, VisKind};
 use std::error::Error;
-use super::data::PlotData;
-use super::series::{SeriesKind, SeriesValue, LinearSeries, LogSeries, VisKind};
-use super::result::{PlottableSeries, PlottableResult};
 
 use plotters::prelude::*;
 
@@ -11,40 +11,37 @@ pub(crate) trait Plot {
 
 pub(crate) struct SeriesPlot {
     pub benchmark_name: String,
-    pub results: Vec<PlottableSeries>,
+    pub results: Vec<RenderableSeries>,
 }
 
 impl SeriesPlot {
-    pub(crate) fn new(benchmark_name: String, results: Vec<PlottableSeries>) -> Self {
+    pub(crate) fn new(benchmark_name: String, results: Vec<RenderableSeries>) -> Self {
         SeriesPlot {
             benchmark_name,
             results,
         }
     }
 
-    pub(crate) fn from_plot_data<T: SeriesValue>(
-        plot_data: PlotData<T>,
+    pub(crate) fn from_dataset<T: SeriesValue>(
+        dataset: BenchmarkDataset<T>,
         benchmark_name: String,
         names: &[String],
         visualization_kind: VisKind,
     ) -> Result<Self, Box<dyn Error>> {
         let mut results = Vec::new();
 
-        for (id, (name, series_values)) in names
-            .iter()
-            .zip(plot_data.results.into_iter())
-            .enumerate()
+        for (id, (name, series_values)) in names.iter().zip(dataset.results.into_iter()).enumerate()
         {
-            let series: SeriesKind<T> = match visualization_kind {
-                VisKind::Linear => SeriesKind::Linear(LinearSeries { y: series_values }),
-                VisKind::Log => SeriesKind::Log(LogSeries { y: series_values }),
+            let series: ValueTransformation<T> = match visualization_kind {
+                VisKind::Linear => ValueTransformation::Linear(LinearSeries { y: series_values }),
+                VisKind::Log => ValueTransformation::Log(LogSeries { y: series_values }),
             };
 
             let color = Palette99::pick(id);
 
-            results.push(PlottableSeries::new(
+            results.push(RenderableSeries::new(
                 name.clone(),
-                plot_data.points.clone(),
+                dataset.points.clone(),
                 series.series(),
                 color,
                 series.range(),
