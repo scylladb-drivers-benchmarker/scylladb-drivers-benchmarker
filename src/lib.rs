@@ -1,8 +1,9 @@
 use std::{error::Error, path::Path};
 
 use crate::{
-    commit_hash::CommitHash,
-    config::{benchmark::BenchmarkConfig, find_config},
+    benchmarking::BenchmarkingError,
+    commit_hash::{CommitHash, CommitHashError},
+    config::{ConfigError, benchmark::BenchmarkConfig, find_config},
     database::Database,
     utilities::RepositoryWithCommits,
 };
@@ -18,13 +19,32 @@ pub mod utilities;
 
 pub use plotting::error::PlotError;
 
+#[justerror::Error]
+pub enum RunBenchmarksError {
+    BenchmarkingError(
+        #[from]
+        #[source]
+        BenchmarkingError,
+    ),
+    BenchmarkConfigError(
+        #[from]
+        #[source]
+        ConfigError,
+    ),
+    CommitHashError(
+        #[from]
+        #[source]
+        CommitHashError,
+    ),
+}
+
 pub fn run_benchmarks(
     database: &Database,
     benchmark_name: &str,
     benchmark_config_path: &Path,
     measurement_method: String,
     backend_config_path: &Path,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<(), RunBenchmarksError> {
     let benchmark_config: BenchmarkConfig = find_config(benchmark_name, benchmark_config_path)?;
 
     let commit_hash: CommitHash = CommitHash::from_current_repository()?;

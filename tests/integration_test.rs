@@ -13,9 +13,12 @@ fn basic() {
         .arg("select")
         .arg("run");
     let output = command.output().unwrap();
-    println!("my_stdout: {:?}", output.stdout);
     println!(
-        "my_stderr: {:?}",
+        "my_stdout: {}",
+        String::from_utf8_lossy(output.stdout.as_slice())
+    );
+    println!(
+        "my_stderr: {}",
         String::from_utf8_lossy(output.stderr.as_slice())
     );
     assert!(output.status.success());
@@ -31,9 +34,12 @@ fn gather_data_cpp() {
         .arg("regex")
         .arg("run");
     let output = command.output().unwrap();
-    println!("my_stdout: {:?}", output.stdout);
     println!(
-        "my_stderr: {:?}",
+        "my_stdout: {}",
+        String::from_utf8_lossy(output.stdout.as_slice())
+    );
+    println!(
+        "my_stderr: {}",
         String::from_utf8_lossy(output.stderr.as_slice())
     );
     assert!(output.status.success());
