@@ -3,9 +3,12 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::str::FromStr;
 
+use plotters::coord::types::RangedCoordu64;
+
 use crate::commit_hash::CommitHash;
 
 pub type BenchmarkPoint = u64;
+pub type RangedCoordBenchmarkPoint = RangedCoordu64;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BenchmarkParams {
@@ -26,7 +29,7 @@ impl BenchmarkParams {
     pub fn new(
         commit_hash: CommitHash,
         benchmark_name: String,
-        benchmark_point: u64,
+        benchmark_point: BenchmarkPoint,
         measurement_method: String,
     ) -> BenchmarkParams {
         BenchmarkParams {

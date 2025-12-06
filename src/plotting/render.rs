@@ -1,5 +1,5 @@
-use crate::utilities::BenchmarkPoint;
-use plotters::coord::types::{RangedCoordf64, RangedCoordu64};
+use crate::utilities::{BenchmarkPoint, RangedCoordBenchmarkPoint};
+use plotters::coord::types::RangedCoordf64;
 use plotters::prelude::*;
 
 pub(crate) trait Renderable<'a, BC> {
@@ -37,15 +37,17 @@ impl RenderableSeries {
 }
 
 impl<'a>
-    Renderable<'a, ChartContext<'a, BitMapBackend<'a>, Cartesian2d<RangedCoordu64, RangedCoordf64>>>
-    for RenderableSeries
+    Renderable<
+        'a,
+        ChartContext<'a, BitMapBackend<'a>, Cartesian2d<RangedCoordBenchmarkPoint, RangedCoordf64>>,
+    > for RenderableSeries
 {
     fn add_to_plot(
         &self,
         chart: &mut ChartContext<
             'a,
             BitMapBackend<'a>,
-            Cartesian2d<RangedCoordu64, RangedCoordf64>,
+            Cartesian2d<RangedCoordBenchmarkPoint, RangedCoordf64>,
         >,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let color = self.color.to_rgba();
