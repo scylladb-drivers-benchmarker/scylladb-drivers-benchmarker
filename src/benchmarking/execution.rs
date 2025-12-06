@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::process::Output;
 use std::str::FromStr;
 
-use crate::command::{self, Command, CommandParsingError};
+use crate::command::{Command, CommandParsingError};
 use crate::utilities::{BenchmarkPoint, BenchmarkRecord};
 
 pub struct SourceCode {

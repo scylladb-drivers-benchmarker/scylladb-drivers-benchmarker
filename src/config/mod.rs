@@ -2,7 +2,7 @@ pub mod backend;
 pub mod benchmark;
 pub mod config_traits;
 
-use std::{error::Error, path::Path};
+use std::path::Path;
 
 use config_traits::{Configuration, ConfigurationList};
 
