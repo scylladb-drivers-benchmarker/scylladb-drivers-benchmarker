@@ -6,22 +6,17 @@ use sqlite::State;
 use crate::utilities::BenchmarkParams;
 use crate::utilities::BenchmarkRecord;
 
-use thiserror::Error;
-
 pub struct Database {
     connection: Connection,
 }
 
-#[derive(Error, Debug)]
+#[justerror::Error(desc = "internal database error")]
 pub enum DatabaseError {
-    #[error("internal database error: {0}")]
-    InternalError(String),
-}
-
-impl From<sqlite::Error> for DatabaseError {
-    fn from(err: sqlite::Error) -> Self {
-        DatabaseError::InternalError(err.to_string())
-    }
+    InternalError(
+        #[source]
+        #[from]
+        sqlite::Error,
+    ),
 }
 
 impl Database {
