@@ -1,16 +1,30 @@
 pub mod backend;
 pub mod benchmark;
-pub mod config_errors;
 pub mod config_traits;
 
 use std::{error::Error, path::Path};
 
-use config_errors::ConfigurationNotFound;
 use config_traits::{Configuration, ConfigurationList};
+
+#[justerror::Error(desc = "error reading from config")]
+pub enum ConfigError {
+    FileOperationError(
+        #[source]
+        #[from]
+        std::io::Error,
+    ),
+    ParseError(
+        #[source]
+        #[from]
+        serde_yml::Error,
+    ),
+    #[error(desc = "configuration not found")]
+    ConfigurationNotFound,
+}
 
 pub fn open_config<ConfigListType: ConfigurationList>(
     config_path: &Path,
-) -> Result<ConfigListType, Box<dyn Error>> {
+) -> Result<ConfigListType, ConfigError> {
     let file = std::fs::File::open(config_path)?;
     Ok(serde_yml::from_reader(file)?)
 }
@@ -18,14 +32,11 @@ pub fn open_config<ConfigListType: ConfigurationList>(
 pub fn find_config<ConfigType: Configuration>(
     config_name: &str,
     config_path: &Path,
-) -> Result<ConfigType, Box<dyn Error>> {
+) -> Result<ConfigType, ConfigError> {
     let config_list: ConfigType::ConfigListType = open_config(config_path)?;
     config_list
         .find_config(config_name)
-        .ok_or(Box::new(ConfigurationNotFound {
-            path: config_path.to_owned(),
-            name: config_name.to_string(),
-        }))
+        .ok_or(ConfigError::ConfigurationNotFound)
 }
 
 mod tests {
