@@ -5,9 +5,7 @@ use std::path::Path;
 use crate::benchmarking::execution::{CompileError, MeasurementError};
 use crate::command::CommandParsingError;
 use crate::commit_hash::CommitHash;
-use crate::config::backend::BackendConfigList;
-use crate::config::config_traits::ConfigurationList;
-use crate::config::{ConfigError, find_config, open_config};
+use crate::config::{ConfigError, find_config};
 use crate::utilities::{BenchmarkParams, BenchmarkPoint};
 use execution::{Executor, SourceCode, build_source};
 
