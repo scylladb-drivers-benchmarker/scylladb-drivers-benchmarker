@@ -2,10 +2,12 @@ mod execution;
 
 use std::path::Path;
 
+use crate::benchmarking::execution::{CompileError, MeasurementError};
+use crate::command::CommandParsingError;
 use crate::commit_hash::CommitHash;
 use crate::config::backend::BackendConfigList;
 use crate::config::config_traits::ConfigurationList;
-use crate::config::{find_config, open_config};
+use crate::config::{ConfigError, find_config, open_config};
 use crate::utilities::{BenchmarkParams, BenchmarkPoint};
 use execution::{Executor, SourceCode, build_source};
 
@@ -25,13 +27,48 @@ pub struct BenchmarkingArguments {
     pub measurement_method: String,
 }
 
+#[justerror::Error]
+pub enum ExecutorBuildingError {
+    RunParsingError(CommandParsingError),
+    MeasureParsingError(CommandParsingError),
+}
+
+#[justerror::Error]
+pub enum BenchmarkingError {
+    CompileError(
+        #[from]
+        #[source]
+        CompileError,
+    ),
+    DbError(
+        #[from]
+        #[source]
+        DatabaseError,
+    ),
+    ConfigError(
+        #[from]
+        #[source]
+        ConfigError,
+    ),
+    ExecutorBuildingError(
+        #[from]
+        #[source]
+        ExecutorBuildingError,
+    ),
+    MeasurementError(
+        #[from]
+        #[source]
+        MeasurementError,
+    )
+}
+
 pub fn benchmark(
     database: &Database,
     commit_hash: CommitHash,
     benchmark_config: BenchmarkConfig,
     backend_config_path: &Path,
     measurement_method: String,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), BenchmarkingError> {
     let BenchmarkConfig {
         name: benchmark_name,
         data: benchmark_data,
@@ -68,8 +105,10 @@ pub fn benchmark(
         SourceCode { path: None },
     )?;
 
-    let executor = Executor::new(built_source, backend_config.run_command)?
-        .with_measure(&measurement_method)?;
+    let executor = Executor::new(built_source, backend_config.run_command)
+        .map_err(ExecutorBuildingError::RunParsingError)?
+        .with_measure(&measurement_method)
+        .map_err(ExecutorBuildingError::MeasureParsingError)?;
 
     for point in points.iter().cloned() {
         let benchmark_record = executor.execute(point)?;
