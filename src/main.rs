@@ -66,8 +66,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             &args.measurement_method,
             visualization_kind,
             from,
-        )
-        .map_err(|e| -> Box<dyn std::error::Error> { Box::new(e) }),
+        ),
     }
 }
 

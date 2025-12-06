@@ -44,7 +44,7 @@ pub fn plot_benchmarks(
     measurement_method: &str,
     visualization_kind: Option<String>,
     from: Vec<RepositoryWithCommits>,
-) -> Result<(), plotting::error::PlotError> {
+) -> Result<(), Box<dyn Error>> {
     let benchmark_config: BenchmarkConfig = find_config(benchmark_name, benchmark_config_path)?;
 
     let names = from
@@ -71,7 +71,7 @@ pub fn plot_benchmarks(
                 _ => crate::plotting::VisKind::Linear,
             };
 
-            plotting::plot(
+            Ok(plotting::plot(
                 plotting::PlotKind::Series(vis_kind),
                 database,
                 benchmark_name,
@@ -79,18 +79,18 @@ pub fn plot_benchmarks(
                 measurement_method,
                 &commit_hashes,
                 &names,
-            )
+            )?)
         }
 
         "flamegraph" => {
             // Should not provide vis_kind
             if visualization_kind.is_some() {
-                return Err(plotting::error::PlotError::UnsupportedVisKind {
+                return Err(Box::new(plotting::error::PlotError::UnsupportedVisKind {
                     kind: "Visualization kind should not be provided for flamegraph".into(),
-                });
+                }));
             }
 
-            plotting::plot(
+            Ok(plotting::plot(
                 plotting::PlotKind::Flamegraph,
                 database,
                 benchmark_name,
@@ -98,11 +98,11 @@ pub fn plot_benchmarks(
                 measurement_method,
                 &commit_hashes,
                 &names,
-            )
+            )?)
         }
 
-        other => Err(plotting::error::PlotError::UnknownMeasureKind {
+        other => Err(Box::new(plotting::error::PlotError::UnknownMeasureKind {
             kind: other.to_owned(),
-        }),
+        })),
     }
 }
