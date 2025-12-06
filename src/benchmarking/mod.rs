@@ -5,7 +5,7 @@ use std::path::Path;
 use crate::commit_hash::CommitHash;
 use crate::config::backend::BackendConfigList;
 use crate::config::config_traits::ConfigurationList;
-use crate::config::open_config;
+use crate::config::{find_config, open_config};
 use crate::utilities::{BenchmarkParams, BenchmarkPoint};
 use execution::{Executor, SourceCode, build_source};
 
@@ -61,10 +61,7 @@ pub fn benchmark(
         return Ok(());
     }
 
-    let backend_config: BackendConfig = open_config::<BackendConfigList>(backend_config_path)?
-        .configs()
-        .find(|config| config.benchmark_name == benchmark_name)
-        .expect("backend not found"); // TODO: fix
+    let backend_config: BackendConfig = find_config(&benchmark_name, backend_config_path)?;
 
     let built_source = build_source(
         backend_config.build_command.as_str(),

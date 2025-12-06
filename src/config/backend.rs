@@ -13,8 +13,8 @@ pub struct BackendConfig {
 
 impl Configuration for BackendConfig {
     type ConfigListType = BackendConfigList;
-    fn name(&self) -> String {
-        self.name.clone()
+    fn benchmark_name(&self) -> String {
+        self.benchmark_name.clone()
     }
 }
 
@@ -71,7 +71,7 @@ run-command: node benchmark/logic/select.js scylladb-nodejs-rs-driver
 
         assert!(backend_config_list.find_config("name: c").is_none());
 
-        let found = backend_config_list.find_config("name: a").unwrap();
+        let found = backend_config_list.find_config("benchmark_a").unwrap();
         assert_eq!(found, config("a"));
     }
 }
