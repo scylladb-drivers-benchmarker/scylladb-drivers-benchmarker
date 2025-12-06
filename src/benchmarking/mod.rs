@@ -56,7 +56,7 @@ pub fn benchmark(
                 Err(e) => Some(Err(e)),
             },
         )
-        .collect::<Result<Vec<BenchmarkPoint>, sqlite::Error>>()?;
+        .collect::<Result<Vec<BenchmarkPoint>, DatabaseError>>()?;
 
     if points.is_empty() {
         return Ok(());
@@ -73,7 +73,7 @@ pub fn benchmark(
     )?;
 
     let mut executor = Executor::new(built_source, backend_config.run_command.as_str())?;
-    executor.measure(measurement_method.as_str())?;
+    //executor.measure(measurement_method.as_str())?;
 
     for point in points.iter().cloned() {
         let benchmark_result = executor.run(point)?;
