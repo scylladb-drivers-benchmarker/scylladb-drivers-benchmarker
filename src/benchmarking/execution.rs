@@ -4,7 +4,6 @@ use std::str::FromStr;
 
 use crate::command::{Command, CommandParsingError};
 use crate::utilities::{BenchmarkPoint, BenchmarkRecord, BenchmarkResult};
-use thiserror::Error;
 
 pub struct SourceCode {
     pub path: Option<PathBuf>,
@@ -12,16 +11,14 @@ pub struct SourceCode {
 
 pub struct BuiltSource {}
 
-#[derive(Debug, Error)]
+#[justerror::Error(desc = "compilation failed")]
 pub enum CompileError {
-    #[error("parsing of compile command failed <- {0}")]
     CommandParsingError(
         #[from]
         #[source]
         CommandParsingError,
     ),
 
-    #[error("compilation failed <- {0}")]
     CompilationRunningError(
         #[from]
         #[source]
@@ -78,5 +75,22 @@ impl Executor {
         let output = self.execute(param)?;
         let output = String::from_utf8(output.stdout)?;
         Ok(BenchmarkRecord::new(Some(output)))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use shell_words::ParseError;
+
+    use crate::benchmarking::execution::CompileError;
+    use crate::command::CommandParsingError;
+
+    #[test]
+    fn test() {
+        println!(
+            "{}",
+            CompileError::CommandParsingError(CommandParsingError::FailedShlexing(ParseError))
+        );
+        panic!();
     }
 }
