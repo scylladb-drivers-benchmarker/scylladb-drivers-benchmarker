@@ -2,7 +2,7 @@ pub mod backend;
 pub mod benchmark;
 pub mod config_traits;
 
-use std::{error::Error, path::Path};
+use std::path::Path;
 
 use config_traits::{Configuration, ConfigurationList};
 
@@ -30,12 +30,12 @@ pub fn open_config<ConfigListType: ConfigurationList>(
 }
 
 pub fn find_config<ConfigType: Configuration>(
-    config_name: &str,
+    benchmark_name: impl AsRef<str>,
     config_path: &Path,
 ) -> Result<ConfigType, ConfigError> {
     let config_list: ConfigType::ConfigListType = open_config(config_path)?;
     config_list
-        .find_config(config_name)
+        .find_config(benchmark_name.as_ref())
         .ok_or(ConfigError::ConfigurationNotFound)
 }
 
@@ -50,7 +50,7 @@ mod tests {
     #[test]
     fn open_config() {
         let config: BackendConfig = find_config(
-            "scylladb-nodejs-rs-driver",
+            "select",
             Path::new("./configs/backend_config.yml"),
         )
         .unwrap();

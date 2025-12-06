@@ -1,13 +1,11 @@
 mod execution;
 
 use std::path::Path;
-use std::str::FromStr;
 
-use crate::command;
+use crate::benchmarking::execution::{CompileError, MeasurementError};
+use crate::command::CommandParsingError;
 use crate::commit_hash::CommitHash;
-use crate::config::backend::BackendConfigList;
-use crate::config::config_traits::ConfigurationList;
-use crate::config::open_config;
+use crate::config::{ConfigError, find_config};
 use crate::utilities::{BenchmarkParams, BenchmarkPoint};
 use execution::{Executor, SourceCode, build_source};
 
@@ -27,13 +25,48 @@ pub struct BenchmarkingArguments {
     pub measurement_method: String,
 }
 
+#[justerror::Error]
+pub enum ExecutorBuildingError {
+    RunParsingError(CommandParsingError),
+    MeasureParsingError(CommandParsingError),
+}
+
+#[justerror::Error]
+pub enum BenchmarkingError {
+    CompileError(
+        #[from]
+        #[source]
+        CompileError,
+    ),
+    DbError(
+        #[from]
+        #[source]
+        DatabaseError,
+    ),
+    ConfigError(
+        #[from]
+        #[source]
+        ConfigError,
+    ),
+    ExecutorBuildingError(
+        #[from]
+        #[source]
+        ExecutorBuildingError,
+    ),
+    MeasurementError(
+        #[from]
+        #[source]
+        MeasurementError,
+    )
+}
+
 pub fn benchmark(
     database: &Database,
     commit_hash: CommitHash,
     benchmark_config: BenchmarkConfig,
     backend_config_path: &Path,
     measurement_method: String,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), BenchmarkingError> {
     let BenchmarkConfig {
         name: benchmark_name,
         data: benchmark_data,
@@ -63,23 +96,21 @@ pub fn benchmark(
         return Ok(());
     }
 
-    let backend_config: BackendConfig = open_config::<BackendConfigList>(backend_config_path)?
-        .configs()
-        .find(|config| config.benchmark_name == benchmark_name)
-        .expect("backend not found"); // TODO: fix
+    let backend_config: BackendConfig = find_config(&benchmark_name, backend_config_path)?;
 
     let built_source = build_source(
         backend_config.build_command.as_str(),
         SourceCode { path: None },
     )?;
 
-    let mut executor = Executor::new(built_source, backend_config.run_command.as_str())?;
-    let measure_command = command::Command::from_str(measurement_method.as_str())?;
-    executor = executor.with_measure(measure_command);
+    let executor = Executor::new(built_source, backend_config.run_command)
+        .map_err(ExecutorBuildingError::RunParsingError)?
+        .with_measure(&measurement_method)
+        .map_err(ExecutorBuildingError::MeasureParsingError)?;
 
     for point in points.iter().cloned() {
-        let benchmark_result = executor.run(point)?;
-        database.insert_data(benchmark_params(point), benchmark_result)?;
+        let benchmark_record = executor.execute(point)?;
+        database.insert_data(benchmark_params(point), benchmark_record)?;
     }
 
     Ok(())

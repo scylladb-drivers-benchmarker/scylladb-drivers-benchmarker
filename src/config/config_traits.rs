@@ -4,13 +4,14 @@ use serde::de::DeserializeOwned;
 
 pub trait Configuration {
     type ConfigListType: ConfigurationList<ConfigType = Self>;
-    fn name(&self) -> String;
+    fn benchmark_name(&self) -> String;
 }
 
 pub trait ConfigurationList: DeserializeOwned + Debug + Clone + Eq {
     type ConfigType: Configuration<ConfigListType = Self>;
     fn configs(&self) -> impl Iterator<Item = Self::ConfigType>;
-    fn find_config(&self, config_name: &str) -> Option<Self::ConfigType> {
-        self.configs().find(|config| config.name() == config_name)
+    fn find_config(&self, benchmark_name: impl AsRef<str>) -> Option<Self::ConfigType> {
+        self.configs()
+            .find(|config| config.benchmark_name() == benchmark_name.as_ref())
     }
 }

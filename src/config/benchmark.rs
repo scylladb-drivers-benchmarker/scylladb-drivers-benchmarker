@@ -63,7 +63,7 @@ pub struct BenchmarkConfig {
 
 impl Configuration for BenchmarkConfig {
     type ConfigListType = BenchmarkConfigList;
-    fn name(&self) -> String {
+    fn benchmark_name(&self) -> String {
         self.name.clone()
     }
 }
