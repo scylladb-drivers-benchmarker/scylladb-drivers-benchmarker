@@ -1,5 +1,5 @@
-use thiserror::Error;
 use crate::database::DatabaseError;
+use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum PlotError {

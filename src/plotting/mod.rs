@@ -1,16 +1,16 @@
 mod data;
+pub mod error;
 mod plot;
 mod render;
 mod series;
-pub mod error;
 
 use crate::commit_hash::CommitHash;
 use crate::config::benchmark::BenchmarkConfig;
 use crate::database::Database;
 
 use data::BenchmarkDataset;
-use plot::{Plot, SeriesPlot};
 use error::PlotError;
+use plot::{Plot, SeriesPlot};
 pub use series::VisKind;
 
 pub enum PlotKind {

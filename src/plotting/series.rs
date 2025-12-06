@@ -75,19 +75,19 @@ impl<T: SeriesValue> LogSeries<T> {
         Ok(result)
     }
 
-fn range(&self) -> Result<Option<(f64, f64)>, PlotError> {
-    if let Some((min, max)) = calc_range(self.y.iter().filter_map(|v| v.clone())) {
-        let min_f = min.into();
-        if min_f <= 0.0 {
-            return Err(PlotError::InvalidLogValue { value: min_f });
-        }
+    fn range(&self) -> Result<Option<(f64, f64)>, PlotError> {
+        if let Some((min, max)) = calc_range(self.y.iter().filter_map(|v| v.clone())) {
+            let min_f = min.into();
+            if min_f <= 0.0 {
+                return Err(PlotError::InvalidLogValue { value: min_f });
+            }
 
-        let max_f = max.into();
-        Ok(Some((min_f.log10(), max_f.log10())))
-    } else {
-        Ok(None)
+            let max_f = max.into();
+            Ok(Some((min_f.log10(), max_f.log10())))
+        } else {
+            Ok(None)
+        }
     }
-}
 }
 
 impl<T: SeriesValue> ValueTransformation<T> {

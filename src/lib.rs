@@ -42,7 +42,7 @@ pub fn plot_benchmarks(
     measurement_method: &str,
     visualization_kind: Option<String>,
     from: Vec<RepositoryWithCommits>,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<(), Plot> {
     let benchmark_config: BenchmarkConfig = find_config(benchmark_name, benchmark_config_path)?;
 
     let names = from
