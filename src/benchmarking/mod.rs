@@ -44,7 +44,7 @@ pub fn benchmark(
         BenchmarkParams::new(
             commit_hash.clone(),
             benchmark_name.clone(),
-            param.into(),
+            param,
             measurement_method.clone(),
         )
     };
