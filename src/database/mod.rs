@@ -1,17 +1,31 @@
 use std::path::PathBuf;
 
 use sqlite::Connection;
+use sqlite::State;
 
 use crate::utilities::BenchmarkParams;
 use crate::utilities::BenchmarkRecord;
 
-use sqlite::State;
+use thiserror::Error;
+
 pub struct Database {
     connection: Connection,
 }
 
+#[derive(Error, Debug)]
+pub enum DatabaseError {
+    #[error("internal database error: {0}")]
+    InternalError(String),
+}
+
+impl From<sqlite::Error> for DatabaseError {
+    fn from(err: sqlite::Error) -> Self {
+        DatabaseError::InternalError(err.to_string())
+    }
+}
+
 impl Database {
-    pub fn new(path: PathBuf) -> Result<Database, sqlite::Error> {
+    pub fn new(path: PathBuf) -> Result<Database, DatabaseError> {
         let db = Database {
             connection: Connection::open(path)?,
         };
@@ -36,7 +50,7 @@ impl Database {
         &self,
         params: BenchmarkParams,
         result: BenchmarkRecord,
-    ) -> Result<(), sqlite::Error> {
+    ) -> Result<(), DatabaseError> {
         let mut stmt = self.connection.prepare(
             "
                 INSERT INTO Benchmarks
@@ -61,7 +75,7 @@ impl Database {
     pub fn get_data(
         &self,
         params: BenchmarkParams,
-    ) -> Result<Option<BenchmarkRecord>, sqlite::Error> {
+    ) -> Result<Option<BenchmarkRecord>, DatabaseError> {
         let mut stmt = self.connection.prepare(
             "
                 SELECT data_json from  Benchmarks
@@ -86,7 +100,7 @@ impl Database {
         }
     }
 
-    pub fn data_exists(&self, params: BenchmarkParams) -> Result<bool, sqlite::Error> {
+    pub fn data_exists(&self, params: BenchmarkParams) -> Result<bool, DatabaseError> {
         Ok(self.get_data(params)?.is_some())
     }
 }

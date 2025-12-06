@@ -57,7 +57,7 @@ pub fn benchmark(
                 Err(e) => Some(Err(e)),
             },
         )
-        .collect::<Result<Vec<BenchmarkPoint>, sqlite::Error>>()?;
+        .collect::<Result<Vec<BenchmarkPoint>, DatabaseError>>()?;
 
     if points.is_empty() {
         return Ok(());
