@@ -74,9 +74,9 @@ pub fn benchmark(
         SourceCode { path: None },
     )?;
 
-    let executor = Executor::new(built_source, backend_config.run_command.as_str())?;
+    let mut executor = Executor::new(built_source, backend_config.run_command.as_str())?;
     let measure_command = command::Command::from_str(measurement_method.as_str())?;
-    let executor = executor.with_measure(measure_command);
+    executor = executor.with_measure(measure_command);
 
     for point in points.iter().cloned() {
         let benchmark_result = executor.run(point)?;
