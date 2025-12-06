@@ -57,7 +57,7 @@ pub enum BenchmarkingError {
         #[from]
         #[source]
         MeasurementError,
-    )
+    ),
 }
 
 pub fn benchmark(

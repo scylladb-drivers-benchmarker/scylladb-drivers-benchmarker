@@ -49,11 +49,8 @@ mod tests {
 
     #[test]
     fn open_config() {
-        let config: BackendConfig = find_config(
-            "select",
-            Path::new("./configs/backend_config.yml"),
-        )
-        .unwrap();
+        let config: BackendConfig =
+            find_config("select", Path::new("./configs/backend_config.yml")).unwrap();
         assert_eq!(
             config,
             BackendConfig {

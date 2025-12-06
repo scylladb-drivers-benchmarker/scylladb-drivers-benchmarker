@@ -28,7 +28,7 @@ pub fn run_benchmarks(
     let benchmark_config: BenchmarkConfig = find_config(benchmark_name, benchmark_config_path)?;
 
     let commit_hash: CommitHash = CommitHash::from_current_repository()?;
-    benchmarking::benchmark(
+    Ok(benchmarking::benchmark(
         database,
         commit_hash,
         benchmark_config,
