@@ -1,6 +1,5 @@
 use core::fmt;
 use std::str::FromStr;
-use thiserror::Error;
 
 /// Struct used for parsing command from configs
 #[derive(Debug, Clone)]
@@ -21,16 +20,13 @@ impl fmt::Display for Command {
     }
 }
 
-#[derive(Error, Debug, PartialEq, Eq)]
+#[justerror::Error]
+#[derive(PartialEq, Eq)]
 pub enum CommandParsingError {
-    #[error("program not given")]
+    #[error(desc = "program not given")]
     ProgramNotGiven,
-    #[error("failed parsing <- {0}")]
-    FailedShlexing(
-        #[from]
-        #[source]
-        shell_words::ParseError,
-    ),
+    #[error(desc = "shexing failed")]
+    FailedShlexing( #[from] shell_words::ParseError),
 }
 
 impl FromStr for Command {
