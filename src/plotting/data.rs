@@ -62,7 +62,7 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
             data: benchmark_data,
         } = benchmark_config;
 
-        let benchmark_params = |param: u64| {
+        let benchmark_params = |param: BenchmarkPoint| {
             BenchmarkParams::new(
                 commit_hash.clone(),
                 benchmark_name.clone(),
