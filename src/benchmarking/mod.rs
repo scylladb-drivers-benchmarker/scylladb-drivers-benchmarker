@@ -8,6 +8,7 @@ use crate::commit_hash::CommitHash;
 use crate::config::backend::BackendConfigList;
 use crate::config::config_traits::ConfigurationList;
 use crate::config::open_config;
+use crate::command;
 use crate::utilities::{BenchmarkParams, BenchmarkPoint};
 use execution::{Executor, SourceCode, build_source};
 
@@ -73,9 +74,9 @@ pub fn benchmark(
         SourceCode { path: None },
     )?;
 
-    let mut executor = Executor::new(built_source, backend_config.run_command.as_str())?;
+    let executor = Executor::new(built_source, backend_config.run_command.as_str())?;
     let measure_command = command::Command::from_str(measurement_method.as_str())?;
-    executor = executor.with_measure(measure_command);
+    let executor = executor.with_measure(measure_command);
 
     for point in points.iter().cloned() {
         let benchmark_result = executor.run(point)?;
