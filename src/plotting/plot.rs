@@ -1,12 +1,12 @@
 use super::data::BenchmarkDataset;
 use super::render::{Renderable, RenderableSeries};
 use super::series::{LinearSeries, LogSeries, SeriesValue, ValueTransformation, VisKind};
-use std::error::Error;
+use super::error::PlotError;
 
 use plotters::prelude::*;
 
 pub(crate) trait Plot {
-    fn plot(&self) -> Result<(), Box<dyn Error>>;
+    fn plot(&self) -> Result<(), PlotError>;
 }
 
 pub(crate) struct SeriesPlot {
@@ -27,7 +27,7 @@ impl SeriesPlot {
         benchmark_name: String,
         names: &[String],
         visualization_kind: VisKind,
-    ) -> Result<Self, Box<dyn Error>> {
+    ) -> Result<Self, PlotError> {
         let mut results = Vec::new();
 
         for (id, (name, series_values)) in names.iter().zip(dataset.results.into_iter()).enumerate()
@@ -37,14 +37,18 @@ impl SeriesPlot {
                 VisKind::Log => ValueTransformation::Log(LogSeries { y: series_values }),
             };
 
+            let range = series.range()?;
+            let series = series.series()?;
+
+
             let color = Palette99::pick(id);
 
             results.push(RenderableSeries::new(
                 name.clone(),
                 dataset.points.clone(),
-                series.series(),
+                series,
                 color,
-                series.range(),
+                range,
             ));
         }
 
@@ -53,7 +57,7 @@ impl SeriesPlot {
 }
 
 impl Plot for SeriesPlot {
-    fn plot(&self) -> Result<(), Box<dyn Error>> {
+    fn plot(&self) -> Result<(), PlotError> {
         let x_start = *self
             .results
             .first()
@@ -79,7 +83,7 @@ impl Plot for SeriesPlot {
         }
 
         let root = BitMapBackend::new("test.png", (1024, 768)).into_drawing_area();
-        root.fill(&WHITE)?;
+        root.fill(&WHITE).map_err(|e| PlotError::Plotters(Box::new(e)))?;
 
         let mut chart = ChartBuilder::on(&root)
             .caption(
@@ -89,9 +93,9 @@ impl Plot for SeriesPlot {
             .margin(10)
             .x_label_area_size(30)
             .y_label_area_size(40)
-            .build_cartesian_2d(x_start..x_end, y_min..y_max)?;
+            .build_cartesian_2d(x_start..x_end, y_min..y_max).map_err(|e| PlotError::Plotters(Box::new(e)))?;
 
-        chart.configure_mesh().draw()?;
+        chart.configure_mesh().draw().map_err(|e| PlotError::Plotters(Box::new(e)))?;
 
         for series in self.results.iter() {
             series.add_to_plot(&mut chart)?;

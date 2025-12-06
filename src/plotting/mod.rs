@@ -2,8 +2,7 @@ mod data;
 mod plot;
 mod render;
 mod series;
-
-use std::error::Error;
+pub mod error;
 
 use crate::commit_hash::CommitHash;
 use crate::config::benchmark::BenchmarkConfig;
@@ -11,6 +10,7 @@ use crate::database::Database;
 
 use data::BenchmarkDataset;
 use plot::{Plot, SeriesPlot};
+use error::PlotError;
 pub use series::VisKind;
 
 pub enum PlotKind {
@@ -26,7 +26,7 @@ pub fn plot(
     measurement_method: &str,
     commit_hashes: &[CommitHash],
     names: &Vec<String>,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<(), PlotError> {
     match plot_kind {
         PlotKind::Series(vis_kind) => {
             // Not sure how to handle this f64 here.
@@ -45,6 +45,6 @@ pub fn plot(
 
             plot.plot()
         }
-        PlotKind::Flamegraph => Err(format!("No visualization kind").into()),
+        PlotKind::Flamegraph => Err(PlotError::UnsupportedVisKind),
     }
 }

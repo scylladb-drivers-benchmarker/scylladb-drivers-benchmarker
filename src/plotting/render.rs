@@ -1,9 +1,10 @@
 use crate::utilities::{BenchmarkPoint, RangedCoordBenchmarkPoint};
 use plotters::coord::types::RangedCoordf64;
 use plotters::prelude::*;
+use super::error::PlotError;
 
 pub(crate) trait Renderable<'a, BC> {
-    fn add_to_plot(&self, backend_or_chart: &mut BC) -> Result<(), Box<dyn std::error::Error>>;
+    fn add_to_plot(&self, backend_or_chart: &mut BC) -> Result<(), PlotError>;
 }
 
 pub(crate) struct RenderableSeries {
@@ -49,7 +50,7 @@ impl<'a>
             BitMapBackend<'a>,
             Cartesian2d<RangedCoordBenchmarkPoint, RangedCoordf64>,
         >,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<(), PlotError> {
         let color = self.color.to_rgba();
         let name = self.name.clone();
         let y_max = chart.as_coord_spec().y_spec().range().end;
@@ -60,13 +61,13 @@ impl<'a>
             match y_opt {
                 Some(y) => line_points.push((x, *y)),
                 None => {
-                    chart.draw_series(std::iter::once(Cross::new((x, y_max / 2.0), 5, color)))?;
+                    chart.draw_series(std::iter::once(Cross::new((x, y_max / 2.0), 5, color))).map_err(|e| PlotError::Plotters(Box::new(e)))?;
                 }
             }
         }
 
         chart
-            .draw_series(LineSeries::new(line_points, color))?
+            .draw_series(LineSeries::new(line_points, color)).map_err(|e| PlotError::Plotters(Box::new(e)))?
             .label(name)
             .legend(move |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], color));
 
@@ -74,7 +75,7 @@ impl<'a>
             .configure_series_labels()
             .border_style(BLACK)
             .background_style(WHITE.mix(0.8))
-            .draw()?;
+            .draw().map_err(|e| PlotError::Plotters(Box::new(e)))?;
 
         Ok(())
     }

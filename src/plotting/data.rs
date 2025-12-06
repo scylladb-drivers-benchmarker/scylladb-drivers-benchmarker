@@ -3,8 +3,9 @@ use crate::config::benchmark::BenchmarkConfig;
 use crate::database::Database;
 use crate::utilities::{BenchmarkParams, BenchmarkPoint};
 use serde::de::DeserializeOwned;
-use std::error::Error;
 use std::fmt::Debug;
+
+use super::error::PlotError;
 
 pub(crate) trait PlottableValue: Sized + Debug + Clone {
     fn from_json(s: &str) -> Option<Self>;
@@ -30,7 +31,7 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         benchmark_config: &BenchmarkConfig,
         commit_hashes: &[CommitHash],
         measurement_method: &str,
-    ) -> Result<BenchmarkDataset<T>, Box<dyn Error>> {
+    ) -> Result<BenchmarkDataset<T>, PlotError> {
         let points = benchmark_config
             .data
             .benchmark_points()
@@ -46,7 +47,7 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
                     measurement_method,
                 )
             })
-            .collect::<Result<Vec<Vec<Option<T>>>, Box<dyn Error>>>()?;
+            .collect::<Result<Vec<Vec<Option<T>>>, PlotError>>()?;
 
         Ok(BenchmarkDataset { points, results })
     }
@@ -56,7 +57,7 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         commit_hash: &CommitHash,
         benchmark_config: &BenchmarkConfig,
         measurement_method: &str,
-    ) -> Result<Vec<Option<T>>, Box<dyn Error>> {
+    ) -> Result<Vec<Option<T>>, PlotError> {
         let BenchmarkConfig {
             name: benchmark_name,
             data: benchmark_data,
@@ -73,7 +74,7 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
 
         let results = benchmark_data
             .benchmark_points()
-            .map(|point| -> Result<_, Box<dyn Error>> {
+            .map(|point| -> Result<_, PlotError> {
                 let record = database.get_data(benchmark_params(point))?;
 
                 let value = record
