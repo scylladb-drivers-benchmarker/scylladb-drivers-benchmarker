@@ -1,8 +1,9 @@
 mod execution;
 
-use std::error::Error;
 use std::path::Path;
+use std::str::FromStr;
 
+use crate::command;
 use crate::commit_hash::CommitHash;
 use crate::config::backend::BackendConfigList;
 use crate::config::config_traits::ConfigurationList;
@@ -32,7 +33,7 @@ pub fn benchmark(
     benchmark_config: BenchmarkConfig,
     backend_config_path: &Path,
     measurement_method: String,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<(), Box<dyn std::error::Error>> {
     let BenchmarkConfig {
         name: benchmark_name,
         data: benchmark_data,
@@ -73,7 +74,8 @@ pub fn benchmark(
     )?;
 
     let mut executor = Executor::new(built_source, backend_config.run_command.as_str())?;
-    executor.measure(measurement_method.as_str())?;
+    let measure_command = command::Command::from_str(measurement_method.as_str())?;
+    executor = executor.with_measure(measure_command);
 
     for point in points.iter().cloned() {
         let benchmark_result = executor.run(point)?;
