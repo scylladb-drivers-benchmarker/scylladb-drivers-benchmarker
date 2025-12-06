@@ -1,4 +1,5 @@
 use super::data::PlottableValue;
+use super::error::PlotError;
 
 pub enum VisKind {
     Linear,
@@ -54,31 +55,52 @@ impl<T: SeriesValue> LinearSeries<T> {
 }
 
 impl<T: SeriesValue> LogSeries<T> {
-    fn series(&self) -> Vec<Option<f64>> {
-        self.y
-            .iter()
-            .cloned()
-            .map(|y| y.map(|v| v.into().log10()))
-            .collect()
+    fn series(&self) -> Result<Vec<Option<f64>>, PlotError> {
+        let mut result = Vec::with_capacity(self.y.len());
+
+        for y in &self.y {
+            match y {
+                Some(v) => {
+                    let f = (*v).clone().into();
+                    if f <= 0.0 {
+                        return Err(PlotError::InvalidLogValue { value: f });
+                    } else {
+                        result.push(Some(f.log10()));
+                    }
+                }
+                None => result.push(None),
+            }
+        }
+
+        Ok(result)
     }
 
-    fn range(&self) -> Option<(f64, f64)> {
-        let (min, max) = calc_range(self.y.iter().filter_map(|v| v.clone()))?;
-        Some((min.into().log10(), max.into().log10()))
+fn range(&self) -> Result<Option<(f64, f64)>, PlotError> {
+    if let Some((min, max)) = calc_range(self.y.iter().filter_map(|v| v.clone())) {
+        let min_f = min.into();
+        if min_f <= 0.0 {
+            return Err(PlotError::InvalidLogValue { value: min_f });
+        }
+
+        let max_f = max.into();
+        Ok(Some((min_f.log10(), max_f.log10())))
+    } else {
+        Ok(None)
     }
+}
 }
 
 impl<T: SeriesValue> ValueTransformation<T> {
-    pub fn series(&self) -> Vec<Option<f64>> {
+    pub fn series(&self) -> Result<Vec<Option<f64>>, PlotError> {
         match self {
-            ValueTransformation::Linear(s) => s.series(),
+            ValueTransformation::Linear(s) => Ok(s.series()),
             ValueTransformation::Log(s) => s.series(),
         }
     }
 
-    pub fn range(&self) -> Option<(f64, f64)> {
+    pub fn range(&self) -> Result<Option<(f64, f64)>, PlotError> {
         match self {
-            ValueTransformation::Linear(s) => s.range(),
+            ValueTransformation::Linear(s) => Ok(s.range()),
             ValueTransformation::Log(s) => s.range(),
         }
     }
