@@ -16,6 +16,8 @@ pub mod database;
 mod plotting;
 pub mod utilities;
 
+pub use plotting::error::PlotError;
+
 pub fn run_benchmarks(
     database: &Database,
     benchmark_name: &str,
@@ -42,7 +44,7 @@ pub fn plot_benchmarks(
     measurement_method: &str,
     visualization_kind: Option<String>,
     from: Vec<RepositoryWithCommits>,
-) -> Result<(), Plot> {
+) -> Result<(), plotting::error::PlotError> {
     let benchmark_config: BenchmarkConfig = find_config(benchmark_name, benchmark_config_path)?;
 
     let names = from
@@ -83,7 +85,9 @@ pub fn plot_benchmarks(
         "flamegraph" => {
             // Should not provide vis_kind
             if visualization_kind.is_some() {
-                return Err("Visualization kind should not be provided for flamegraph".into());
+                return Err(plotting::error::PlotError::UnsupportedVisKind {
+                    kind: "Visualization kind should not be provided for flamegraph".into(),
+                });
             }
 
             plotting::plot(
@@ -97,6 +101,8 @@ pub fn plot_benchmarks(
             )
         }
 
-        other => Err(format!("Unknown measurement method: {}", other).into()),
+        other => Err(plotting::error::PlotError::UnknownMeasureKind {
+            kind: other.to_owned(),
+        }),
     }
 }

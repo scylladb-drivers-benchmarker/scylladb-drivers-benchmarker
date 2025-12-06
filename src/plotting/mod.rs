@@ -45,6 +45,8 @@ pub fn plot(
 
             plot.plot()
         }
-        PlotKind::Flamegraph => Err(PlotError::UnsupportedVisKind),
+        PlotKind::Flamegraph => Err(PlotError::UnsupportedVisKind {
+            kind: "Flamegraph".to_owned(),
+        }),
     }
 }

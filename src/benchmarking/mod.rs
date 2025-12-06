@@ -4,7 +4,6 @@ use std::path::Path;
 use std::str::FromStr;
 
 use crate::command;
-use crate::command;
 use crate::commit_hash::CommitHash;
 use crate::config::backend::BackendConfigList;
 use crate::config::config_traits::ConfigurationList;
