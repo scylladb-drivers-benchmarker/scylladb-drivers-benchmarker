@@ -73,13 +73,12 @@ pub fn benchmark(
         SourceCode { path: None },
     )?;
 
-    let mut executor = Executor::new(built_source, backend_config.run_command.as_str())?;
-    let measure_command = command::Command::from_str(measurement_method.as_str())?;
-    executor = executor.with_measure(measure_command);
+    let executor = Executor::new(built_source, backend_config.run_command)?
+        .with_measure(&measurement_method)?;
 
     for point in points.iter().cloned() {
-        let benchmark_result = executor.run(point)?;
-        database.insert_data(benchmark_params(point), benchmark_result)?;
+        let benchmark_record = executor.execute(point)?;
+        database.insert_data(benchmark_params(point), benchmark_record)?;
     }
 
     Ok(())
