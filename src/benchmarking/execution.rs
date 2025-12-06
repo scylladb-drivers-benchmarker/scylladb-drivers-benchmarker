@@ -77,20 +77,3 @@ impl Executor {
         Ok(BenchmarkRecord::new(Some(output)))
     }
 }
-
-#[cfg(test)]
-mod test {
-    use shell_words::ParseError;
-
-    use crate::benchmarking::execution::CompileError;
-    use crate::command::CommandParsingError;
-
-    #[test]
-    fn test() {
-        println!(
-            "{}",
-            CompileError::CommandParsingError(CommandParsingError::FailedShlexing(ParseError))
-        );
-        panic!();
-    }
-}
