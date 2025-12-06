@@ -1,30 +1,7 @@
 use crate::cmd;
 use crate::command::Command;
-use std::error::Error;
-use std::fmt;
+use std::env;
 use std::path::Path;
-use std::process::ExitStatus;
-
-#[derive(Debug)]
-pub struct GitFailed {
-    pub status: ExitStatus,
-    pub stderr: Vec<u8>,
-}
-
-impl fmt::Display for GitFailed {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let stderr = String::from_utf8_lossy(&self.stderr);
-
-        write!(
-            f,
-            "Git command failed with {}.\nStderr: {}",
-            self.status,
-            stderr.trim() // Trim whitespace for cleaner output
-        )
-    }
-}
-
-impl Error for GitFailed {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CommitHash {
@@ -37,66 +14,60 @@ impl From<CommitHash> for String {
     }
 }
 
+#[justerror::Error(desc = "Failed to retrieve commit hash")]
+pub enum CommitHashError {
+    IoError {
+        #[source]
+        #[from]
+        source: std::io::Error,
+    },
+    GitCommandFailure(String),
+    InvalidUtf8 {
+        #[source]
+        #[from]
+        source: std::string::FromUtf8Error,
+    },
+    #[error(desc = "Git returned an invalid commit hash")]
+    InvalidHash {
+        hash: String,
+    },
+}
+
 impl CommitHash {
+    fn validate(value: &str) -> bool {
+        value.chars().all(|c| c.is_ascii_hexdigit()) && (value.len() == 40 || value.len() == 64)
+    }
+
     pub fn new_unchecked(value: String) -> Self {
         CommitHash { value }
     }
 
-    pub fn from_repository_relative(relative: i32) -> Result<CommitHash, Box<dyn Error>> {
-        let git_get_hash = cmd!(
-            "git",
-            "rev-parse",
-            "--verify",
-            "HEAD~".to_owned() + relative.to_string().as_str()
-        );
-        let output = git_get_hash.process().output()?;
+    pub fn new(path: &Path, commit: String) -> Result<CommitHash, CommitHashError> {
+        let output = cmd!("git", "rev-parse", "--verify", &commit)
+            .process()
+            .current_dir(path)
+            .output()?;
+
         if !output.status.success() {
-            return Err(Box::new(GitFailed {
-                status: output.status,
-                stderr: output.stderr,
-            }));
+            return Err(CommitHashError::GitCommandFailure(format!(
+                "git rev-parse failed for '{}': {}",
+                commit,
+                String::from_utf8_lossy(&output.stderr)
+            )));
         }
 
         let value = String::from_utf8(output.stdout)?;
-        for char in value.chars() {
-            assert!(
-                char.is_lowercase() || char.is_ascii_digit(),
-                "Got an incorrect git hash from a passing git process. Character: {} is not a number or a lowercase letter.",
-                char
-            );
+
+        // basic validation
+        if !Self::validate(&value) {
+            return Err(CommitHashError::InvalidHash { hash: value });
         }
 
         Ok(CommitHash { value })
     }
 
-    pub fn new(path: &Path, commit: String) -> CommitHash {
-        let git_get_hash = cmd!("git", "rev-parse", "--verify", &commit);
-
-        // Todo unwrap
-        let output = git_get_hash.process().current_dir(path).output().unwrap();
-
-        if !output.status.success() {
-            panic!(
-                "git rev-parse failed for '{}': {}",
-                commit,
-                String::from_utf8_lossy(&output.stderr)
-            );
-        }
-
-        let value = String::from_utf8(output.stdout).unwrap();
-        for char in value.chars() {
-            assert!(
-                char.is_lowercase() || char.is_ascii_digit(),
-                "Got an incorrect git hash from a passing git process. Character: {} is not a number or a lowercase letter.",
-                char
-            );
-        }
-
-        CommitHash { value }
-    }
-
-    pub fn from_repository() -> Result<CommitHash, Box<dyn Error>> {
-        Self::from_repository_relative(0)
+    pub fn from_current_repository() -> Result<CommitHash, CommitHashError> {
+        CommitHash::new(&env::current_dir()?, "HEAD".to_string())
     }
 
     pub fn as_str(&self) -> &str {

@@ -77,7 +77,7 @@ impl RepositoryWithCommits {
     pub fn to_commit_hashes(self) -> Vec<CommitHash> {
         self.commits
             .into_iter()
-            .map(|x| CommitHash::new(&self.repo_path, x))
+            .map(|x| CommitHash::new(&self.repo_path, x).unwrap())
             .collect()
     }
 }
