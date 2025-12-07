@@ -55,12 +55,20 @@ pub struct RepositoryWithCommits {
     pub commits: Vec<String>,
 }
 
+#[justerror::Error]
+pub enum RepositoryWithCommitsParsingError {
+    PathNotSupplied,
+    Infallible(#[from] std::convert::Infallible)
+}
+
 impl FromStr for RepositoryWithCommits {
-    type Err = Box<dyn Error + Send + Sync>;
+    type Err = RepositoryWithCommitsParsingError;
 
     fn from_str(string: &str) -> Result<Self, Self::Err> {
         let mut parts = string.split(':');
-        let repo_path = parts.next().expect("repo path not supplied"); // TODO: fix
+        let repo_path = parts
+            .next()
+            .ok_or(RepositoryWithCommitsParsingError::PathNotSupplied)?;
 
         let commits: Vec<String> = parts.map(str::to_owned).collect();
 
