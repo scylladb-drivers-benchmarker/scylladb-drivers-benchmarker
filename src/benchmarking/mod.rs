@@ -85,8 +85,8 @@ pub fn benchmark(
         .benchmark_points()
         .filter_map(
             |point| match database.data_exists(benchmark_params(point)) {
-                Ok(true) => Some(Ok(point)),
-                Ok(false) => None,
+                Ok(true) => None,
+                Ok(false) => Some(Ok(point)),
                 Err(e) => Some(Err(e)),
             },
         )

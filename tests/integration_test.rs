@@ -47,16 +47,14 @@ fn gather_data_cpp() {
     };
 
 
-    println!("{:?}", db_data);
-    for (params, record) in db_data {
+    for (params, record) in &db_data {
+        if *params != get_params(params.benchmark_point) {
         println!("{:?}", params);
-        println!("{:?}", record);
-        if params != get_params(params.benchmark_point) {
-            assert!(params == get_params(params.benchmark_point));
+            assert!(*params == get_params(params.benchmark_point));
         }
         if record.is_timeout() {
             assert!(!record.is_timeout());
         }
     }
-    panic!();
+    assert_eq!(db_data.len(), 4 as usize);
 }
