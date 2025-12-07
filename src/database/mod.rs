@@ -6,9 +6,6 @@ use sqlite::State;
 use crate::utilities::BenchmarkParams;
 use crate::utilities::BenchmarkRecord;
 
-#[cfg(test)]
-use crate::CommitHash;
-
 pub struct Database {
     connection: Connection,
 }
@@ -101,11 +98,17 @@ impl Database {
     pub fn data_exists(&self, params: BenchmarkParams) -> Result<bool, DatabaseError> {
         Ok(self.get_data(params)?.is_some())
     }
+}
 
-    #[cfg(test)]
+#[cfg(test)]
+use crate::CommitHash;
+
+#[cfg(test)]
+impl Database {
     pub fn get_all_data(&self) -> Result<Vec<(BenchmarkParams, BenchmarkRecord)>, DatabaseError> {
         let mut stmt = self.connection.prepare(
-            "SELECT commit_hash, benchmark_name, benchmark_point, measurement_method, data_json FROM Benchmarks;",
+            "SELECT commit_hash, benchmark_name, benchmark_point, measurement_method, data_json 
+                FROM Benchmarks;",
         )?;
 
         let mut results = Vec::new();
@@ -131,8 +134,7 @@ impl Database {
         Ok(results)
     }
 
-    #[cfg(test)]
-    pub unsafe fn drop_table(&self) -> Result<(), DatabaseError> {
+    pub fn drop_table(&self) -> Result<(), DatabaseError> {
         self.connection.execute("DELETE FROM Benchmarks;")?;
         Ok(())
     }
@@ -210,9 +212,7 @@ mod tests {
                     && data[0] == (params2.clone(), result_timeout.clone()))
         );
 
-        unsafe {
-            db.drop_table().unwrap();
-        }
+        db.drop_table().unwrap();
 
         let data = db.get_all_data().unwrap();
         assert!(data.is_empty());
