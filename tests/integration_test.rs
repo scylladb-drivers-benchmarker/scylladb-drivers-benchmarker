@@ -21,10 +21,10 @@ fn gather_data_cpp() {
         .arg(benchmark_name)
         .arg("run");
     let output = command.output().unwrap();
-        println!(
-            "my_stdout: {}",
-            String::from_utf8_lossy(output.stdout.as_slice())
-        );
+    println!(
+        "my_stdout: {}",
+        String::from_utf8_lossy(output.stdout.as_slice())
+    );
     if !output.status.success() {
         println!(
             "my_stderr: {}",
@@ -46,10 +46,9 @@ fn gather_data_cpp() {
         )
     };
 
-
     for (params, record) in &db_data {
         if *params != get_params(params.benchmark_point) {
-        println!("{:?}", params);
+            println!("{:?}", params);
             assert!(*params == get_params(params.benchmark_point));
         }
         if record.is_timeout() {

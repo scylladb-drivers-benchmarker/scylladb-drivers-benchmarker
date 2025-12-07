@@ -5,8 +5,8 @@ use crate::{
     commit_hash::{CommitHash, CommitHashError},
     config::{ConfigError, benchmark::BenchmarkConfig, find_config},
     database::Database,
-    utilities::RepositoryWithCommits,
     plotting::error::PlotError,
+    utilities::RepositoryWithCommits,
 };
 
 #[allow(dead_code)]

@@ -93,7 +93,7 @@ mod tests {
             starting_step: 7,
             no_steps: 3,
             step_progress: 2,
-            progress_type: ProgressType::Additive
+            progress_type: ProgressType::Additive,
         };
         let points: Vec<u64> = data.benchmark_points().collect();
         assert_eq!(points, vec![7, 9, 11]);
@@ -105,7 +105,7 @@ mod tests {
             starting_step: 3,
             no_steps: 3,
             step_progress: 2,
-            progress_type: ProgressType::Multiplicative
+            progress_type: ProgressType::Multiplicative,
         };
         let points: Vec<u64> = data.benchmark_points().collect();
         assert_eq!(points, vec![3, 6, 12]);
