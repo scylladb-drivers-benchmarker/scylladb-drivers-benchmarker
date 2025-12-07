@@ -56,7 +56,8 @@ impl CommitHash {
             )));
         }
 
-        let value = String::from_utf8(output.stdout)?;
+        let mut value = String::from_utf8(output.stdout)?;
+        value.truncate(value.trim_end().len()); // Remove endl
 
         // basic validation
         if !Self::validate(&value) {
