@@ -133,8 +133,7 @@ impl Database {
 
     #[cfg(test)]
     pub unsafe fn drop_table(&self) -> Result<(), DatabaseError> {
-        self.connection
-            .execute("DROP TABLE IF EXISTS Benchmarks;")?;
+        self.connection.execute("DELETE FROM Benchmarks;")?;
         Ok(())
     }
 }
@@ -171,7 +170,7 @@ mod tests {
     }
 
     #[test]
-    fn insert_get_empty_and_timeout() {
+    fn insert_get_empty_imeout_all_clear() {
         let (db, _file) = get_db();
 
         let params1 = BenchmarkParams::new(
@@ -190,14 +189,33 @@ mod tests {
         );
         let result_timeout = BenchmarkRecord::new(None);
 
-        db.insert_data(params1.clone(), result_empty).unwrap();
-        db.insert_data(params2.clone(), result_timeout).unwrap();
+        db.insert_data(params1.clone(), result_empty.clone())
+            .unwrap();
+        db.insert_data(params2.clone(), result_timeout.clone())
+            .unwrap();
 
-        let retrieved_empty = db.get_data(params1).unwrap().unwrap();
-        let retrieved_timeout = db.get_data(params2).unwrap().unwrap();
+        let retrieved_empty = db.get_data(params1.clone()).unwrap().unwrap();
+        let retrieved_timeout = db.get_data(params2.clone()).unwrap().unwrap();
 
         assert!(retrieved_timeout.is_timeout());
         assert_eq!(retrieved_empty.data_json.unwrap(), "");
+
+        let data = db.get_all_data().unwrap();
+
+        assert!(data.len() == 2);
+        assert!(
+            (data[0] == (params1.clone(), result_empty.clone())
+                && data[1] == (params2.clone(), result_timeout.clone()))
+                || (data[1] == (params1.clone(), result_empty.clone())
+                    && data[0] == (params2.clone(), result_timeout.clone()))
+        );
+
+        unsafe {
+            db.drop_table().unwrap();
+        }
+
+        let data = db.get_all_data().unwrap();
+        assert!(data.is_empty());
     }
 
     #[test]
