@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use scylladb_drivers_benchmarker::database::Database;
 use tempfile::NamedTempFile;
 

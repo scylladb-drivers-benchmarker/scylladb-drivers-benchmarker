@@ -46,6 +46,7 @@ impl FromStr for Command {
 }
 
 impl Command {
+    #[allow(dead_code)]
     pub fn new_program(program: String) -> Self {
         Command {
             program,
@@ -76,6 +77,7 @@ impl Command {
         self.program.as_str()
     }
 
+    #[allow(dead_code)]
     pub fn args(&self) -> &Vec<String> {
         &self.arguments
     }
@@ -97,7 +99,7 @@ macro_rules! cmd {
 
 #[cfg(test)]
 mod test {
-    use std::{error::Error, ffi::OsStr};
+    use std::ffi::OsStr;
 
     use super::*;
 

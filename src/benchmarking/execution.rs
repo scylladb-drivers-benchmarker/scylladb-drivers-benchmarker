@@ -81,6 +81,7 @@ impl Executor {
         }
     }
 
+    #[allow(dead_code)]
     pub fn command(&self) -> &Command {
         &self.command
     }
