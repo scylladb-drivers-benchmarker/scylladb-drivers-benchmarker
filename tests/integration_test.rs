@@ -21,11 +21,11 @@ fn gather_data_cpp() {
         .arg(benchmark_name)
         .arg("run");
     let output = command.output().unwrap();
-    println!(
-        "my_stdout: {}",
-        String::from_utf8_lossy(output.stdout.as_slice())
-    );
     if !output.status.success() {
+        println!(
+            "my_stdout: {}",
+            String::from_utf8_lossy(output.stdout.as_slice())
+        );
         println!(
             "my_stderr: {}",
             String::from_utf8_lossy(output.stderr.as_slice())
