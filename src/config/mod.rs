@@ -46,30 +46,45 @@ pub fn find_config<ConfigType: Configuration>(
         .find_config(benchmark_name.as_ref())
         .ok_or(ConfigError::ConfigurationNotFound {
             path: config_path.to_path_buf(),
-            benchmark_name: benchmark_name.as_ref().to_owned()
+            benchmark_name: benchmark_name.as_ref().to_owned(),
         })
 }
 
+#[cfg(test)]
 mod tests {
-    #[allow(unused_imports)]
+    use crate::config::{ConfigError,find_config};
     use crate::config::backend::BackendConfig;
-    #[allow(unused_imports)]
-    use crate::config::find_config;
-    #[allow(unused_imports)]
     use std::path::Path;
 
     #[test]
     fn open_config() {
         let config: BackendConfig =
             find_config("select", Path::new("./configs/backend_config.yml")).unwrap();
+
+        assert_eq!(config.name, "scylladb-nodejs-rs-driver");
+        assert_eq!(config.benchmark_name, "select");
+        assert_eq!(config.build_command, "npm run build");
         assert_eq!(
-            config,
-            BackendConfig {
-                name: "scylladb-nodejs-rs-driver".to_string(),
-                benchmark_name: "select".to_string(),
-                build_command: "npm run build".to_string(),
-                run_command: "node benchmark/logic/select.js scylladb-nodejs-rs-driver".to_string()
-            }
-        )
+            config.run_command,
+            "node benchmark/logic/select.js scylladb-nodejs-rs-driver"
+        );
+    }
+
+    #[test]
+    fn config_error() {
+        let benchmark_name = "drop_table";
+        let config_path = Path::new("./configs/backend_config.yml");
+
+        let error: ConfigError =
+            find_config::<BackendConfig>(benchmark_name, config_path).unwrap_err();
+        let ConfigError::ConfigurationNotFound {
+            path,
+            benchmark_name,
+        } = error
+        else {
+            panic!("expected configuration not found, but got: {:?}", error);
+        };
+        assert_eq!(benchmark_name, "drop_table");
+        assert!(path.ends_with(config_path));
     }
 }
