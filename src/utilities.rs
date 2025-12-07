@@ -58,7 +58,7 @@ pub struct RepositoryWithCommits {
 #[justerror::Error]
 pub enum RepositoryWithCommitsParsingError {
     PathNotSupplied,
-    Infallible(#[from] std::convert::Infallible)
+    Infallible(#[from] std::convert::Infallible),
 }
 
 impl FromStr for RepositoryWithCommits {

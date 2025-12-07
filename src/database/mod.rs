@@ -96,13 +96,14 @@ impl Database {
     }
 }
 
-//#[cfg(test)]
-use crate::CommitHash;
+pub mod test_utils {
+    use super::*;
+    use crate::CommitHash;
 
-//#[cfg(test)]
-impl Database {
-    pub fn get_all_data(&self) -> Result<Vec<(BenchmarkParams, BenchmarkRecord)>, DatabaseError> {
-        let mut stmt = self.connection.prepare(
+    pub fn get_all_data(
+        db: &Database,
+    ) -> Result<Vec<(BenchmarkParams, BenchmarkRecord)>, DatabaseError> {
+        let mut stmt = db.connection.prepare(
             "SELECT commit_hash, benchmark_name, benchmark_point, measurement_method, data_json 
                 FROM Benchmarks;",
         )?;
@@ -130,15 +131,15 @@ impl Database {
         Ok(results)
     }
 
-    pub fn drop_table(&self) -> Result<(), DatabaseError> {
-        self.connection.execute("DELETE FROM Benchmarks;")?;
+    pub fn drop_table(db: &Database) -> Result<(), DatabaseError> {
+        db.connection.execute("DELETE FROM Benchmarks;")?;
         Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{commit_hash::CommitHash, database::*};
+    use crate::{commit_hash::CommitHash, database::test_utils::*, database::*};
     use tempfile::NamedTempFile;
 
     fn get_db() -> (Database, NamedTempFile) {
@@ -198,7 +199,7 @@ mod tests {
         assert!(retrieved_timeout.is_timeout());
         assert_eq!(retrieved_empty.data_json.unwrap(), "");
 
-        let data = db.get_all_data().unwrap();
+        let data = get_all_data(&db).unwrap();
 
         assert!(data.len() == 2);
         assert!(
@@ -208,9 +209,9 @@ mod tests {
                     && data[0] == (params2.clone(), result_timeout.clone()))
         );
 
-        db.drop_table().unwrap();
+        drop_table(&db).unwrap();
 
-        let data = db.get_all_data().unwrap();
+        let data = get_all_data(&db).unwrap();
         assert!(data.is_empty());
     }
 

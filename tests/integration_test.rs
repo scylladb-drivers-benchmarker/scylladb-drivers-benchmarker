@@ -1,14 +1,16 @@
 use std::path::Path;
 
 use assert_cmd::cargo;
-use scylladb_drivers_benchmarker::{commit_hash::CommitHash, database, utilities::BenchmarkParams};
+use scylladb_drivers_benchmarker::{
+    commit_hash::CommitHash, database, database::test_utils::*, utilities::BenchmarkParams,
+};
 
 mod local;
 
 #[test]
 fn gather_data_cpp() {
     let db = database::Database::new(Path::new("./tests/data/cpp/test.db").to_owned()).unwrap();
-    db.drop_table().unwrap();
+    drop_table(&db).unwrap();
     let benchmark_name = "regex";
 
     let mut command = std::process::Command::new(cargo::cargo_bin!("scylladb-drivers-benchmarker"));
@@ -33,7 +35,7 @@ fn gather_data_cpp() {
         assert!(output.status.success());
     }
 
-    let db_data = db.get_all_data().unwrap();
+    let db_data = get_all_data(&db).unwrap();
 
     let commit_hash = CommitHash::from_current_repository().unwrap();
 
