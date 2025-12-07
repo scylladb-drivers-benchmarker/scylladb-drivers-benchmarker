@@ -29,7 +29,7 @@ struct App {
 
     benchmark_name: String,
 
-    #[arg(long, default_value = "./config.yml")]
+    #[arg(short, long, default_value = "./config.yml")]
     benchmark_config_path: PathBuf,
 
     #[clap(subcommand)]

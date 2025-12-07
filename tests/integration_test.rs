@@ -31,6 +31,8 @@ fn gather_data_cpp() {
         .current_dir("./tests/data/cpp")
         .arg("-d")
         .arg("test.db")
+        .arg("-b")
+        .arg("../config.yml")
         .arg("regex")
         .arg("run");
     let output = command.output().unwrap();

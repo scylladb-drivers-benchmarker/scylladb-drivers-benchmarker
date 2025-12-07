@@ -1,0 +1,6 @@
+benchmarks:
+  - name: regex
+    starting-step: 100
+    no-steps: 4
+    step-progress: 10
+    progress-type: multiplicative
