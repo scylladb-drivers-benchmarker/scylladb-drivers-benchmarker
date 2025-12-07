@@ -6,6 +6,9 @@ use sqlite::State;
 use crate::utilities::BenchmarkParams;
 use crate::utilities::BenchmarkRecord;
 
+#[cfg(test)]
+use crate::CommitHash;
+
 pub struct Database {
     connection: Connection,
 }
@@ -97,6 +100,42 @@ impl Database {
 
     pub fn data_exists(&self, params: BenchmarkParams) -> Result<bool, DatabaseError> {
         Ok(self.get_data(params)?.is_some())
+    }
+
+    #[cfg(test)]
+    pub fn get_all_data(&self) -> Result<Vec<(BenchmarkParams, BenchmarkRecord)>, DatabaseError> {
+        let mut stmt = self.connection.prepare(
+            "SELECT commit_hash, benchmark_name, benchmark_point, measurement_method, data_json FROM Benchmarks;",
+        )?;
+
+        let mut results = Vec::new();
+
+        while let State::Row = stmt.next()? {
+            let commit_hash_str: String = stmt.read(0)?;
+            let benchmark_name: String = stmt.read(1)?;
+            let benchmark_point: u64 = stmt.read::<i64, usize>(2)?.try_into().unwrap();
+            let measurement_method: String = stmt.read(3)?;
+            let data_json: Option<String> = stmt.read(4)?;
+
+            let params = BenchmarkParams::new(
+                CommitHash::new_unchecked(commit_hash_str),
+                benchmark_name,
+                benchmark_point,
+                measurement_method,
+            );
+            let record = BenchmarkRecord::new(data_json);
+
+            results.push((params, record));
+        }
+
+        Ok(results)
+    }
+
+    #[cfg(test)]
+    pub unsafe fn drop_table(&self) -> Result<(), DatabaseError> {
+        self.connection
+            .execute("DROP TABLE IF EXISTS Benchmarks;")?;
+        Ok(())
     }
 }
 
