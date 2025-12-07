@@ -11,7 +11,7 @@ use crate::{
 #[allow(dead_code)]
 mod benchmarking;
 mod command;
-mod commit_hash;
+pub mod commit_hash;
 mod config;
 pub mod database;
 mod plotting;
