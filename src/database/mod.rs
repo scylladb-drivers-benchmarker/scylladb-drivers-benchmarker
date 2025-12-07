@@ -116,7 +116,7 @@ impl Database {
         while let State::Row = stmt.next()? {
             let commit_hash_str: String = stmt.read(0)?;
             let benchmark_name: String = stmt.read(1)?;
-            let benchmark_point: u64 = stmt.read::<i64, usize>(2)?.try_into().unwrap();
+            let benchmark_point: u64 = stmt.read::<i64, usize>(2)? as u64;
             let measurement_method: String = stmt.read(3)?;
             let data_json: Option<String> = stmt.read(4)?;
 
