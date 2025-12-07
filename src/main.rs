@@ -1,6 +1,7 @@
+use anyhow::Result;
 use clap::Parser;
 use scylladb_drivers_benchmarker::{database::Database, utilities::RepositoryWithCommits};
-use std::{error::Error, path::PathBuf};
+use std::{path::PathBuf};
 
 #[derive(Debug, clap::Subcommand)]
 enum AppSubcommand {
@@ -36,20 +37,25 @@ struct App {
     subcommand: AppSubcommand,
 }
 
-fn default_db_path() -> std::path::PathBuf {
-    // TODO remove unwrap
-    dirs::home_dir().unwrap().join("benchmarker.db")
+#[justerror::Error(desc = "Failed to obtain default database location. Provide one.")]
+pub enum DbPathError {
+    NoHomeDir,
 }
 
-fn print_error(error: impl Error) {
-    eprintln!("{}", error)
+fn default_db_path() -> Result<std::path::PathBuf, DbPathError> {
+    let home = home::home_dir().ok_or(DbPathError::NoHomeDir)?;
+    Ok(home.join("benchmarker.db"))
 }
 
-fn main() -> Result<(), ()> {
+fn main() -> Result<()> {
     let args = App::parse();
 
-    let db_path = args.db_path.unwrap_or_else(default_db_path);
-    let database = Database::new(db_path).map_err(print_error)?;
+    let db_path: PathBuf = match args.db_path {
+        Some(path) => path.into(),
+        None => default_db_path()?,
+    };
+
+    let database = Database::new(db_path)?;
 
     match args.subcommand {
         AppSubcommand::Run {
@@ -60,8 +66,7 @@ fn main() -> Result<(), ()> {
             &args.benchmark_config_path,
             args.measurement_method,
             backend_config_path.as_path(),
-        )
-        .map_err(print_error),
+        )?,
         AppSubcommand::Plot {
             visualization_kind,
             from,
@@ -72,9 +77,10 @@ fn main() -> Result<(), ()> {
             &args.measurement_method,
             visualization_kind,
             from,
-        )
-        .map_err(print_error),
-    }
+        )?,
+    };
+
+    Ok(())
 }
 
 #[cfg(test)]

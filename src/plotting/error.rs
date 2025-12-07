@@ -14,9 +14,8 @@ pub enum PlotError {
 
     SerdeJson(#[from] serde_json::Error),
 
-    #[error(desc = "Plotters error")]
-    Plotters(#[from] Box<dyn std::error::Error>),
-
+    //#[error(desc = "Plotters error")]
+    //Plotters(#[from] Box<dyn std::error::Error>),
     #[error(desc = "invalid value for logarithmic plot: {0}")]
     InvalidLogValue(f64),
 
@@ -24,7 +23,7 @@ pub enum PlotError {
     MissingRecords,
 }
 
-impl<E> From<DrawingAreaErrorKind<E>> for PlotError
+/*impl<E> From<DrawingAreaErrorKind<E>> for PlotError
 where
     E: Error + Send + Sync + 'static,
 {
@@ -32,3 +31,4 @@ where
         PlotError::Plotters(Box::new(e))
     }
 }
+*/

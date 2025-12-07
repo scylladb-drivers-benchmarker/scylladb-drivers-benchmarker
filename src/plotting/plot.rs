@@ -82,7 +82,7 @@ impl Plot for SeriesPlot {
         }
 
         let root = BitMapBackend::new("test.png", (1024, 768)).into_drawing_area();
-        root.fill(&WHITE)?;
+        root.fill(&WHITE).unwrap();
 
         let mut chart = ChartBuilder::on(&root)
             .caption(
@@ -92,9 +92,10 @@ impl Plot for SeriesPlot {
             .margin(10)
             .x_label_area_size(30)
             .y_label_area_size(40)
-            .build_cartesian_2d(x_start..x_end, y_min..y_max)?;
+            .build_cartesian_2d(x_start..x_end, y_min..y_max)
+            .unwrap();
 
-        chart.configure_mesh().draw()?;
+        chart.configure_mesh().draw().unwrap();
 
         for series in self.results.iter() {
             series.add_to_plot(&mut chart)?;
@@ -106,7 +107,8 @@ impl Plot for SeriesPlot {
             .border_style(BLACK)
             .background_style(WHITE.mix(0.8))
             .draw()
-            .map_err(|e| PlotError::Plotters(Box::new(e)))?;
+            .unwrap();
+        //.map_err(|e| PlotError::Plotters(Box::new(e)))?;
 
         Ok(())
     }
