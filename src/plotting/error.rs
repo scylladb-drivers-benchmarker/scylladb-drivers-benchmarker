@@ -4,7 +4,7 @@ use std::error::Error;
 
 #[justerror::Error(desc = "plotting failed")]
 pub enum PlotError {
-    DatabaseError(
+    Database(
         #[from]
         DatabaseError,
     ),

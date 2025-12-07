@@ -9,7 +9,6 @@ use crate::{
     utilities::RepositoryWithCommits,
 };
 
-#[allow(dead_code)]
 mod benchmarking;
 mod command;
 pub mod commit_hash;
@@ -20,15 +19,15 @@ pub mod utilities;
 
 #[justerror::Error]
 pub enum RunBenchmarksError {
-    BenchmarkingError(
+    Benchmarking(
         #[from]
         BenchmarkingError,
     ),
-    BenchmarkConfigError(
+    BenchmarkConfig(
         #[from]
         ConfigError,
     ),
-    CommitHashError(
+    CommitHash(
         #[from]
         CommitHashError,
     ),
@@ -36,17 +35,17 @@ pub enum RunBenchmarksError {
 
 #[justerror::Error]
 pub enum PlotBenchmarksError {
-    PlottingError(
+    Plotting(
         #[from]
         PlotError,
     ),
 
-    BenchmarkConfigError(
+    BenchmarkConfig(
         #[from]
         ConfigError,
     ),
 
-    CommitHashError(
+    CommitHash(
         #[from]
         CommitHashError,
     ),

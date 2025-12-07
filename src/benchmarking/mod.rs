@@ -27,29 +27,29 @@ pub struct BenchmarkingArguments {
 
 #[justerror::Error]
 pub enum ExecutorBuildingError {
-    RunParsingError(CommandParsingError),
-    MeasureParsingError(CommandParsingError),
+    RunParsing(CommandParsingError),
+    MeasureParsing(CommandParsingError),
 }
 
 #[justerror::Error]
 pub enum BenchmarkingError {
-    CompileError(
+    Compile(
         #[from]
         CompileError,
     ),
-    DbError(
+    Database(
         #[from]
         DatabaseError,
     ),
-    ConfigError(
+    Config(
         #[from]
         ConfigError,
     ),
-    ExecutorBuildingError(
+    ExecutorBuilding(
         #[from]
         ExecutorBuildingError,
     ),
-    MeasurementError(
+    Measurement(
         #[from]
         MeasurementError,
     ),
@@ -99,9 +99,9 @@ pub fn benchmark(
     )?;
 
     let executor = Executor::new(built_source, backend_config.run_command)
-        .map_err(ExecutorBuildingError::RunParsingError)?
+        .map_err(ExecutorBuildingError::RunParsing)?
         .with_measure(&measurement_method)
-        .map_err(ExecutorBuildingError::MeasureParsingError)?;
+        .map_err(ExecutorBuildingError::MeasureParsing)?;
 
     for point in points.iter().cloned() {
         let benchmark_record = executor.execute(point)?;

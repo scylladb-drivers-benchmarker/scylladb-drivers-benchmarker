@@ -14,12 +14,12 @@ pub struct BuiltSource {}
 
 #[justerror::Error(desc = "compilation failed")]
 pub enum CompileError {
-    CommandParsingError(
+    CommandParsing(
         #[from]
         CommandParsingError,
     ),
 
-    CompilationRunningError(
+    CompilationRunning(
         #[from]
         std::io::Error,
     ),

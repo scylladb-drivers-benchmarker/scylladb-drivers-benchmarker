@@ -16,7 +16,7 @@ impl From<CommitHash> for String {
 
 #[justerror::Error(desc = "Failed to retrieve commit hash")]
 pub enum CommitHashError {
-    IoError {
+    IO {
         #[from]
         source: std::io::Error,
     },
