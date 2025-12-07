@@ -19,36 +19,18 @@ pub mod utilities;
 
 #[justerror::Error]
 pub enum RunBenchmarksError {
-    Benchmarking(
-        #[from]
-        BenchmarkingError,
-    ),
-    BenchmarkConfig(
-        #[from]
-        ConfigError,
-    ),
-    CommitHash(
-        #[from]
-        CommitHashError,
-    ),
+    Benchmarking(#[from] BenchmarkingError),
+    BenchmarkConfig(#[from] ConfigError),
+    CommitHash(#[from] CommitHashError),
 }
 
 #[justerror::Error]
 pub enum PlotBenchmarksError {
-    Plotting(
-        #[from]
-        PlotError,
-    ),
+    Plotting(#[from] PlotError),
 
-    BenchmarkConfig(
-        #[from]
-        ConfigError,
-    ),
+    BenchmarkConfig(#[from] ConfigError),
 
-    CommitHash(
-        #[from]
-        CommitHashError,
-    ),
+    CommitHash(#[from] CommitHashError),
 }
 
 pub fn run_benchmarks(

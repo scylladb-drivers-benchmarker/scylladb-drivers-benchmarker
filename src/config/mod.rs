@@ -52,8 +52,8 @@ pub fn find_config<ConfigType: Configuration>(
 
 #[cfg(test)]
 mod tests {
-    use crate::config::{ConfigError,find_config};
     use crate::config::backend::BackendConfig;
+    use crate::config::{ConfigError, find_config};
     use std::path::Path;
 
     #[test]

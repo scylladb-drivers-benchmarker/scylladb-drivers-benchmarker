@@ -14,15 +14,9 @@ pub struct BuiltSource {}
 
 #[justerror::Error(desc = "compilation failed")]
 pub enum CompileError {
-    CommandParsing(
-        #[from]
-        CommandParsingError,
-    ),
+    CommandParsing(#[from] CommandParsingError),
 
-    CompilationRunning(
-        #[from]
-        std::io::Error,
-    ),
+    CompilationRunning(#[from] std::io::Error),
 }
 
 pub fn build_source(
@@ -45,14 +39,8 @@ pub enum MeasurementError {
     #[error(fmt = debug)]
     ExecutionFailed(Output),
     // no documentation for how and when this error is thrown in Command.output
-    RustFailed(
-        #[from]
-        io::Error,
-    ),
-    WrongOutputFormat(
-        #[from]
-        std::string::FromUtf8Error,
-    ),
+    RustFailed(#[from] io::Error),
+    WrongOutputFormat(#[from] std::string::FromUtf8Error),
 }
 
 pub struct Executor {

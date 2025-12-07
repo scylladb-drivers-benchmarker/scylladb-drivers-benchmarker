@@ -33,26 +33,11 @@ pub enum ExecutorBuildingError {
 
 #[justerror::Error]
 pub enum BenchmarkingError {
-    Compile(
-        #[from]
-        CompileError,
-    ),
-    Database(
-        #[from]
-        DatabaseError,
-    ),
-    Config(
-        #[from]
-        ConfigError,
-    ),
-    ExecutorBuilding(
-        #[from]
-        ExecutorBuildingError,
-    ),
-    Measurement(
-        #[from]
-        MeasurementError,
-    ),
+    Compile(#[from] CompileError),
+    Database(#[from] DatabaseError),
+    Config(#[from] ConfigError),
+    ExecutorBuilding(#[from] ExecutorBuildingError),
+    Measurement(#[from] MeasurementError),
 }
 
 pub fn benchmark(

@@ -4,10 +4,7 @@ use std::error::Error;
 
 #[justerror::Error(desc = "plotting failed")]
 pub enum PlotError {
-    Database(
-        #[from]
-        DatabaseError,
-    ),
+    Database(#[from] DatabaseError),
 
     #[error(fmt = "unsupported visualization kind")]
     UnsupportedVisKind,
@@ -15,16 +12,10 @@ pub enum PlotError {
     #[error(fmt = "unknown measurement method")]
     UnknownMeasureKind,
 
-    SerdeJson(
-        #[from]
-        serde_json::Error,
-    ),
+    SerdeJson(#[from] serde_json::Error),
 
     #[error(desc = "Plotters error")]
-    Plotters(
-        #[from]
-        Box<dyn std::error::Error>,
-    ),
+    Plotters(#[from] Box<dyn std::error::Error>),
 
     #[error(fmt = "invalid value for logarithmic plot")]
     InvalidLogValue,
