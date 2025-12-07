@@ -9,6 +9,15 @@ pub struct CommitHash {
 }
 
 impl From<CommitHash> for String {
+    /// Converts a commit hash to a string
+    /// ```
+    /// # use scylladb_drivers_benchmarker::commit_hash::CommitHash;
+    /// # use std::convert::From;
+    /// let commit_hash = CommitHash::from_current_repository().unwrap();
+    /// let stringified: String = String::from(commit_hash);
+    /// 
+    /// println!("{}", stringified);
+    /// ```
     fn from(value: CommitHash) -> Self {
         value.value
     }
@@ -75,5 +84,36 @@ impl CommitHash {
 
     pub fn value(&self) -> &String {
         &self.value
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::path::Path;
+
+    use crate::commit_hash::CommitHashError;
+
+    use super::CommitHash;
+
+    #[test]
+    fn coherent_commit_hashes() {
+        let hash1 = CommitHash::new(
+            Path::new("."),
+            "HEAD".to_owned(),
+        ).unwrap();
+        let hash2 = CommitHash::from_current_repository().unwrap();
+        assert_eq!(hash1, hash2);
+    }
+
+    #[test]
+    fn erroneous_commit_hash() {
+        let error = CommitHash::new(
+            Path::new("."),
+            "not a valid commit/branch/.. name".to_owned(),
+        ).unwrap_err();
+
+        let CommitHashError::GitCommandFailure(_) = error else {
+            panic!("git should have failed on invalid commit/branch/.. name");
+        };
     }
 }
