@@ -17,13 +17,11 @@ impl From<CommitHash> for String {
 #[justerror::Error(desc = "Failed to retrieve commit hash")]
 pub enum CommitHashError {
     IoError {
-        #[source]
         #[from]
         source: std::io::Error,
     },
     GitCommandFailure(String),
     InvalidUtf8 {
-        #[source]
         #[from]
         source: std::string::FromUtf8Error,
     },

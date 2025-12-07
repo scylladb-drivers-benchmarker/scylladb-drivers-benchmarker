@@ -13,7 +13,6 @@ pub struct Database {
 #[justerror::Error(desc = "internal database error")]
 pub enum DatabaseError {
     InternalError(
-        #[source]
         #[from]
         sqlite::Error,
     ),
