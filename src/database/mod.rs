@@ -100,10 +100,10 @@ impl Database {
     }
 }
 
-#[cfg(test)]
+//#[cfg(test)]
 use crate::CommitHash;
 
-#[cfg(test)]
+//#[cfg(test)]
 impl Database {
     pub fn get_all_data(&self) -> Result<Vec<(BenchmarkParams, BenchmarkRecord)>, DatabaseError> {
         let mut stmt = self.connection.prepare(
