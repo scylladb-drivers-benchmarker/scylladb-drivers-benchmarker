@@ -70,9 +70,17 @@ impl Executor {
             Ok(BenchmarkRecord::new(Some(measurement_result)))
         }
     }
+}
 
-    #[allow(dead_code)]
-    pub fn command(&self) -> &Command {
-        &self.command
+#[cfg(test)]
+mod test {
+    use super::{Executor, MeasurementError, BuiltSource};
+
+    #[test]
+    fn test_execution_error() {
+        let source = BuiltSource { _private: () };
+        let executor = Executor::new(source, "git fail").unwrap();
+        let error = executor.execute(0).unwrap_err();
+        assert!(matches!(error, MeasurementError::ExecutionFailed(_)));
     }
 }
