@@ -42,8 +42,9 @@ pub enum DbPathError {
 }
 
 fn default_db_path() -> Result<std::path::PathBuf, DbPathError> {
-    let home = home::home_dir().ok_or(DbPathError::NoHomeDir)?;
-    Ok(home.join("benchmarker.db"))
+    Ok(home::home_dir()
+        .ok_or(DbPathError::NoHomeDir)?
+        .join("benchmarker.db"))
 }
 
 fn print_error(error: impl Error) -> ! {
@@ -54,11 +55,11 @@ fn print_error(error: impl Error) -> ! {
 fn main() {
     let args = App::parse();
 
-    let db_path: PathBuf = args
-        .db_path
-        .unwrap_or_else(|| default_db_path().unwrap_or_else(|e| print_error(e)));
-
-    let database = Database::new(db_path).unwrap_or_else(|e| print_error(e));
+    let database = Database::new(
+        args.db_path
+            .unwrap_or_else(|| default_db_path().unwrap_or_else(|e| print_error(e))),
+    )
+    .unwrap_or_else(|e| print_error(e));
 
     match args.subcommand {
         AppSubcommand::Run {
