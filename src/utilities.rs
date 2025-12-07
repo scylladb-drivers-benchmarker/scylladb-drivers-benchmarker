@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use plotters::coord::types::RangedCoordu64;
 
-use crate::commit_hash::CommitHash;
+use crate::commit_hash::{CommitHash, CommitHashError};
 
 pub type BenchmarkPoint = u64;
 pub type RangedCoordBenchmarkPoint = RangedCoordu64;
@@ -72,10 +72,10 @@ impl FromStr for RepositoryWithCommits {
 }
 
 impl RepositoryWithCommits {
-    pub fn to_commit_hashes(self) -> Vec<CommitHash> {
+    pub fn to_commit_hashes(self) -> Result<Vec<CommitHash>, CommitHashError> {
         self.commits
             .into_iter()
-            .map(|x| CommitHash::new(&self.repo_path, x).unwrap())
+            .map(|commit| CommitHash::new(&self.repo_path, commit))
             .collect()
     }
 }

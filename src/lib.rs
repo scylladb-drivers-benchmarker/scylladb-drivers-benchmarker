@@ -80,7 +80,10 @@ pub fn plot_benchmarks(
 
     let commit_hashes: Vec<CommitHash> = from
         .into_iter()
-        .flat_map(|repo| repo.to_commit_hashes())
+        .map(|repo| repo.to_commit_hashes())
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .flatten()
         .collect();
 
     match measurement_method {
