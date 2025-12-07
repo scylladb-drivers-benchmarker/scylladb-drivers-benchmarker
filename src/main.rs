@@ -45,10 +45,6 @@ fn print_error(error: impl Error) {
     println!("{}", error)
 }
 
-fn print_shit(error: Box<dyn Error>) {
-    println!("{}", error.as_ref())
-}
-
 fn main() -> Result<(), ()> {
     let args = App::parse();
 
