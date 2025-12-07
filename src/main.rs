@@ -77,7 +77,7 @@ fn main() -> Result<(), ()> {
             visualization_kind,
             from,
         )
-        .map_err(print_shit),
+        .map_err(print_error),
     }
 }
 

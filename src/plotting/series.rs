@@ -63,7 +63,7 @@ impl<T: SeriesValue> LogSeries<T> {
                 Some(v) => {
                     let f = (*v).clone().into();
                     if f <= 0.0 {
-                        return Err(PlotError::InvalidLogValue { value: f });
+                        return Err(PlotError::InvalidLogValue);
                     } else {
                         result.push(Some(f.log10()));
                     }
@@ -79,7 +79,7 @@ impl<T: SeriesValue> LogSeries<T> {
         if let Some((min, max)) = calc_range(self.y.iter().filter_map(|v| v.clone())) {
             let min_f = min.into();
             if min_f <= 0.0 {
-                return Err(PlotError::InvalidLogValue { value: min_f });
+                return Err(PlotError::InvalidLogValue);
             }
 
             let max_f = max.into();

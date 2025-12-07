@@ -1,23 +1,43 @@
 use crate::database::DatabaseError;
-use thiserror::Error;
+use plotters::prelude::DrawingAreaErrorKind;
+use std::error::Error;
 
-#[derive(Debug, Error)]
+#[justerror::Error(desc = "plotting failed")]
 pub enum PlotError {
-    #[error("Database error: {0}")]
-    Database(#[from] DatabaseError),
+    DatabaseError(
+        #[from]
+        #[source]
+        DatabaseError,
+    ),
 
-    #[error("Unsupported visualization kind: {kind}")]
-    UnsupportedVisKind { kind: String },
+    #[error(fmt = "unsupported visualization kind")]
+    UnsupportedVisKind,
 
-    #[error("Unknown measurement method: {kind}")]
-    UnknownMeasureKind { kind: String },
+    #[error(fmt = "unknown measurement method")]
+    UnknownMeasureKind,
 
-    #[error("Serde JSON error: {0}")]
-    Serde(#[from] serde_json::Error),
+    SerdeJson(
+        #[from]
+        #[source]
+        serde_json::Error,
+    ),
 
-    #[error("Plotters error: {0}")]
-    Plotters(#[from] Box<dyn std::error::Error>),
+    #[error(desc = "Plotters error")]
+    Plotters(
+        #[from]
+        #[source]
+        Box<dyn std::error::Error>,
+    ),
 
-    #[error("Invalid value for log plot: {value}")]
-    InvalidLogValue { value: f64 },
+    #[error(fmt = "invalid value for logarithmic plot")]
+    InvalidLogValue,
+}
+
+impl<E> From<DrawingAreaErrorKind<E>> for PlotError
+where
+    E: Error + Send + Sync + 'static,
+{
+    fn from(e: DrawingAreaErrorKind<E>) -> Self {
+        PlotError::Plotters(Box::new(e))
+    }
 }

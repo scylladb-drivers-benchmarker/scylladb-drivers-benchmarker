@@ -1,4 +1,4 @@
-use std::{error::Error, path::Path};
+use std::path::Path;
 
 use crate::{
     benchmarking::BenchmarkingError,
@@ -6,6 +6,7 @@ use crate::{
     config::{ConfigError, benchmark::BenchmarkConfig, find_config},
     database::Database,
     utilities::RepositoryWithCommits,
+    plotting::error::PlotError,
 };
 
 #[allow(dead_code)]
@@ -16,8 +17,6 @@ mod config;
 pub mod database;
 mod plotting;
 pub mod utilities;
-
-pub use plotting::error::PlotError;
 
 #[justerror::Error]
 pub enum RunBenchmarksError {
@@ -31,6 +30,27 @@ pub enum RunBenchmarksError {
         #[source]
         ConfigError,
     ),
+    CommitHashError(
+        #[from]
+        #[source]
+        CommitHashError,
+    ),
+}
+
+#[justerror::Error]
+pub enum PlotBenchmarksError {
+    PlottingError(
+        #[from]
+        #[source]
+        PlotError,
+    ),
+
+    BenchmarkConfigError(
+        #[from]
+        #[source]
+        ConfigError,
+    ),
+
     CommitHashError(
         #[from]
         #[source]
@@ -64,7 +84,7 @@ pub fn plot_benchmarks(
     measurement_method: &str,
     visualization_kind: Option<String>,
     from: Vec<RepositoryWithCommits>,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<(), PlotBenchmarksError> {
     let benchmark_config: BenchmarkConfig = find_config(benchmark_name, benchmark_config_path)?;
 
     let names = from
@@ -108,9 +128,7 @@ pub fn plot_benchmarks(
         "flamegraph" => {
             // Should not provide vis_kind
             if visualization_kind.is_some() {
-                return Err(Box::new(plotting::error::PlotError::UnsupportedVisKind {
-                    kind: "Visualization kind should not be provided for flamegraph".into(),
-                }));
+                Err(PlotError::UnsupportedVisKind)?; // Hacky, maybe change to something more explicit.
             }
 
             Ok(plotting::plot(
@@ -123,9 +141,6 @@ pub fn plot_benchmarks(
                 &names,
             )?)
         }
-
-        other => Err(Box::new(plotting::error::PlotError::UnknownMeasureKind {
-            kind: other.to_owned(),
-        })),
+        _ => Err(PlotError::UnknownMeasureKind)?, // Hacky, maybe change to something more explicit.
     }
 }

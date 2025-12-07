@@ -34,19 +34,17 @@ pub fn plot(
             // but no such functionality is implemented.
             // Only later abstractions would require Into<64>, as they do now.
             let dataset: BenchmarkDataset<f64> = BenchmarkDataset::new(
-                &database,
-                &benchmark_config,
-                &commit_hashes,
-                &measurement_method,
+                database,
+                benchmark_config,
+                commit_hashes,
+                measurement_method,
             )?;
 
             let plot =
-                SeriesPlot::from_dataset(dataset, benchmark_name.to_string(), &names, vis_kind)?;
+                SeriesPlot::from_dataset(dataset, benchmark_name.to_string(), names, vis_kind)?;
 
             plot.plot()
         }
-        PlotKind::Flamegraph => Err(PlotError::UnsupportedVisKind {
-            kind: "Flamegraph".to_owned(),
-        }),
+        PlotKind::Flamegraph => Err(PlotError::UnsupportedVisKind),
     }
 }
