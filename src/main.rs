@@ -42,7 +42,7 @@ fn default_db_path() -> std::path::PathBuf {
 }
 
 fn print_error(error: impl Error) {
-    println!("{}", error)
+    eprintln!("{}", error)
 }
 
 fn main() -> Result<(), ()> {
