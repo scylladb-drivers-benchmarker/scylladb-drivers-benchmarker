@@ -15,7 +15,7 @@ impl From<CommitHash> for String {
     /// # use std::convert::From;
     /// let commit_hash = CommitHash::from_current_repository().unwrap();
     /// let stringified: String = String::from(commit_hash);
-    /// 
+    ///
     /// println!("{}", stringified);
     /// ```
     fn from(value: CommitHash) -> Self {
@@ -97,10 +97,7 @@ mod test {
 
     #[test]
     fn coherent_commit_hashes() {
-        let hash1 = CommitHash::new(
-            Path::new("."),
-            "HEAD".to_owned(),
-        ).unwrap();
+        let hash1 = CommitHash::new(Path::new("."), "HEAD".to_owned()).unwrap();
         let hash2 = CommitHash::from_current_repository().unwrap();
         assert_eq!(hash1, hash2);
     }
@@ -110,7 +107,8 @@ mod test {
         let error = CommitHash::new(
             Path::new("."),
             "not a valid commit/branch/.. name".to_owned(),
-        ).unwrap_err();
+        )
+        .unwrap_err();
 
         let CommitHashError::GitCommandFailure(_) = error else {
             panic!("git should have failed on invalid commit/branch/.. name");

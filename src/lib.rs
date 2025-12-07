@@ -103,7 +103,9 @@ pub fn plot_benchmarks(
         "flamegraph" => {
             // Should not provide vis_kind
             if let Some(visualization) = visualization_kind {
-                return Err(PlotBenchmarksError::Plotting(PlotError::UnknownMeasureKind(visualization)));
+                return Err(PlotBenchmarksError::Plotting(
+                    PlotError::UnknownMeasureKind(visualization),
+                ));
             }
 
             Ok(plotting::plot(
@@ -116,6 +118,8 @@ pub fn plot_benchmarks(
                 &names,
             )?)
         }
-        other => Err(PlotBenchmarksError::Plotting(PlotError::UnknownMeasureKind(other.to_owned()))),
+        other => Err(PlotBenchmarksError::Plotting(
+            PlotError::UnknownMeasureKind(other.to_owned()),
+        )),
     }
 }
