@@ -14,6 +14,7 @@ plotters = "0.3.3"
 shell-words = "1.1.0"
 justerror = "1.1.0"
 thiserror = "2.0.17"
+home = "0.5.12"
 
 [dev-dependencies]
 assert_cmd = "2.1.1"

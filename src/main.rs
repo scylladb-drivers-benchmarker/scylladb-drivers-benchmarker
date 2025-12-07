@@ -36,20 +36,29 @@ struct App {
     subcommand: AppSubcommand,
 }
 
-fn default_db_path() -> std::path::PathBuf {
-    // TODO remove unwrap
-    dirs::home_dir().unwrap().join("benchmarker.db")
+#[justerror::Error(desc = "Failed to obtain default database location. Provide one.")]
+pub enum DbPathError {
+    NoHomeDir,
 }
 
-fn print_error(error: impl Error) {
-    eprintln!("{}", error)
+fn default_db_path() -> Result<std::path::PathBuf, DbPathError> {
+    let home = home::home_dir().ok_or(DbPathError::NoHomeDir)?;
+    Ok(home.join("benchmarker.db"))
 }
 
-fn main() -> Result<(), ()> {
+fn print_error(error: impl Error) -> ! {
+    eprintln!("{}", error);
+    std::process::exit(1);
+}
+
+fn main() {
     let args = App::parse();
 
-    let db_path = args.db_path.unwrap_or_else(default_db_path);
-    let database = Database::new(db_path).map_err(print_error)?;
+    let db_path: PathBuf = args
+        .db_path
+        .unwrap_or_else(|| default_db_path().unwrap_or_else(|e| print_error(e)));
+
+    let database = Database::new(db_path).unwrap_or_else(|e| print_error(e));
 
     match args.subcommand {
         AppSubcommand::Run {
@@ -61,7 +70,7 @@ fn main() -> Result<(), ()> {
             args.measurement_method,
             backend_config_path.as_path(),
         )
-        .map_err(print_error),
+        .unwrap_or_else(|e| print_error(e)),
         AppSubcommand::Plot {
             visualization_kind,
             from,
@@ -73,8 +82,8 @@ fn main() -> Result<(), ()> {
             visualization_kind,
             from,
         )
-        .map_err(print_error),
-    }
+        .unwrap_or_else(|e| print_error(e)),
+    };
 }
 
 #[cfg(test)]
