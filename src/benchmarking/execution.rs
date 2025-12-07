@@ -16,13 +16,11 @@ pub struct BuiltSource {}
 pub enum CompileError {
     CommandParsingError(
         #[from]
-        #[source]
         CommandParsingError,
     ),
 
     CompilationRunningError(
         #[from]
-        #[source]
         std::io::Error,
     ),
 }
@@ -49,12 +47,10 @@ pub enum MeasurementError {
     // no documentation for how and when this error is thrown in Command.output
     RustFailed(
         #[from]
-        #[source]
         io::Error,
     ),
     WrongOutputFormat(
         #[from]
-        #[source]
         std::string::FromUtf8Error,
     ),
 }

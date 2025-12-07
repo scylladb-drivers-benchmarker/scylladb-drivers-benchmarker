@@ -6,7 +6,6 @@ use std::error::Error;
 pub enum PlotError {
     DatabaseError(
         #[from]
-        #[source]
         DatabaseError,
     ),
 
@@ -18,14 +17,12 @@ pub enum PlotError {
 
     SerdeJson(
         #[from]
-        #[source]
         serde_json::Error,
     ),
 
     #[error(desc = "Plotters error")]
     Plotters(
         #[from]
-        #[source]
         Box<dyn std::error::Error>,
     ),
 

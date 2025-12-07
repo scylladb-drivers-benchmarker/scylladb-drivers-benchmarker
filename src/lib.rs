@@ -22,17 +22,14 @@ pub mod utilities;
 pub enum RunBenchmarksError {
     BenchmarkingError(
         #[from]
-        #[source]
         BenchmarkingError,
     ),
     BenchmarkConfigError(
         #[from]
-        #[source]
         ConfigError,
     ),
     CommitHashError(
         #[from]
-        #[source]
         CommitHashError,
     ),
 }
@@ -41,19 +38,16 @@ pub enum RunBenchmarksError {
 pub enum PlotBenchmarksError {
     PlottingError(
         #[from]
-        #[source]
         PlotError,
     ),
 
     BenchmarkConfigError(
         #[from]
-        #[source]
         ConfigError,
     ),
 
     CommitHashError(
         #[from]
-        #[source]
         CommitHashError,
     ),
 }

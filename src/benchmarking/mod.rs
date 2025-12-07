@@ -35,27 +35,22 @@ pub enum ExecutorBuildingError {
 pub enum BenchmarkingError {
     CompileError(
         #[from]
-        #[source]
         CompileError,
     ),
     DbError(
         #[from]
-        #[source]
         DatabaseError,
     ),
     ConfigError(
         #[from]
-        #[source]
         ConfigError,
     ),
     ExecutorBuildingError(
         #[from]
-        #[source]
         ExecutorBuildingError,
     ),
     MeasurementError(
         #[from]
-        #[source]
         MeasurementError,
     ),
 }
