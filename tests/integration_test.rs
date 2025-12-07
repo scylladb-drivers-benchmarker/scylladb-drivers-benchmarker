@@ -5,8 +5,6 @@ use scylladb_drivers_benchmarker::{
     commit_hash::CommitHash, database, database::test_utils::*, utilities::BenchmarkParams,
 };
 
-mod local;
-
 #[test]
 fn gather_data_cpp() {
     let db = database::Database::new(Path::new("./tests/data/cpp/test.db").to_owned()).unwrap();
