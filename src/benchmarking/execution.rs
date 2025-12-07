@@ -1,5 +1,4 @@
 use std::io;
-use std::path::PathBuf;
 use std::process::Output;
 use std::str::FromStr;
 
