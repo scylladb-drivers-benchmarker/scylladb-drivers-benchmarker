@@ -61,8 +61,9 @@ impl<'a>
             match y_opt {
                 Some(y) => line_points.push((x, *y)),
                 None => {
+                    line_points.push((x, y_max));
                     chart
-                        .draw_series(std::iter::once(Cross::new((x, y_max / 2.0), 5, color)))
+                        .draw_series(std::iter::once(Cross::new((x, y_max), 5, color)))
                         .map_err(|e| PlotError::Plotters(Box::new(e)))?;
                 }
             }
@@ -74,13 +75,47 @@ impl<'a>
             .label(name)
             .legend(move |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], color));
 
-        chart
-            .configure_series_labels()
-            .border_style(BLACK)
-            .background_style(WHITE.mix(0.8))
-            .draw()
-            .map_err(|e| PlotError::Plotters(Box::new(e)))?;
-
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::NamedTempFile;
+
+    #[test]
+    fn renderable_series_runs() {
+        let file = NamedTempFile::new().unwrap();
+        let path = file.path().to_path_buf();
+        let backend = BitMapBackend::new(&path, (640, 480)).into_drawing_area();
+        backend.fill(&WHITE).unwrap();
+
+        let mut chart = ChartBuilder::on(&backend)
+            .margin(10)
+            .build_cartesian_2d(0u64..10u64, 0f64..100f64)
+            .unwrap();
+
+        let series = RenderableSeries::new(
+            "Test series".into(),
+            (0..10).collect(),
+            vec![
+                Some(10.0),
+                Some(20.0),
+                Some(30.0),
+                None,
+                Some(50.0),
+                Some(60.0),
+                Some(70.0),
+                Some(80.0),
+                Some(90.0),
+                Some(100.0),
+            ],
+            Palette99::pick(0),
+            Some((10.0, 100.0)),
+        );
+
+        let result = series.add_to_plot(&mut chart);
+        assert!(result.is_ok());
     }
 }

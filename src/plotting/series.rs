@@ -105,3 +105,122 @@ impl<T: SeriesValue> ValueTransformation<T> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde::Deserialize;
+
+    #[derive(Clone, Debug, PartialOrd, Deserialize)]
+    struct Dummy(f64);
+
+    impl Into<f64> for Dummy {
+        fn into(self) -> f64 {
+            self.0
+        }
+    }
+
+    impl PartialEq for Dummy {
+        fn eq(&self, other: &Self) -> bool {
+            self.0 == other.0
+        }
+    }
+
+    #[test]
+    fn linear_series() {
+        let series = LinearSeries {
+            y: vec![Some(Dummy(1.0)), Some(Dummy(3.0)), Some(Dummy(2.0))],
+        };
+        assert_eq!(series.series(), vec![Some(1.0), Some(3.0), Some(2.0)]);
+        assert_eq!(series.range(), Some((1.0, 3.0)));
+
+        let series: LinearSeries<Dummy> = LinearSeries {
+            y: vec![None, None],
+        };
+        assert_eq!(series.series(), vec![None, None]);
+        assert_eq!(series.range(), None);
+    }
+
+    #[test]
+    fn log_series() {
+        let series = LogSeries {
+            y: vec![Some(Dummy(10.0)), Some(Dummy(1000.0)), Some(Dummy(100.0))],
+        };
+        assert_eq!(
+            series.series().unwrap(),
+            vec![Some(1.0), Some(3.0), Some(2.0)]
+        );
+        assert_eq!(series.range().unwrap(), Some((1.0, 3.0)));
+
+        let series: LogSeries<Dummy> = LogSeries {
+            y: vec![None, None],
+        };
+        assert_eq!(series.series().unwrap(), vec![None, None]);
+        assert_eq!(series.range().unwrap(), None);
+
+        let series = LogSeries {
+            y: vec![Some(Dummy(-1.0))],
+        };
+
+        let range = series.range().unwrap_err();
+        let series = series.series().unwrap_err();
+        assert!(matches!(series, PlotError::InvalidLogValue));
+        assert!(matches!(range, PlotError::InvalidLogValue));
+    }
+
+    #[test]
+    fn value_transformation_linear() {
+        let series = LinearSeries {
+            y: vec![Some(Dummy(1.0)), Some(Dummy(3.0)), Some(Dummy(2.0))],
+        };
+        let vt = ValueTransformation::Linear(series);
+        let vals = vt.series().unwrap();
+        let range = vt.range().unwrap();
+
+        assert_eq!(vals, vec![Some(1.0), Some(3.0), Some(2.0)]);
+        assert_eq!(range, Some((1.0, 3.0)));
+
+        let series: LinearSeries<Dummy> = LinearSeries {
+            y: vec![None, None],
+        };
+        let vt = ValueTransformation::Linear(series);
+        let vals = vt.series().unwrap();
+        let range = vt.range().unwrap();
+
+        assert_eq!(vals, vec![None, None]);
+        assert_eq!(range, None);
+    }
+
+    #[test]
+    fn value_transformation_log() {
+        let series = LogSeries {
+            y: vec![Some(Dummy(10.0)), Some(Dummy(1000.0)), Some(Dummy(100.0))],
+        };
+        let vt = ValueTransformation::Log(series);
+        let vals = vt.series().unwrap();
+        let range = vt.range().unwrap();
+
+        assert_eq!(vals, vec![Some(1.0), Some(3.0), Some(2.0)]);
+        assert_eq!(range, Some((1.0, 3.0)));
+
+        let series: LogSeries<Dummy> = LogSeries {
+            y: vec![None, None],
+        };
+        let vt = ValueTransformation::Log(series);
+        let vals = vt.series().unwrap();
+        let range = vt.range().unwrap();
+
+        assert_eq!(vals, vec![None, None]);
+        assert_eq!(range, None);
+
+        let series = LogSeries {
+            y: vec![Some(Dummy(-1.0))],
+        };
+        let vt = ValueTransformation::Log(series);
+        let vals = vt.series().unwrap_err();
+        let range = vt.range().unwrap_err();
+
+        assert!(matches!(vals, PlotError::InvalidLogValue));
+        assert!(matches!(range, PlotError::InvalidLogValue));
+    }
+}

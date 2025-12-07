@@ -31,6 +31,9 @@ pub enum PlotError {
 
     #[error(fmt = "invalid value for logarithmic plot")]
     InvalidLogValue,
+
+    #[error(fmt = "missing records in database")]
+    MissingRecords,
 }
 
 impl<E> From<DrawingAreaErrorKind<E>> for PlotError

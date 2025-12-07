@@ -100,6 +100,61 @@ impl Plot for SeriesPlot {
             series.add_to_plot(&mut chart)?;
         }
 
+        chart
+            .configure_series_labels()
+            .position(SeriesLabelPosition::MiddleRight)
+            .border_style(BLACK)
+            .background_style(WHITE.mix(0.8))
+            .draw()
+            .map_err(|e| PlotError::Plotters(Box::new(e)))?;
+
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde::Deserialize;
+
+    #[derive(Clone, Debug, PartialOrd, Deserialize)]
+    struct Dummy(f64);
+
+    impl Into<f64> for Dummy {
+        fn into(self) -> f64 {
+            self.0
+        }
+    }
+
+    impl PartialEq for Dummy {
+        fn eq(&self, other: &Self) -> bool {
+            self.0 == other.0
+        }
+    }
+
+    #[test]
+    fn series_plot_runs() {
+        let dataset = BenchmarkDataset {
+            points: vec![1, 2, 3],
+            results: vec![
+                vec![Some(Dummy(10.0)), Some(Dummy(20.0)), None],
+                vec![Some(Dummy(5.0)), Some(Dummy(15.0)), Some(Dummy(20.0))],
+            ],
+        };
+
+        let names = vec!["first".to_string(), "second".to_string()];
+        let plot = SeriesPlot::from_dataset(
+            dataset,
+            "TestBenchmark".to_string(),
+            &names,
+            VisKind::Linear,
+        )
+        .unwrap();
+
+        let result = plot.plot();
+        assert!(result.is_ok());
+
+        // As of now, plot does not accept a path.
+        std::fs::remove_file("test.png").unwrap();
     }
 }
