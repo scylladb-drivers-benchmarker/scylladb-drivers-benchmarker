@@ -57,7 +57,7 @@ fn main() {
 
     let database = Database::new(
         args.db_path
-            .unwrap_or_else(|| default_db_path().unwrap_or_else(|e| print_error(e))),
+            .unwrap_or(default_db_path().unwrap_or_else(|e| print_error(e))),
     )
     .unwrap_or_else(|e| print_error(e));
 
