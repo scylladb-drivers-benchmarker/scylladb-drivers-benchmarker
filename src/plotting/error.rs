@@ -6,21 +6,21 @@ use std::error::Error;
 pub enum PlotError {
     Database(#[from] DatabaseError),
 
-    #[error(fmt = "unsupported visualization kind")]
-    UnsupportedVisKind,
+    #[error(desc = "unsupported visualization kind: {0}")]
+    UnsupportedVisKind(String),
 
-    #[error(fmt = "unknown measurement method")]
-    UnknownMeasureKind,
+    #[error(desc = "unknown measurement method: {0}")]
+    UnknownMeasureKind(String),
 
     SerdeJson(#[from] serde_json::Error),
 
     #[error(desc = "Plotters error")]
     Plotters(#[from] Box<dyn std::error::Error>),
 
-    #[error(fmt = "invalid value for logarithmic plot")]
-    InvalidLogValue,
+    #[error(desc = "invalid value for logarithmic plot: {0}")]
+    InvalidLogValue(f64),
 
-    #[error(fmt = "missing records in database")]
+    #[error(desc = "missing records in database")]
     MissingRecords,
 }
 

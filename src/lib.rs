@@ -71,7 +71,7 @@ pub fn plot_benchmarks(
                 .iter()
                 .map(move |commit| format!("{}@{}", repo_name, commit))
         })
-        .collect();
+        .collect::<Vec<String>>();
 
     let commit_hashes: Vec<CommitHash> = from
         .into_iter()
@@ -102,8 +102,8 @@ pub fn plot_benchmarks(
 
         "flamegraph" => {
             // Should not provide vis_kind
-            if visualization_kind.is_some() {
-                Err(PlotError::UnsupportedVisKind)?; // Hacky, maybe change to something more explicit.
+            if let Some(visualization) = visualization_kind {
+                return Err(PlotBenchmarksError::Plotting(PlotError::UnknownMeasureKind(visualization)));
             }
 
             Ok(plotting::plot(
@@ -116,6 +116,6 @@ pub fn plot_benchmarks(
                 &names,
             )?)
         }
-        _ => Err(PlotError::UnknownMeasureKind)?, // Hacky, maybe change to something more explicit.
+        other => Err(PlotBenchmarksError::Plotting(PlotError::UnknownMeasureKind(other.to_owned()))),
     }
 }

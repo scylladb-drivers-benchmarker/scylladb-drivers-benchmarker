@@ -25,7 +25,7 @@ pub fn plot(
     benchmark_config: &BenchmarkConfig,
     measurement_method: &str,
     commit_hashes: &[CommitHash],
-    names: &Vec<String>,
+    names: &[String],
 ) -> Result<(), PlotError> {
     match plot_kind {
         PlotKind::Series(vis_kind) => {
@@ -45,6 +45,6 @@ pub fn plot(
 
             plot.plot()
         }
-        PlotKind::Flamegraph => Err(PlotError::UnsupportedVisKind),
+        PlotKind::Flamegraph => Err(PlotError::UnsupportedVisKind("flamegraph not implemented yet".to_owned())),
     }
 }

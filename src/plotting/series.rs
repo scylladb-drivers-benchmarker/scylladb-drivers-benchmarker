@@ -63,7 +63,7 @@ impl<T: SeriesValue> LogSeries<T> {
                 Some(v) => {
                     let f = (*v).clone().into();
                     if f <= 0.0 {
-                        return Err(PlotError::InvalidLogValue);
+                        return Err(PlotError::InvalidLogValue(f));
                     } else {
                         result.push(Some(f.log10()));
                     }
@@ -79,7 +79,7 @@ impl<T: SeriesValue> LogSeries<T> {
         if let Some((min, max)) = calc_range(self.y.iter().filter_map(|v| v.clone())) {
             let min_f = min.into();
             if min_f <= 0.0 {
-                return Err(PlotError::InvalidLogValue);
+                return Err(PlotError::InvalidLogValue(min_f));
             }
 
             let max_f = max.into();
@@ -164,8 +164,8 @@ mod tests {
 
         let range = series.range().unwrap_err();
         let series = series.series().unwrap_err();
-        assert!(matches!(series, PlotError::InvalidLogValue));
-        assert!(matches!(range, PlotError::InvalidLogValue));
+        assert!(matches!(series, PlotError::InvalidLogValue(-1.0)));
+        assert!(matches!(range, PlotError::InvalidLogValue(-1.0)));
     }
 
     #[test]
@@ -214,13 +214,13 @@ mod tests {
         assert_eq!(range, None);
 
         let series = LogSeries {
-            y: vec![Some(Dummy(-1.0))],
+            y: vec![Some(Dummy(0.0))],
         };
         let vt = ValueTransformation::Log(series);
         let vals = vt.series().unwrap_err();
         let range = vt.range().unwrap_err();
 
-        assert!(matches!(vals, PlotError::InvalidLogValue));
-        assert!(matches!(range, PlotError::InvalidLogValue));
+        assert!(matches!(vals, PlotError::InvalidLogValue(0.0)));
+        assert!(matches!(range, PlotError::InvalidLogValue(0.0)));
     }
 }
