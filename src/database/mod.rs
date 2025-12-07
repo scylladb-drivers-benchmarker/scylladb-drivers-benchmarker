@@ -59,8 +59,8 @@ impl Database {
         stmt.bind((3, params.benchmark_point.to_string().as_str()))?;
         stmt.bind((4, params.measurement_method.as_str()))?;
 
-        if !result.is_timeout() {
-            stmt.bind((5, result.data_json.unwrap().as_str()))?;
+        if let Some(data_json) = result.data_json {
+            stmt.bind((5, data_json.as_str()))?;
         }
 
         stmt.next()?;

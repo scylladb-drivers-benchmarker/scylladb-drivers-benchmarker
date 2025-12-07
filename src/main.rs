@@ -37,6 +37,7 @@ struct App {
 }
 
 fn default_db_path() -> std::path::PathBuf {
+    // TODO remove unwrap
     dirs::home_dir().unwrap().join("benchmarker.db")
 }
 
