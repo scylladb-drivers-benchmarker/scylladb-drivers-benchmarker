@@ -7,7 +7,7 @@ use crate::command::CommandParsingError;
 use crate::commit_hash::CommitHash;
 use crate::config::{ConfigError, find_config};
 use crate::utilities::{BenchmarkParams, BenchmarkPoint};
-use execution::{Executor, SourceCode, build_source};
+use execution::{Executor, build_source};
 
 use crate::config::{backend::BackendConfig, benchmark::BenchmarkConfig};
 
@@ -78,10 +78,7 @@ pub fn benchmark(
 
     let backend_config: BackendConfig = find_config(&benchmark_name, backend_config_path)?;
 
-    let built_source = build_source(
-        backend_config.build_command.as_str(),
-        SourceCode { path: None },
-    )?;
+    let built_source = build_source(backend_config.build_command)?;
 
     let executor = Executor::new(built_source, backend_config.run_command)
         .map_err(ExecutorBuildingError::RunParsing)?

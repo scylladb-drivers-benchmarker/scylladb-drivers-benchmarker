@@ -6,11 +6,9 @@ use std::str::FromStr;
 use crate::command::{Command, CommandParsingError};
 use crate::utilities::{BenchmarkPoint, BenchmarkRecord};
 
-pub struct SourceCode {
-    pub path: Option<PathBuf>,
+pub struct BuiltSource {
+    _private: (),
 }
-
-pub struct BuiltSource {}
 
 #[justerror::Error(desc = "compilation failed")]
 pub enum CompileError {
@@ -19,19 +17,12 @@ pub enum CompileError {
     CompilationRunning(#[from] std::io::Error),
 }
 
-pub fn build_source(
-    build_command: impl AsRef<str>,
-    source_code: SourceCode,
-) -> Result<BuiltSource, CompileError> {
+pub fn build_source(build_command: impl AsRef<str>) -> Result<BuiltSource, CompileError> {
     let command = Command::from_str(build_command.as_ref())?;
     let mut command = command.process();
 
-    if let Some(path) = source_code.path {
-        command.current_dir(path);
-    }
-
     command.output()?;
-    Ok(BuiltSource {})
+    Ok(BuiltSource { _private: () })
 }
 
 #[justerror::Error(desc = "measuring failed")]
