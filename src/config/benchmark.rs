@@ -88,6 +88,30 @@ mod tests {
     use super::*;
 
     #[test]
+    fn points_additive() {
+        let data = BenchmarkData {
+            starting_step: 7,
+            no_steps: 3,
+            step_progress: 2,
+            progress_type: ProgressType::Additive
+        };
+        let points: Vec<u64> = data.benchmark_points().collect();
+        assert_eq!(points, vec![7, 9, 11]);
+    }
+
+    #[test]
+    fn points_multiplicative() {
+        let data = BenchmarkData {
+            starting_step: 3,
+            no_steps: 3,
+            step_progress: 2,
+            progress_type: ProgressType::Multiplicative
+        };
+        let points: Vec<u64> = data.benchmark_points().collect();
+        assert_eq!(points, vec![3, 6, 12]);
+    }
+
+    #[test]
     fn serialize_benchmark_config() {
         let config = BenchmarkConfig {
             name: "benchmark_name".to_string(),
