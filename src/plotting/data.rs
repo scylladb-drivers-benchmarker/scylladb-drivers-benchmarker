@@ -216,7 +216,7 @@ mod tests {
 
     #[test]
     fn extract_failure() {
-        let (db, _file, configs, hashes, measure) = init_db();
+        let (db, _file, _configs, hashes, measure) = init_db();
 
         let config = BenchmarkConfig {
             name: "wrong".to_string(),

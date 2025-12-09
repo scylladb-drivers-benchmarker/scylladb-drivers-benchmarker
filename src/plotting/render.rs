@@ -62,16 +62,13 @@ impl<'a>
                 Some(y) => line_points.push((x, *y)),
                 None => {
                     line_points.push((x, y_max));
-                    chart
-                        .draw_series(std::iter::once(Cross::new((x, y_max), 5, color)))
-                        .map_err(|e| PlotError::Plotters(Box::new(e)))?;
+                    chart.draw_series(std::iter::once(Cross::new((x, y_max), 5, color)))?;
                 }
             }
         }
 
         chart
-            .draw_series(LineSeries::new(line_points, color))
-            .map_err(|e| PlotError::Plotters(Box::new(e)))?
+            .draw_series(LineSeries::new(line_points, color))?
             .label(name)
             .legend(move |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], color));
 

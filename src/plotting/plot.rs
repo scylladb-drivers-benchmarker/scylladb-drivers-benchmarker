@@ -105,8 +105,7 @@ impl Plot for SeriesPlot {
             .position(SeriesLabelPosition::MiddleRight)
             .border_style(BLACK)
             .background_style(WHITE.mix(0.8))
-            .draw()
-            .map_err(|e| PlotError::Plotters(Box::new(e)))?;
+            .draw()?;
 
         Ok(())
     }

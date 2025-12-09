@@ -74,7 +74,7 @@ impl Executor {
 
 #[cfg(test)]
 mod test {
-    use super::{Executor, MeasurementError, BuiltSource};
+    use super::{BuiltSource, Executor, MeasurementError};
 
     #[test]
     fn test_execution_error() {
