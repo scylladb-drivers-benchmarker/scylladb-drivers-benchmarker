@@ -122,6 +122,7 @@ mod tests {
                 no_steps: 2,
                 step_progress: 1,
                 progress_type: config::benchmark::ProgressType::Additive,
+                timeout: None
             },
         };
 
@@ -170,6 +171,7 @@ mod tests {
                 no_steps: 1,
                 step_progress: 1,
                 progress_type: config::benchmark::ProgressType::Additive,
+                timeout: None
             },
         };
 
@@ -226,6 +228,7 @@ mod tests {
                 no_steps: 2,
                 step_progress: 3,
                 progress_type: config::benchmark::ProgressType::Multiplicative,
+                timeout: None
             },
         };
 

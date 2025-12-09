@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::config::config_traits::{Configuration, ConfigurationList};
 use crate::utilities::BenchmarkPoint;
+use super::my_yml;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
@@ -17,6 +18,9 @@ pub struct BenchmarkData {
     pub no_steps: BenchmarkPoint,
     pub step_progress: BenchmarkPoint,
     pub progress_type: ProgressType,
+    #[serde(with = "my_yml::duration")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timeout: Option<my_yml::duration::MyDuration>,
 }
 
 impl BenchmarkData {
@@ -85,6 +89,8 @@ impl ConfigurationList for BenchmarkConfigList {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use super::*;
 
     #[test]
@@ -94,6 +100,7 @@ mod tests {
             no_steps: 3,
             step_progress: 2,
             progress_type: ProgressType::Additive,
+            timeout: None
         };
         let points: Vec<u64> = data.benchmark_points().collect();
         assert_eq!(points, vec![7, 9, 11]);
@@ -106,6 +113,7 @@ mod tests {
             no_steps: 3,
             step_progress: 2,
             progress_type: ProgressType::Multiplicative,
+            timeout: None
         };
         let points: Vec<u64> = data.benchmark_points().collect();
         assert_eq!(points, vec![3, 6, 12]);
@@ -120,6 +128,7 @@ mod tests {
                 no_steps: 5,
                 step_progress: 2,
                 progress_type: ProgressType::Multiplicative,
+                timeout: Some(Duration::from_secs(3))
             },
         };
 
@@ -130,9 +139,11 @@ starting-step: 1
 no-steps: 5
 step-progress: 2
 progress-type: multiplicative
+timeout: 3s
 ";
         assert_eq!(serialized, expected);
     }
+
     #[test]
     fn serialize_benchmark_config_list() {
         let config1 = BenchmarkConfig {
@@ -142,6 +153,7 @@ progress-type: multiplicative
                 no_steps: 5,
                 step_progress: 2,
                 progress_type: ProgressType::Multiplicative,
+                timeout: None
             },
         };
 
@@ -152,6 +164,7 @@ progress-type: multiplicative
                 no_steps: 6,
                 step_progress: 3,
                 progress_type: ProgressType::Additive,
+                timeout: Some(Duration::from_secs(2 * 60)),
             },
         };
 
@@ -172,6 +185,7 @@ benchmarks:
   no-steps: 6
   step-progress: 3
   progress-type: additive
+  timeout: 2m
 ";
         assert_eq!(serialized, expected);
     }
