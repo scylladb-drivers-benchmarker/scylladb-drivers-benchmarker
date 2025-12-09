@@ -1,5 +1,7 @@
 use core::fmt;
+use std::io::Read;
 use std::str::FromStr;
+use wait_timeout::ChildExt;
 
 /// Struct used for parsing command from configs
 #[derive(Debug, Clone)]
@@ -86,6 +88,41 @@ impl Command {
         let mut command = std::process::Command::new(self.program());
         command.args(self.arguments);
         command
+    }
+
+    pub fn output_with_timeout(
+        self,
+        timeout: std::time::Duration,
+    ) -> Result<Option<std::process::Output>, std::io::Error> {
+        let mut child: std::process::Child = self
+            .process()
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()?;
+
+        let Some(status) = child.wait_timeout(timeout)? else {
+            return Ok(None);
+        };
+
+        let output = std::process::Output {
+            status,
+            stdout: child
+                .stdout
+                .unwrap()
+                .bytes()
+                .collect::<Result<Vec<u8>, _>>()?,
+            stderr: child
+                .stderr
+                .unwrap()
+                .bytes()
+                .collect::<Result<Vec<u8>, _>>()?,
+        };
+        Ok(Some(output))
+    }
+
+    pub fn output(self) -> Result<std::process::Output, std::io::Error> {
+        self.process().output()
     }
 }
 
