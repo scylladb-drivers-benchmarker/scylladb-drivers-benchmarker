@@ -1,5 +1,5 @@
 use core::fmt;
-use std::io::Read;
+use std::io::{BufReader, Read};
 use std::str::FromStr;
 use wait_timeout::ChildExt;
 
@@ -105,20 +105,17 @@ impl Command {
             return Ok(None);
         };
 
-        let output = std::process::Output {
+        let buffer = BufReader::new(child.stdout.unwrap());
+        let stdout = buffer.bytes().collect::<Result<Vec<u8>, _>>()?;
+
+        let buffer = BufReader::new(child.stderr.unwrap());
+        let stderr = buffer.bytes().collect::<Result<Vec<u8>, _>>()?;
+
+        Ok(Some(std::process::Output {
             status,
-            stdout: child
-                .stdout
-                .unwrap()
-                .bytes()
-                .collect::<Result<Vec<u8>, _>>()?,
-            stderr: child
-                .stderr
-                .unwrap()
-                .bytes()
-                .collect::<Result<Vec<u8>, _>>()?,
-        };
-        Ok(Some(output))
+            stdout,
+            stderr,
+        }))
     }
 
     pub fn output(self) -> Result<std::process::Output, std::io::Error> {
