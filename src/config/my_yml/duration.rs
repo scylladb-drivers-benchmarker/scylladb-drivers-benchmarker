@@ -2,10 +2,22 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use std::fmt;
 use std::time::Duration;
 
+impl From<Duration> for MyDuration {
+    fn from(value: Duration) -> Self {
+        MyDuration::Only(value)
+    }
+}
+impl From<MyDuration> for Duration {
+    fn from(value: MyDuration) -> Self {
+        let MyDuration::Only(duration) = value;
+        duration
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MyDuration {
-    #[serde(with = "self")]
-    value: std::time::Duration
+pub enum MyDuration {
+    #[serde(with = "self", untagged)]
+    Only(std::time::Duration),
 }
 
 pub fn serialize<S>(duration: &Duration, serializer: S) -> Result<S::Ok, S::Error>
@@ -14,11 +26,12 @@ where
 {
     let seconds = duration.as_secs();
     let nanos = duration.subsec_nanos();
-    let mut parts = Vec::new();
+    let mut output = String::new();
 
-    let mut push_part = |value, unit| {
+    let mut push_part = |value: u64, unit| {
         if value > 0 {
-            parts.push(format!("{}{}", value, unit));
+            output += value.to_string().as_str();
+            output += unit;
         }
     };
 
@@ -33,20 +46,14 @@ where
     push_part(remaining, "s");
 
     if nanos > 0 {
-        if nanos % 1_000_000 == 0 {
-            push_part(nanos as u64 / 1_000_000, "ms");
-        } else {
-            push_part(nanos as u64, "ns");
-        }
+        push_part(nanos as u64, "ns");
     }
 
-    let duration_str = if parts.is_empty() {
-        "0s".to_owned()
-    } else {
-        parts.join("")
-    };
+    if output.is_empty() {
+        output = "0s".to_owned();
+    }
 
-    serializer.serialize_str(&duration_str)
+    serializer.serialize_str(&output)
 }
 
 struct DurationVisitor;
@@ -58,56 +65,29 @@ impl<'de> de::Visitor<'de> for DurationVisitor {
         formatter.write_str("a duration string like '1h30m5s'")
     }
 
-    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+    fn visit_str<E>(self, string: &str) -> Result<Self::Value, E>
     where
         E: de::Error,
     {
-        let mut total_duration = Duration::new(0, 0);
-        let mut current_value = 0u64;
-        let mut current_unit = String::new();
-
-        for c in value.chars() {
-            if c.is_ascii_digit() {
-                let digit = c.to_digit(10).unwrap() as u64;
-                current_value = current_value
-                    .checked_mul(10)
-                    .and_then(|v| v.checked_add(digit))
-                    .ok_or_else(|| E::custom("duration component overflow"))?;
-            } else if c.is_ascii_alphabetic() {
-                current_unit.push(c);
-
-                match current_unit.as_str() {
-                    "h" => total_duration += Duration::from_secs(current_value * 60 * 60),
-                    "m" => total_duration += Duration::from_secs(current_value * 60),
-                    "s" => total_duration += Duration::from_secs(current_value),
-                    "ms" => total_duration += Duration::from_millis(current_value),
-                    "us" => total_duration += Duration::from_micros(current_value),
-                    "ns" => total_duration += Duration::from_nanos(current_value),
-                    _ => {
-                        return Err(E::custom(format!(
-                            "unrecognized duration unit: {}",
-                            current_unit
-                        )));
-                    }
+        let mut output = Duration::ZERO;
+        let pattern = ['h', 'm', 's'];
+        for part in string.split_inclusive(pattern) {
+            let number_str = part.strip_suffix(pattern).unwrap();
+            let number: u64 = number_str
+                .parse()
+                .map_err(|_| E::custom(format!("parsing of {} failed", number_str)))?;
+            let unit = part.strip_prefix(number_str).unwrap();
+            match unit {
+                "h" => output += Duration::from_secs(number * 60 * 60),
+                "m" => output += Duration::from_secs(number * 60),
+                "s" => output += Duration::from_secs(number),
+                "ns" => output += Duration::from_nanos(number),
+                _ => {
+                    return Err(E::custom(format!("unrecognized unit: {}", unit)));
                 }
-
-                current_value = 0;
-                current_unit.clear();
-            } else {
-                return Err(E::custom(format!(
-                    "invalid character in duration string: {}",
-                    c
-                )));
             }
         }
-
-        if current_value > 0 || !current_unit.is_empty() {
-            Err(E::custom(
-                "duration string ended prematurely or had trailing value/unit",
-            ))
-        } else {
-            Ok(total_duration)
-        }
+        Ok(output)
     }
 }
 

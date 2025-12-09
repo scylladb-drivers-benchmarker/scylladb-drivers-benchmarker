@@ -18,7 +18,6 @@ pub struct BenchmarkData {
     pub no_steps: BenchmarkPoint,
     pub step_progress: BenchmarkPoint,
     pub progress_type: ProgressType,
-    #[serde(with = "my_yml::duration")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timeout: Option<my_yml::duration::MyDuration>,
 }
@@ -128,7 +127,7 @@ mod tests {
                 no_steps: 5,
                 step_progress: 2,
                 progress_type: ProgressType::Multiplicative,
-                timeout: Some(Duration::from_secs(3))
+                timeout: Some(Duration::from_secs(3).into())
             },
         };
 
@@ -139,7 +138,7 @@ starting-step: 1
 no-steps: 5
 step-progress: 2
 progress-type: multiplicative
-timeout: 3s
+timeout: '3s'
 ";
         assert_eq!(serialized, expected);
     }
@@ -164,7 +163,7 @@ timeout: 3s
                 no_steps: 6,
                 step_progress: 3,
                 progress_type: ProgressType::Additive,
-                timeout: Some(Duration::from_secs(2 * 60)),
+                timeout: Some(Duration::from_secs(2 * 60).into()),
             },
         };
 
@@ -185,7 +184,7 @@ benchmarks:
   no-steps: 6
   step-progress: 3
   progress-type: additive
-  timeout: 2m
+  timeout: '2m'
 ";
         assert_eq!(serialized, expected);
     }
