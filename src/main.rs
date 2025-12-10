@@ -1,6 +1,7 @@
+use anyhow::Result;
 use clap::Parser;
 use scylladb_drivers_benchmarker::{database::Database, utilities::RepositoryWithCommits};
-use std::{error::Error, path::PathBuf};
+use std::path::PathBuf;
 
 #[derive(Debug, clap::Subcommand)]
 enum AppSubcommand {
@@ -47,19 +48,11 @@ fn default_db_path() -> Result<std::path::PathBuf, DbPathError> {
         .join("benchmarker.db"))
 }
 
-fn print_error(error: impl Error) -> ! {
-    eprintln!("{}", error);
-    std::process::exit(1);
-}
-
-fn main() {
+fn main() -> Result<()> {
     let args = App::parse();
 
-    let database = Database::new(
-        args.db_path
-            .unwrap_or_else(|| default_db_path().unwrap_or_else(|e| print_error(e))),
-    )
-    .unwrap_or_else(|e| print_error(e));
+    let db_path = args.db_path.map(Ok).unwrap_or_else(default_db_path)?;
+    let database = Database::new(db_path)?;
 
     match args.subcommand {
         AppSubcommand::Run {
@@ -70,8 +63,7 @@ fn main() {
             &args.benchmark_config_path,
             args.measurement_method,
             backend_config_path.as_path(),
-        )
-        .unwrap_or_else(|e| print_error(e)),
+        )?,
         AppSubcommand::Plot {
             visualization_kind,
             from,
@@ -82,9 +74,10 @@ fn main() {
             &args.measurement_method,
             visualization_kind,
             from,
-        )
-        .unwrap_or_else(|e| print_error(e)),
+        )?,
     };
+
+    Ok(())
 }
 
 #[cfg(test)]
