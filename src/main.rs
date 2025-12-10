@@ -42,9 +42,10 @@ pub enum DbPathError {
     NoHomeDir,
 }
 
-fn default_db_path() -> Option<std::path::PathBuf> {
-    let home = home::home_dir()?;
-    Some(home.join("benchmarker.db"))
+fn default_db_path() -> Result<std::path::PathBuf, DbPathError> {
+    Ok(home::home_dir()
+        .ok_or(DbPathError::NoHomeDir)?
+        .join("benchmarker.db"))
 }
 
 fn print_error<T>(err: impl std::error::Error) -> T {
@@ -57,8 +58,8 @@ fn main() {
 
     let db_path = args
         .db_path
-        .or_else(default_db_path)
-        .ok_or(DbPathError::NoHomeDir)
+        .map(Ok)
+        .unwrap_or_else(default_db_path)
         .unwrap_or_else(print_error);
 
     let database = Database::new(db_path).unwrap_or_else(print_error);
