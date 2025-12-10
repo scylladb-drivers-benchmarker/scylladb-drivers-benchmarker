@@ -1,7 +1,7 @@
 use clap::Parser;
 
 use scylladb_drivers_benchmarker::{VisKind, database::Database, utilities::RepositoryWithCommits};
-use std::{path::PathBuf};
+use std::path::PathBuf;
 
 #[derive(Debug, clap::Subcommand)]
 enum AppSubcommand {
