@@ -47,19 +47,21 @@ fn default_db_path() -> Result<std::path::PathBuf, DbPathError> {
         .join("benchmarker.db"))
 }
 
-fn print_error(error: impl Error) -> ! {
-    eprintln!("{}", error);
+fn print_error<T>(err: impl std::error::Error) -> T {
+    println!("{}", err);
     std::process::exit(1);
 }
 
 fn main() {
     let args = App::parse();
 
-    let database = Database::new(
-        args.db_path
-            .unwrap_or_else(|| default_db_path().unwrap_or_else(|e| print_error(e))),
-    )
-    .unwrap_or_else(|e| print_error(e));
+    let db_path = args
+        .db_path
+        .map(Ok)
+        .unwrap_or_else(default_db_path)
+        .unwrap_or_else(print_error);
+
+    let database = Database::new(db_path).unwrap_or_else(print_error);
 
     match args.subcommand {
         AppSubcommand::Run {
@@ -71,7 +73,7 @@ fn main() {
             args.measurement_method,
             backend_config_path.as_path(),
         )
-        .unwrap_or_else(|e| print_error(e)),
+        .unwrap_or_else(print_error),
         AppSubcommand::Plot {
             visualization_kind,
             from,
@@ -83,9 +85,10 @@ fn main() {
             visualization_kind,
             from,
         )
-        .unwrap_or_else(|e| print_error(e)),
-    };
+        .unwrap_or_else(print_error),
+    }
 }
+
 
 #[cfg(test)]
 mod test {
