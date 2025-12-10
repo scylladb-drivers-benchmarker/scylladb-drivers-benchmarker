@@ -7,7 +7,7 @@ use scylladb_drivers_benchmarker::{
 
 #[test]
 fn gather_data_cpp() {
-    let db = database::Database::new(Path::new("./tests/data/cpp/test.db").to_owned()).unwrap();
+    let db = database::Database::new(Path::new("./tests/data/test.db").to_owned()).unwrap();
     drop_table(&db).unwrap();
     let benchmark_name = "regex";
 
@@ -15,7 +15,7 @@ fn gather_data_cpp() {
     command
         .current_dir("./tests/data/cpp")
         .arg("-d")
-        .arg("test.db")
+        .arg("../test.db")
         .arg("-b")
         .arg("../config.yml")
         .arg(benchmark_name)
