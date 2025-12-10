@@ -4,13 +4,14 @@ mod plot;
 mod render;
 mod series;
 
-use crate::{VisKind, commit_hash::CommitHash};
+use crate::commit_hash::CommitHash;
 use crate::config::benchmark::BenchmarkConfig;
 use crate::database::Database;
 
 use data::BenchmarkDataset;
 use error::PlotError;
 use plot::{Plot, SeriesPlot};
+pub use series::VisKind;
 
 pub enum PlotKind {
     Series(VisKind),

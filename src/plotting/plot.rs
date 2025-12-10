@@ -1,4 +1,4 @@
-use crate::VisKind;
+use super::VisKind;
 
 use super::data::BenchmarkDataset;
 use super::error::PlotError;

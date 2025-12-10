@@ -9,6 +9,8 @@ use crate::{
     utilities::RepositoryWithCommits,
 };
 
+pub use plotting::VisKind;
+
 mod benchmarking;
 mod command;
 pub mod commit_hash;
@@ -50,12 +52,6 @@ pub fn run_benchmarks(
         backend_config_path,
         measurement_method,
     )?)
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, clap::ValueEnum)]
-pub enum VisKind {
-    Linear,
-    Log,
 }
 
 pub fn plot_benchmarks(
