@@ -1,11 +1,6 @@
 use super::data::PlottableValue;
 use super::error::PlotError;
 
-pub enum VisKind {
-    Linear,
-    Log,
-}
-
 pub(crate) trait SeriesValue: PlottableValue + PartialOrd + Into<f64> {}
 impl<T: PlottableValue + PartialOrd + Into<f64>> SeriesValue for T {}
 
