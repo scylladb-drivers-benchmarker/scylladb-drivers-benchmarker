@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{path::Path, str::FromStr};
 
 use crate::{
     benchmarking::BenchmarkingError,
@@ -81,7 +81,8 @@ pub fn plot_benchmarks(
         .flatten()
         .collect();
 
-    match measurement_method {
+    // Fix this unwrap
+    match command::Command::from_str(measurement_method).unwrap().program() {
         "time" => {
             // Default to linear if no vis kind provided
             let vis_kind = match visualization_kind.as_deref() {
