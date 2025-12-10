@@ -55,5 +55,5 @@ fn gather_data_cpp() {
             assert!(!record.is_timeout());
         }
     }
-    assert_eq!(db_data.len(), 4_usize);
+    assert_eq!(db_data.len(), 8usize);
 }
