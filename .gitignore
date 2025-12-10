@@ -27,3 +27,7 @@ target
 
 # all databases
 *.db
+
+# all images
+*.png
+*.jpg
