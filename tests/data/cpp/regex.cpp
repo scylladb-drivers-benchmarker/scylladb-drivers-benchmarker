@@ -10,7 +10,9 @@ int main(int argc, char* argv[]) {
     std::stringstream{argv[1]} >> size;
     std::string str(size, 'a');
 
-    std::regex regex{"^[ab]*$"}; // string consists of only a and b
-    
-    std::cout << std::regex_match(str, regex) << '\n';
+    for (auto c : str) {
+        if (c != 'a') {
+            return 1;
+        }
+    }
 }
