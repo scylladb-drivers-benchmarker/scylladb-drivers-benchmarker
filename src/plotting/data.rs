@@ -199,7 +199,7 @@ mod tests {
         let dataset: BenchmarkDataset<f64> = BenchmarkDataset::new(
             &db,
             &configs[0],
-            &vec![hashes[0].clone(), hashes[1].clone()],
+            &[hashes[0].clone(), hashes[1].clone()],
             &measure,
         )
         .unwrap();
@@ -210,7 +210,7 @@ mod tests {
         );
 
         let dataset: BenchmarkDataset<f64> =
-            BenchmarkDataset::new(&db, &configs[1], &vec![hashes[2].clone()], &measure).unwrap();
+            BenchmarkDataset::new(&db, &configs[1], &[hashes[2].clone()], &measure).unwrap();
         assert_eq!(dataset.points, vec![10]);
         assert_eq!(dataset.results, vec![vec![Some(3.5)]]);
     }
