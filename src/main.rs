@@ -1,6 +1,6 @@
 use clap::Parser;
 use scylladb_drivers_benchmarker::{database::Database, utilities::RepositoryWithCommits};
-use std::{error::Error, path::PathBuf};
+use std::path::PathBuf;
 
 #[derive(Debug, clap::Subcommand)]
 enum AppSubcommand {
@@ -88,7 +88,6 @@ fn main() {
         .unwrap_or_else(print_error),
     }
 }
-
 
 #[cfg(test)]
 mod test {

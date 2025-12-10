@@ -17,11 +17,6 @@ pub struct BenchmarkParams {
     pub measurement_method: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BenchmarkRecord {
-    pub data_json: Option<String>,
-}
-
 impl BenchmarkParams {
     pub fn new(
         commit_hash: CommitHash,
@@ -38,13 +33,18 @@ impl BenchmarkParams {
     }
 }
 
-impl BenchmarkRecord {
-    pub fn new(data_json: Option<String>) -> BenchmarkRecord {
-        BenchmarkRecord { data_json }
-    }
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BenchmarkRecord {
+    Data(String),
+    Timeout,
+}
 
-    pub fn is_timeout(&self) -> bool {
-        self.data_json.is_none()
+impl From<Option<String>> for BenchmarkRecord {
+    fn from(value: Option<String>) -> Self {
+        match value {
+            Some(s) => BenchmarkRecord::Data(s),
+            None => BenchmarkRecord::Timeout,
+        }
     }
 }
 

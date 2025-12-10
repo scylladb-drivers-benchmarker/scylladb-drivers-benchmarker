@@ -1,7 +1,7 @@
 use crate::commit_hash::CommitHash;
 use crate::config::benchmark::BenchmarkConfig;
 use crate::database::Database;
-use crate::utilities::{BenchmarkParams, BenchmarkPoint};
+use crate::utilities::{BenchmarkParams, BenchmarkPoint, BenchmarkRecord};
 use serde::de::DeserializeOwned;
 use std::fmt::Debug;
 
@@ -76,16 +76,17 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         let results = benchmark_data
             .benchmark_points()
             .map(|point| -> Result<_, PlotError> {
-                if !database.data_exists(benchmark_params(point))? {
-                    return Err(PlotError::MissingRecords);
-                }
                 let record = database.get_data(benchmark_params(point))?;
 
-                let value = record
-                    .and_then(|r| r.data_json)
-                    .and_then(|text| T::from_json(&text));
-
-                Ok(value)
+                if let Some(record) = record {
+                    let value = match record {
+                        BenchmarkRecord::Data(text) => T::from_json(&text),
+                        BenchmarkRecord::Timeout => None,
+                    };
+                    Ok(value)
+                } else {
+                    Err(PlotError::MissingRecords)
+                }
             })
             .collect::<Result<Vec<Option<T>>, _>>()?;
 
@@ -131,7 +132,7 @@ mod tests {
             1,
             "time".to_string(),
         );
-        let record1 = utilities::BenchmarkRecord::new(Some("1.5".to_string()));
+        let record1 = utilities::BenchmarkRecord::Data("1.5".to_string());
         db.insert_data(params1, record1).unwrap();
 
         let params2 = BenchmarkParams::new(
@@ -140,7 +141,7 @@ mod tests {
             2,
             "time".to_string(),
         );
-        let record2 = utilities::BenchmarkRecord::new(Some("2.5".to_string()));
+        let record2 = utilities::BenchmarkRecord::Data("2.5".to_string());
         db.insert_data(params2, record2).unwrap();
 
         let commit_hash_2 = CommitHash::new_unchecked("2".to_string());
@@ -150,7 +151,7 @@ mod tests {
             1,
             "time".to_string(),
         );
-        let record3 = utilities::BenchmarkRecord::new(Some("2".to_string()));
+        let record3 = utilities::BenchmarkRecord::Data("2".to_string());
         db.insert_data(params3, record3).unwrap();
 
         let params4 = BenchmarkParams::new(
@@ -159,7 +160,7 @@ mod tests {
             2,
             "time".to_string(),
         );
-        let record4 = utilities::BenchmarkRecord::new(Some("3.5".to_string()));
+        let record4 = utilities::BenchmarkRecord::Data("3.5".to_string());
         db.insert_data(params4, record4).unwrap();
 
         let config2 = BenchmarkConfig {
@@ -179,7 +180,7 @@ mod tests {
             10,
             "time".to_string(),
         );
-        let record5 = utilities::BenchmarkRecord::new(Some("3.5".to_string()));
+        let record5 = utilities::BenchmarkRecord::Data("3.5".to_string());
         db.insert_data(params5, record5).unwrap();
 
         (

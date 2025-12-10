@@ -82,7 +82,10 @@ pub fn plot_benchmarks(
         .collect();
 
     // Fix this unwrap
-    match command::Command::from_str(measurement_method).unwrap().program() {
+    match command::Command::from_str(measurement_method)
+        .unwrap()
+        .program()
+    {
         "time" => {
             // Default to linear if no vis kind provided
             let vis_kind = match visualization_kind.as_deref() {

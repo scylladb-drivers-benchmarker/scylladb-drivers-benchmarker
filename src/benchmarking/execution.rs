@@ -68,7 +68,7 @@ impl Executor {
         } else {
             let str_stdout = String::from_utf8(output.stdout)?;
             let str_stderr = String::from_utf8(output.stderr)?;
-            Ok(BenchmarkRecord::new(Some(str_stdout + &str_stderr)))
+            Ok(BenchmarkRecord::Data(str_stdout + &str_stderr))
         }
     }
 }

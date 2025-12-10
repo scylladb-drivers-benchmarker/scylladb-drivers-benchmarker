@@ -2,7 +2,9 @@ use std::path::Path;
 
 use assert_cmd::cargo;
 use scylladb_drivers_benchmarker::{
-    commit_hash::CommitHash, database, database::test_utils::*, utilities::BenchmarkParams,
+    commit_hash::CommitHash,
+    database::{self, test_utils::*},
+    utilities::{BenchmarkParams, BenchmarkRecord},
 };
 
 #[test]
@@ -51,9 +53,8 @@ fn gather_data_cpp() {
             println!("{:?}", params);
             assert!(*params == get_params(params.benchmark_point));
         }
-        if record.is_timeout() {
-            assert!(!record.is_timeout());
-        }
+
+        assert!(!matches!(record, BenchmarkRecord::Timeout));
     }
     assert_eq!(db_data.len(), 8usize);
 }

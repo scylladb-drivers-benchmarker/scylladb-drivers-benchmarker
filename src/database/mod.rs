@@ -55,7 +55,7 @@ impl Database {
         stmt.bind((3, params.benchmark_point.to_string().as_str()))?;
         stmt.bind((4, params.measurement_method.as_str()))?;
 
-        if let Some(data_json) = result.data_json {
+        if let BenchmarkRecord::Data(data_json) = result {
             stmt.bind((5, data_json.as_str()))?;
         }
 
@@ -82,13 +82,13 @@ impl Database {
         stmt.bind((3, params.benchmark_point.to_string().as_str()))?;
         stmt.bind((4, params.measurement_method.as_str()))?;
 
-        match stmt.next()? {
+        Ok(match stmt.next()? {
             State::Row => {
                 let data: Option<String> = stmt.read(0)?;
-                Ok(Some(BenchmarkRecord::new(data)))
+                Some(data.into())
             }
-            State::Done => Ok(None),
-        }
+            State::Done => None,
+        })
     }
 
     pub fn data_exists(&self, params: BenchmarkParams) -> Result<bool, DatabaseError> {
@@ -115,7 +115,7 @@ pub mod test_utils {
             let benchmark_name: String = stmt.read(1)?;
             let benchmark_point: u64 = stmt.read::<i64, usize>(2)? as u64;
             let measurement_method: String = stmt.read(3)?;
-            let data_json: Option<String> = stmt.read(4)?;
+            let result: Option<String> = stmt.read(4)?;
 
             let params = BenchmarkParams::new(
                 CommitHash::new_unchecked(commit_hash_str),
@@ -123,9 +123,8 @@ pub mod test_utils {
                 benchmark_point,
                 measurement_method,
             );
-            let record = BenchmarkRecord::new(data_json);
 
-            results.push((params, record));
+            results.push((params, result.into()));
         }
 
         Ok(results)
@@ -157,15 +156,14 @@ mod tests {
             42,
             "cold".into(),
         );
-        let result = BenchmarkRecord::new(Some("result_result ".into()));
+        let result = BenchmarkRecord::Data("result_result ".into());
 
         db.insert_data(params.clone(), result).unwrap();
 
         let retrieved = db.get_data(params.clone()).unwrap().unwrap();
 
         assert!(db.data_exists(params).unwrap());
-        assert!(!retrieved.is_timeout());
-        assert_eq!(retrieved.data_json.unwrap(), "result_result ");
+        assert!(retrieved == BenchmarkRecord::Data("result_result ".into()));
     }
 
     #[test]
@@ -178,7 +176,7 @@ mod tests {
             42,
             "cold".into(),
         );
-        let result_empty = BenchmarkRecord::new(Some("".into()));
+        let result_empty = BenchmarkRecord::Data("".into());
 
         let params2 = BenchmarkParams::new(
             CommitHash::new_unchecked("abc124".into()),
@@ -186,7 +184,7 @@ mod tests {
             42,
             "cold".into(),
         );
-        let result_timeout = BenchmarkRecord::new(None);
+        let result_timeout = BenchmarkRecord::Timeout;
 
         db.insert_data(params1.clone(), result_empty.clone())
             .unwrap();
@@ -196,8 +194,8 @@ mod tests {
         let retrieved_empty = db.get_data(params1.clone()).unwrap().unwrap();
         let retrieved_timeout = db.get_data(params2.clone()).unwrap().unwrap();
 
-        assert!(retrieved_timeout.is_timeout());
-        assert_eq!(retrieved_empty.data_json.unwrap(), "");
+        assert_eq!(retrieved_timeout, BenchmarkRecord::Timeout);
+        assert_eq!(retrieved_empty, BenchmarkRecord::Data("".into()));
 
         let data = get_all_data(&db).unwrap();
 
@@ -240,8 +238,8 @@ mod tests {
             42,
             "cold".into(),
         );
-        let result1 = BenchmarkRecord::new(Some("result_result ".into()));
-        let result2 = BenchmarkRecord::new(Some("result_result_result ".into()));
+        let result1 = BenchmarkRecord::Data("result_result ".into());
+        let result2 = BenchmarkRecord::Data("result_result_result ".into());
 
         db.insert_data(params.clone(), result1.clone()).unwrap();
 
