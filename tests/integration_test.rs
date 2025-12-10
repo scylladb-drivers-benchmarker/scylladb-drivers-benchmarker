@@ -16,6 +16,8 @@ fn gather_data_cpp() {
     let mut command = std::process::Command::new(cargo::cargo_bin!("scylladb-drivers-benchmarker"));
     command
         .current_dir("./tests/data/cpp")
+        .arg("-m")
+        .arg("time -f \"%S\"")
         .arg("-d")
         .arg("../test.db")
         .arg("-b")
@@ -44,7 +46,7 @@ fn gather_data_cpp() {
             commit_hash.clone(),
             "regex".to_owned(),
             point,
-            "time".to_owned(),
+            "time -f \"%S\"".to_owned(),
         )
     };
 
