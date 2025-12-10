@@ -1,6 +1,7 @@
 use super::data::PlottableValue;
 use super::error::PlotError;
 
+#[derive(Debug, PartialEq, Eq, Clone, clap::ValueEnum)]
 pub enum VisKind {
     Linear,
     Log,

@@ -6,8 +6,8 @@ use std::error::Error;
 pub enum PlotError {
     Database(#[from] DatabaseError),
 
-    #[error(desc = "unsupported visualization kind: {0}")]
-    UnsupportedVisKind(String),
+    #[error(desc = "visualization kinds do not apply to flamegraph")]
+    UnexpectedVisualizationKind(),
 
     #[error(desc = "unknown measurement method: {0}")]
     UnknownMeasureKind(String),

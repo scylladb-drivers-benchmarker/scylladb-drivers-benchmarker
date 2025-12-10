@@ -45,8 +45,6 @@ pub fn plot(
 
             plot.plot()
         }
-        PlotKind::Flamegraph => Err(PlotError::UnsupportedVisKind(
-            "flamegraph not implemented yet".to_owned(),
-        )),
+        PlotKind::Flamegraph => todo!(),
     }
 }

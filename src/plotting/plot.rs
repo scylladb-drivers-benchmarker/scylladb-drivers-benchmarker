@@ -1,7 +1,9 @@
+use super::VisKind;
+
 use super::data::BenchmarkDataset;
 use super::error::PlotError;
 use super::render::{Renderable, RenderableSeries};
-use super::series::{LinearSeries, LogSeries, SeriesValue, ValueTransformation, VisKind};
+use super::series::{LinearSeries, LogSeries, SeriesValue, ValueTransformation};
 
 use plotters::prelude::*;
 

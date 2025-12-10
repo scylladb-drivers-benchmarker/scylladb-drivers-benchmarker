@@ -9,6 +9,8 @@ use crate::{
     utilities::RepositoryWithCommits,
 };
 
+pub use plotting::VisKind;
+
 mod benchmarking;
 mod command;
 pub mod commit_hash;
@@ -57,7 +59,7 @@ pub fn plot_benchmarks(
     benchmark_name: &str,
     benchmark_config_path: &Path,
     measurement_method: &str,
-    visualization_kind: Option<String>,
+    visualization_kind: Option<VisKind>,
     from: Vec<RepositoryWithCommits>,
 ) -> Result<(), PlotBenchmarksError> {
     let benchmark_config: BenchmarkConfig = find_config(benchmark_name, benchmark_config_path)?;
@@ -88,10 +90,7 @@ pub fn plot_benchmarks(
     {
         "time" => {
             // Default to linear if no vis kind provided
-            let vis_kind = match visualization_kind.as_deref() {
-                Some("log") => crate::plotting::VisKind::Log,
-                _ => crate::plotting::VisKind::Linear,
-            };
+            let vis_kind = visualization_kind.unwrap_or(VisKind::Linear);
 
             Ok(plotting::plot(
                 plotting::PlotKind::Series(vis_kind),
@@ -106,9 +105,9 @@ pub fn plot_benchmarks(
 
         "flamegraph" => {
             // Should not provide vis_kind
-            if let Some(visualization) = visualization_kind {
+            if visualization_kind.is_some() {
                 return Err(PlotBenchmarksError::Plotting(
-                    PlotError::UnknownMeasureKind(visualization),
+                    PlotError::UnexpectedVisualizationKind(),
                 ));
             }
 

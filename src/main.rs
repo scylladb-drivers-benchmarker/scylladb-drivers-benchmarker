@@ -1,12 +1,13 @@
 use clap::Parser;
-use scylladb_drivers_benchmarker::{database::Database, utilities::RepositoryWithCommits};
-use std::path::PathBuf;
+
+use scylladb_drivers_benchmarker::{VisKind, database::Database, utilities::RepositoryWithCommits};
+use std::{path::PathBuf};
 
 #[derive(Debug, clap::Subcommand)]
 enum AppSubcommand {
     Plot {
         #[arg(short, long)]
-        visualization_kind: Option<String>,
+        visualization_kind: Option<VisKind>,
 
         #[arg(short, long)]
         from: Vec<RepositoryWithCommits>,
