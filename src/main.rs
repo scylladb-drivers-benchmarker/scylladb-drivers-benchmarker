@@ -10,8 +10,8 @@ enum AppSubcommand {
         #[arg(short, long)]
         visualization_kind: Option<VisKind>,
 
-        /// The source of data for the plot, in the form <path:commit1,commit2>
-        #[arg(long)]
+        /// The source of data for the plot
+        #[arg(long, value_name = "REPOSITORY_PATH:TAG1,TAG2,...")]
         from: Vec<RepositoryWithCommits>,
     },
 
