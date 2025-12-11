@@ -5,19 +5,24 @@ use std::path::PathBuf;
 
 #[derive(Debug, clap::Subcommand)]
 enum AppSubcommand {
+    /// Plot the results of previous benchmarks from the database.
     Plot {
         #[arg(short, long)]
         visualization_kind: Option<VisKind>,
 
-        #[arg(short, long)]
+        /// The source of data for the plot, in the form <path:commit1,commit2>
+        #[arg(long)]
         from: Vec<RepositoryWithCommits>,
     },
+
+    /// Collect the results of benchmarks and store to the database.
     Run {
-        #[arg(long, default_value = "./config.yml")]
+        #[arg(short, long, default_value = "./config.yml")]
         backend_config_path: PathBuf,
     },
 }
 
+/// Benchmarker and plotter for git-based applications.
 #[derive(Debug, Parser)]
 #[clap(name = "my-app", version, about)]
 struct App {
