@@ -1,0 +1,6 @@
+backends:
+  - name: regex-rust
+    benchmark-name: regex
+    build-command: rustc regex.rs
+    run-command: ./regex
+

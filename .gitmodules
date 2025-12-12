@@ -1,6 +1,0 @@
-[submodule "tests/data/cpp"]
-	path = tests/data/cpp
-	url = ./tests/data/cpp/
-[submodule "tests/data/rust"]
-	path = tests/data/rust
-	url = ./tests/data/rust/
