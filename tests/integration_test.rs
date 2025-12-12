@@ -10,7 +10,7 @@ use scylladb_drivers_benchmarker::{
 fn setup_git(repo: &str) {
     println!("{}", repo);
 
-    if Path::new(repo).is_dir() {
+    if Path::new(&(repo.to_owned() + "/.git/")).is_dir() {
         return;
     }
     
@@ -109,6 +109,7 @@ fn test_cpp_vs_rust() {
 
     let hash_cpp = gather_data("./tests/data/cpp/");
     let hash_rust = gather_data("./tests/data/rust/");
+    assert!(hash_cpp != hash_rust);
 
     let db_data = get_all_data(&db).unwrap();
 
@@ -123,4 +124,5 @@ fn test_cpp_vs_rust() {
         .filter(|(params, _)| params.commit_hash == hash_rust)
         .map(Clone::clone);
     check_data(&hash_rust, data_rust);
+
 }
