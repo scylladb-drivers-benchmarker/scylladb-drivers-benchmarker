@@ -1,4 +1,5 @@
 use clap::Parser;
+use clap::ValueEnum;
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -48,10 +49,43 @@ impl From<Option<String>> for BenchmarkRecord {
     }
 }
 
+pub struct BenchmarkFilters {
+    pub commit_hashes: Vec<String>,
+    pub benchmark_names: Vec<String>,
+    pub benchmark_points: Vec<BenchmarkPoint>,
+    pub measurement_methods: Vec<String>,
+}
+
+impl BenchmarkFilters {
+    pub fn all() -> Self {
+        BenchmarkFilters {
+            commit_hashes: Vec::new(),
+            benchmark_names: Vec::new(),
+            benchmark_points: Vec::new(),
+            measurement_methods: Vec::new(),
+        }
+    }
+
+    pub fn filter_exact_param(params: &BenchmarkParams) -> Self {
+        BenchmarkFilters {
+            commit_hashes: vec![String::from(params.commit_hash.clone())],
+            benchmark_names: vec![params.benchmark_name.clone()],
+            benchmark_points: vec![params.benchmark_point],
+            measurement_methods: vec![params.measurement_method.clone()],
+        }
+    }
+}
+
 #[derive(Parser, Debug, Clone, PartialEq, Eq)]
 pub struct RepositoryWithCommits {
     pub repo_path: PathBuf,
     pub commits: Vec<String>,
+}
+
+#[derive(Copy, Clone, Debug, ValueEnum)]
+pub enum BenchmarkMode {
+    UseCached,
+    ForceRerun,
 }
 
 #[justerror::Error]

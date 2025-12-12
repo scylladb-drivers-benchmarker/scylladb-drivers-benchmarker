@@ -3,7 +3,7 @@ mod execution;
 use crate::benchmarking::execution::{CompileError, MeasurementError};
 use crate::command::CommandParsingError;
 use crate::commit_hash::CommitHash;
-use crate::utilities::{BenchmarkParams, BenchmarkPoint};
+use crate::utilities::{BenchmarkMode, BenchmarkParams, BenchmarkPoint};
 use execution::{Executor, build_source};
 
 use crate::config::{backend::BackendConfig, benchmark::BenchmarkConfig};
@@ -42,6 +42,7 @@ pub fn benchmark(
     benchmark_config: BenchmarkConfig,
     backend_config: BackendConfig,
     measurement_method: String,
+    bechmark_mode: BenchmarkMode,
 ) -> Result<(), BenchmarkingError> {
     let BenchmarkConfig {
         name: benchmark_name,
@@ -60,7 +61,7 @@ pub fn benchmark(
     let points = benchmark_data
         .benchmark_points()
         .filter_map(
-            |point| match database.data_exists(benchmark_params(point)) {
+            |point| match database.result_exists(benchmark_params(point)) {
                 Ok(true) => None,
                 Ok(false) => Some(Ok(point)),
                 Err(e) => Some(Err(e)),
@@ -79,7 +80,7 @@ pub fn benchmark(
         .with_measure(&measurement_method)
         .map_err(ExecutorBuildingError::MeasureParsing)?;
 
-    for point in points.iter().cloned() {
+    for point in points.into_iter() {
         let benchmark_record = executor.execute(point)?;
         database.insert_data(benchmark_params(point), benchmark_record)?;
     }
