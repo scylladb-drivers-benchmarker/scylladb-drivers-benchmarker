@@ -11,16 +11,16 @@ SDB has two main functions:
 
 ### Example usage
 
-From inside the `tests/data/cpp` directory execute:
+From inside the `tests/data/cpp` and `tests/data/rust` directories execute:
 
 ```sh
-cargo run regex -d ../ -b ../config.yml run
+cargo run regex -d ../test.db -b ../config.yml run
 ```
 
-Then, later:
+Then, later to graph the results execute (from `tests/data`):
 
 ```sh
-cargo run regex -b ../config.yml -d ../test.db plot --from=.:HEAD
+cargo run regex -b config.yml -d test.db plot --from=cpp/:HEAD --from=rust/:HEAD
 ```
 
 ## Definitions
