@@ -5,19 +5,24 @@ use std::path::PathBuf;
 
 #[derive(Debug, clap::Subcommand)]
 enum AppSubcommand {
+    /// Plot the results of previous benchmarks from the database.
     Plot {
         #[arg(short, long)]
         visualization_kind: Option<VisKind>,
 
-        #[arg(short, long)]
+        /// The source of data for the plot
+        #[arg(long, value_name = "REPOSITORY_PATH:TAG1,TAG2,...")]
         from: Vec<RepositoryWithCommits>,
     },
+
+    /// Collect the results of benchmarks and store to the database.
     Run {
-        #[arg(long, default_value = "./config.yml")]
+        #[arg(short, long, default_value = "./config.yml")]
         backend_config_path: PathBuf,
     },
 }
 
+/// Benchmarker and plotter for git-based applications.
 #[derive(Debug, Parser)]
 #[clap(name = "my-app", version, about)]
 struct App {
@@ -25,7 +30,7 @@ struct App {
     db_path: Option<PathBuf>,
 
     #[arg(short, long)]
-    #[clap(default_value = "time")]
+    #[clap(default_value = "time -f \"%S\"")]
     measurement_method: String,
 
     benchmark_name: String,
@@ -101,7 +106,7 @@ mod test {
     #[test]
     fn basic_run() {
         let args = App::parse_from(vec!["scylladb-drivers-benchmarker", "select", "run"]);
-        assert_eq!(args.measurement_method, "time");
+        assert_eq!(args.measurement_method, "time -f \"%S\"");
         assert_eq!(args.benchmark_name, "select");
         assert!(matches!(args.subcommand, AppSubcommand::Run { .. }));
     }
@@ -116,7 +121,7 @@ mod test {
             "--from",
             "repo2:commit",
         ]);
-        assert_eq!(args.measurement_method, "time");
+        assert_eq!(args.measurement_method, "time -f \"%S\"");
         assert_eq!(args.benchmark_name, "select");
 
         let AppSubcommand::Plot {

@@ -64,16 +64,13 @@ impl FromStr for RepositoryWithCommits {
     type Err = RepositoryWithCommitsParsingError;
 
     fn from_str(string: &str) -> Result<Self, Self::Err> {
-        let mut parts = string.split(':');
-        let repo_path = parts
-            .next()
+        let (repo_path_str, commits_str) = string
+            .split_once(':')
             .ok_or(RepositoryWithCommitsParsingError::PathNotSupplied)?;
 
-        let commits: Vec<String> = parts.map(str::to_owned).collect();
-
         Ok(RepositoryWithCommits {
-            repo_path: PathBuf::from_str(repo_path)?,
-            commits,
+            repo_path: PathBuf::from_str(repo_path_str)?,
+            commits: commits_str.split(',').map(str::to_owned).collect(),
         })
     }
 }
