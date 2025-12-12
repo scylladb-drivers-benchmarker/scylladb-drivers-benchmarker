@@ -3,7 +3,7 @@ mod execution;
 use crate::benchmarking::execution::{CompileError, MeasurementError};
 use crate::command::CommandParsingError;
 use crate::commit_hash::CommitHash;
-use crate::utilities::{BenchmarkMode, BenchmarkParams, BenchmarkPoint};
+use crate::utilities::{BenchmarkFilters, BenchmarkMode, BenchmarkParams, BenchmarkPoint};
 use execution::{Executor, build_source};
 
 use crate::config::{backend::BackendConfig, benchmark::BenchmarkConfig};
@@ -36,6 +36,33 @@ pub enum BenchmarkingError {
     Measurement(#[from] MeasurementError),
 }
 
+fn filter_points(
+    database: &Database,
+    config_points: impl Iterator<Item = BenchmarkPoint>,
+    params_generator: impl Fn(BenchmarkPoint) -> BenchmarkParams,
+    benchmark_mode: BenchmarkMode,
+) -> Result<Vec<BenchmarkPoint>, BenchmarkingError> {
+    Ok(match benchmark_mode {
+        BenchmarkMode::UseCached => config_points
+            .filter_map(
+                |point| match database.result_exists(params_generator(point)) {
+                    Ok(true) => None,
+                    Ok(false) => Some(Ok(point)),
+                    Err(e) => Some(Err(e)),
+                },
+            )
+            .collect::<Result<Vec<BenchmarkPoint>, DatabaseError>>()?,
+        BenchmarkMode::ForceRerun => config_points
+            .map(|point| {
+                database.drop_data(&BenchmarkFilters::filter_exact_param(&params_generator(
+                    point,
+                )))?;
+                Ok(point)
+            })
+            .collect::<Result<Vec<BenchmarkPoint>, DatabaseError>>()?,
+    })
+}
+
 pub fn benchmark(
     database: &Database,
     commit_hash: CommitHash,
@@ -58,16 +85,12 @@ pub fn benchmark(
         )
     };
 
-    let points = benchmark_data
-        .benchmark_points()
-        .filter_map(
-            |point| match database.result_exists(benchmark_params(point)) {
-                Ok(true) => None,
-                Ok(false) => Some(Ok(point)),
-                Err(e) => Some(Err(e)),
-            },
-        )
-        .collect::<Result<Vec<BenchmarkPoint>, DatabaseError>>()?;
+    let points = filter_points(
+        database,
+        benchmark_data.benchmark_points(),
+        benchmark_params,
+        bechmark_mode,
+    )?;
 
     if points.is_empty() {
         return Ok(());

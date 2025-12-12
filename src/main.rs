@@ -3,7 +3,7 @@ use clap::Parser;
 use scylladb_drivers_benchmarker::{
     VisKind,
     database::Database,
-    utilities::{BenchmarkMode, RepositoryWithCommits},
+    utilities::{BenchmarkMode, DatabaseCommand, RepositoryWithCommits},
 };
 use std::path::PathBuf;
 
@@ -24,8 +24,12 @@ enum AppSubcommand {
         #[arg(short, long, default_value = "./config.yml")]
         backend_config_path: PathBuf,
 
-        #[arg(long, value_enum, default_value_t = BenchmarkMode::UseCached)]
+        #[arg(long, short = 'm', value_enum, default_value_t = BenchmarkMode::UseCached)]
         benchmark_mode: BenchmarkMode,
+    },
+    Database {
+        #[command(subcommand)]
+        command: DatabaseCommand,
     },
 }
 
@@ -101,6 +105,10 @@ fn main() {
             from,
         )
         .unwrap_or_else(print_error),
+        AppSubcommand::Database { command } => {
+            scylladb_drivers_benchmarker::access_database(&database, command)
+                .unwrap_or_else(print_error)
+        }
     }
 }
 

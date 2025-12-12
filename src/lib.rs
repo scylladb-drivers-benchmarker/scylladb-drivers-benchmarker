@@ -4,9 +4,11 @@ use crate::{
     benchmarking::BenchmarkingError,
     commit_hash::{CommitHash, CommitHashError},
     config::{ConfigError, backend::BackendConfig, benchmark::BenchmarkConfig, find_config},
-    database::Database,
+    database::{Database, DatabaseError},
     plotting::error::PlotError,
-    utilities::{BenchmarkMode, RepositoryWithCommits},
+    utilities::{
+        BenchmarkFilters, BenchmarkMode, DatabaseCommand, RepositoryWithCommits, format_entry,
+    },
 };
 
 pub use plotting::VisKind;
@@ -133,4 +135,23 @@ pub fn plot_benchmarks(
             PlotError::UnknownMeasureKind(other.to_owned()),
         )),
     }
+}
+
+pub fn access_database(
+    database: &Database,
+    operation: DatabaseCommand,
+) -> Result<(), DatabaseError> {
+    match operation {
+        DatabaseCommand::Print { filters } => {
+            let results = database.get_data(&BenchmarkFilters::from_input_commands(filters))?;
+            for (params, result) in results.into_iter() {
+                print!("{}", format_entry(&params, &result));
+            }
+        }
+        DatabaseCommand::Drop { filters } => {
+            database.drop_data(&BenchmarkFilters::from_input_commands(filters))?
+        }
+    }
+
+    Ok(())
 }

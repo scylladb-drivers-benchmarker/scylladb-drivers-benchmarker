@@ -1,4 +1,6 @@
+use clap::Args;
 use clap::Parser;
+use clap::Subcommand;
 use clap::ValueEnum;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -9,6 +11,44 @@ use crate::commit_hash::{CommitHash, CommitHashError};
 
 pub type BenchmarkPoint = u64;
 pub type RangedCoordBenchmarkPoint = RangedCoordu64;
+
+#[derive(Subcommand, Debug)]
+pub enum DatabaseCommand {
+    Print {
+        #[command(flatten)]
+        filters: InputDatabaseFilters,
+    },
+
+    Drop {
+        #[command(flatten)]
+        filters: InputDatabaseFilters,
+    },
+}
+
+#[derive(Args, Debug)]
+pub struct InputDatabaseFilters {
+    #[arg(long = "commit-hash", value_parser = parse_list::<String>)]
+    pub commit_hashes: Vec<String>,
+
+    #[arg(long = "benchmark-name", value_parser = parse_list::<String>)]
+    pub benchmark_names: Vec<String>,
+
+    #[arg(long = "benchmark-point", value_parser = parse_list::<BenchmarkPoint>)]
+    pub benchmark_points: Vec<BenchmarkPoint>,
+
+    #[arg(long = "measurement-method", value_parser = parse_list::<String>)]
+    pub measurement_methods: Vec<String>,
+}
+
+fn parse_list<T>(s: &str) -> Result<Vec<T>, String>
+where
+    T: FromStr,
+    <T as FromStr>::Err: ToString,
+{
+    s.split(':')
+        .map(|v| v.parse::<T>().map_err(|e| e.to_string()))
+        .collect()
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BenchmarkParams {
@@ -74,6 +114,15 @@ impl BenchmarkFilters {
             measurement_methods: vec![params.measurement_method.clone()],
         }
     }
+
+    pub fn from_input_commands(filters: InputDatabaseFilters) -> Self {
+        BenchmarkFilters {
+            commit_hashes: filters.commit_hashes,
+            benchmark_names: filters.benchmark_names,
+            benchmark_points: filters.benchmark_points,
+            measurement_methods: filters.measurement_methods,
+        }
+    }
 }
 
 #[derive(Parser, Debug, Clone, PartialEq, Eq)]
@@ -116,4 +165,35 @@ impl RepositoryWithCommits {
             .map(|commit| CommitHash::new(&self.repo_path, commit))
             .collect()
     }
+}
+
+pub fn format_entry(params: &BenchmarkParams, record: &BenchmarkRecord) -> String {
+    let mut out = String::new();
+
+    out.push_str("--- Benchmark Entry ---\n");
+    out.push_str(&format!(
+        "Commit Hash:         {}\n",
+        String::from(params.commit_hash.clone())
+    ));
+    out.push_str(&format!("Benchmark Name:      {}\n", params.benchmark_name));
+    out.push_str(&format!(
+        "Benchmark Point:     {}\n",
+        params.benchmark_point
+    ));
+    out.push_str(&format!(
+        "Measurement Method:  {}\n",
+        params.measurement_method
+    ));
+
+    match record {
+        BenchmarkRecord::Data(s) => {
+            out.push_str("Record Type:         Data\n");
+            out.push_str(&format!("Data Content:        {:?}\n", s));
+        }
+        BenchmarkRecord::Timeout => {
+            out.push_str("Record Type:         Timeout\n");
+        }
+    }
+
+    out
 }
