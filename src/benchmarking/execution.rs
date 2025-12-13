@@ -73,8 +73,9 @@ impl Executor {
         if !output.status.success() {
             Err(MeasurementError::ExecutionFailed(output))
         } else {
-            let measurement_result = String::from_utf8(output.stdout)?;
-            Ok(BenchmarkRecord::Data(measurement_result))
+            let str_stdout = String::from_utf8(output.stdout)?;
+            let str_stderr = String::from_utf8(output.stderr)?;
+            Ok(BenchmarkRecord::Data(str_stdout + &str_stderr))
         }
     }
 
