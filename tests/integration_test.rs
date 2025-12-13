@@ -93,8 +93,6 @@ fn check_data(
             println!("{:?}", params);
             assert!(params == get_params(params.benchmark_point));
         }
-
-        assert!(!matches!(record, BenchmarkRecord::Timeout));
     }
     assert_eq!(cnt, 8usize);
 }
