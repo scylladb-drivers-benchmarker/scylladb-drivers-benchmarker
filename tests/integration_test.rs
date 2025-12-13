@@ -82,7 +82,7 @@ fn check_data(
             commit_hash.clone(),
             "regex".to_owned(),
             point,
-            "time -f \"%S\"".to_owned(),
+            "time -f \"%e\"".to_owned(),
         )
     };
 

@@ -30,7 +30,7 @@ struct App {
     db_path: Option<PathBuf>,
 
     #[arg(short, long)]
-    #[clap(default_value = "time -f \"%S\"")]
+    #[clap(default_value = "time -f \"%e\"")]
     measurement_method: String,
 
     benchmark_name: String,
@@ -106,7 +106,7 @@ mod test {
     #[test]
     fn basic_run() {
         let args = App::parse_from(vec!["scylladb-drivers-benchmarker", "select", "run"]);
-        assert_eq!(args.measurement_method, "time -f \"%S\"");
+        assert_eq!(args.measurement_method, "time -f \"%e\"");
         assert_eq!(args.benchmark_name, "select");
         assert!(matches!(args.subcommand, AppSubcommand::Run { .. }));
     }
@@ -121,7 +121,7 @@ mod test {
             "--from",
             "repo2:commit",
         ]);
-        assert_eq!(args.measurement_method, "time -f \"%S\"");
+        assert_eq!(args.measurement_method, "time -f \"%e\"");
         assert_eq!(args.benchmark_name, "select");
 
         let AppSubcommand::Plot {
