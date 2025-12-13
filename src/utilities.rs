@@ -39,6 +39,12 @@ pub enum BenchmarkRecord {
     Timeout,
 }
 
+impl BenchmarkRecord {
+    pub fn is_timeout(&self) -> bool {
+        matches!(self, BenchmarkRecord::Timeout)
+    }
+}
+
 impl From<Option<String>> for BenchmarkRecord {
     fn from(value: Option<String>) -> Self {
         match value {

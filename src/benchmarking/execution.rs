@@ -67,14 +67,14 @@ impl Executor {
             .with_arg(param.to_string())
             .output_with_timeout(timeout)?
         else {
-            return Ok(BenchmarkRecord::new(None));
+            return Ok(BenchmarkRecord::Timeout);
         };
 
         if !output.status.success() {
             Err(MeasurementError::ExecutionFailed(output))
         } else {
             let measurement_result = String::from_utf8(output.stdout)?;
-            Ok(BenchmarkRecord::new(Some(measurement_result)))
+            Ok(BenchmarkRecord::Data(measurement_result))
         }
     }
 
