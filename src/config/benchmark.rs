@@ -119,7 +119,7 @@ mod tests {
     }
 
     #[test]
-    fn serialize_benchmark_config() {
+    fn serde_benchmark_config() {
         let config = BenchmarkConfig {
             name: "benchmark_name".to_string(),
             data: BenchmarkData {
@@ -141,10 +141,14 @@ progress-type: multiplicative
 timeout: '3s'
 ";
         assert_eq!(serialized, expected);
+        assert_eq!(
+            serde_yml::from_str::<BenchmarkConfig>(expected).unwrap(),
+            config
+        );
     }
 
     #[test]
-    fn serialize_benchmark_config_list() {
+    fn serde_benchmark_config_list() {
         let config1 = BenchmarkConfig {
             name: "benchmark_name1".to_string(),
             data: BenchmarkData {
@@ -187,5 +191,9 @@ benchmarks:
   timeout: '2m'
 ";
         assert_eq!(serialized, expected);
+        assert_eq!(
+            serde_yml::from_str::<BenchmarkConfigList>(expected).unwrap(),
+            config_list
+        );
     }
 }
