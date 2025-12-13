@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::config::config_traits::{Configuration, ConfigurationList};
+use crate::config::my_yml::duration::MyDuration;
 use crate::utilities::BenchmarkPoint;
-use super::my_yml;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
@@ -19,7 +19,7 @@ pub struct BenchmarkData {
     pub step_progress: BenchmarkPoint,
     pub progress_type: ProgressType,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub timeout: Option<my_yml::duration::MyDuration>,
+    pub timeout: Option<MyDuration>,
 }
 
 impl BenchmarkData {
