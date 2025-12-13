@@ -107,7 +107,7 @@ mod test {
         let source = BuiltSource { _private: () };
         let executor = Executor::new(source, "sleep").unwrap();
         let output = executor
-            .execute_with_timeout(1, std::time::Duration::from_secs(1))
+            .execute_with_timeout(2, std::time::Duration::from_secs(1))
             .unwrap();
         assert!(output.is_timeout());
     }
