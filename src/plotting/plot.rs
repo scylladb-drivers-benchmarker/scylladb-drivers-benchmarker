@@ -121,9 +121,9 @@ mod tests {
     #[derive(Clone, Debug, PartialOrd, Deserialize)]
     struct Dummy(f64);
 
-    impl Into<f64> for Dummy {
-        fn into(self) -> f64 {
-            self.0
+    impl From<Dummy> for f64 {
+        fn from(val: Dummy) -> Self {
+            val.0
         }
     }
 
