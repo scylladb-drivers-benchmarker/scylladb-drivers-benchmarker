@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use serde::{Deserialize, Serialize};
 
 use crate::config::config_traits::{Configuration, ConfigurationList};
@@ -17,6 +19,12 @@ pub struct BenchmarkData {
     pub no_steps: BenchmarkPoint,
     pub step_progress: BenchmarkPoint,
     pub progress_type: ProgressType,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "humantime_serde"
+    )]
+    pub timeout: Option<Duration>,
 }
 
 impl BenchmarkData {
@@ -85,6 +93,8 @@ impl ConfigurationList for BenchmarkConfigList {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use super::*;
 
     #[test]
@@ -94,6 +104,7 @@ mod tests {
             no_steps: 3,
             step_progress: 2,
             progress_type: ProgressType::Additive,
+            timeout: None
         };
         let points: Vec<u64> = data.benchmark_points().collect();
         assert_eq!(points, vec![7, 9, 11]);
@@ -106,13 +117,14 @@ mod tests {
             no_steps: 3,
             step_progress: 2,
             progress_type: ProgressType::Multiplicative,
+            timeout: None
         };
         let points: Vec<u64> = data.benchmark_points().collect();
         assert_eq!(points, vec![3, 6, 12]);
     }
 
     #[test]
-    fn serialize_benchmark_config() {
+    fn serde_benchmark_config() {
         let config = BenchmarkConfig {
             name: "benchmark_name".to_string(),
             data: BenchmarkData {
@@ -120,6 +132,7 @@ mod tests {
                 no_steps: 5,
                 step_progress: 2,
                 progress_type: ProgressType::Multiplicative,
+                timeout: Some(Duration::from_secs(3).into())
             },
         };
 
@@ -130,11 +143,17 @@ starting-step: 1
 no-steps: 5
 step-progress: 2
 progress-type: multiplicative
+timeout: '3s'
 ";
         assert_eq!(serialized, expected);
+        assert_eq!(
+            serde_yml::from_str::<BenchmarkConfig>(expected).unwrap(),
+            config
+        );
     }
+
     #[test]
-    fn serialize_benchmark_config_list() {
+    fn serde_benchmark_config_list() {
         let config1 = BenchmarkConfig {
             name: "benchmark_name1".to_string(),
             data: BenchmarkData {
@@ -142,6 +161,7 @@ progress-type: multiplicative
                 no_steps: 5,
                 step_progress: 2,
                 progress_type: ProgressType::Multiplicative,
+                timeout: None
             },
         };
 
@@ -152,6 +172,7 @@ progress-type: multiplicative
                 no_steps: 6,
                 step_progress: 3,
                 progress_type: ProgressType::Additive,
+                timeout: Some(Duration::from_secs(2 * 60).into()),
             },
         };
 
@@ -172,7 +193,12 @@ benchmarks:
   no-steps: 6
   step-progress: 3
   progress-type: additive
+  timeout: '2m'
 ";
         assert_eq!(serialized, expected);
+        assert_eq!(
+            serde_yml::from_str::<BenchmarkConfigList>(expected).unwrap(),
+            config_list
+        );
     }
 }

@@ -103,8 +103,16 @@ pub fn benchmark(
         .with_measure(&measurement_method)
         .map_err(ExecutorBuildingError::MeasureParsing)?;
 
+    let execute = |point| {
+        if let Some(timeout) = benchmark_data.timeout.clone() {
+            executor.execute_with_timeout(point, timeout.into())
+        } else {
+            executor.execute(point)
+        }
+    };
+
     for point in points.into_iter() {
-        let benchmark_record = executor.execute(point)?;
+        let benchmark_record = execute(point)?;
         database.insert_data(benchmark_params(point), benchmark_record)?;
     }
 
