@@ -1,11 +1,8 @@
 mod execution;
 
-use std::path::Path;
-
 use crate::benchmarking::execution::{CompileError, MeasurementError};
 use crate::command::CommandParsingError;
 use crate::commit_hash::CommitHash;
-use crate::config::{ConfigError, find_config};
 use crate::utilities::{BenchmarkParams, BenchmarkPoint};
 use execution::{Executor, build_source};
 
@@ -35,7 +32,6 @@ pub enum ExecutorBuildingError {
 pub enum BenchmarkingError {
     Compile(#[from] CompileError),
     Database(#[from] DatabaseError),
-    Config(#[from] ConfigError),
     ExecutorBuilding(#[from] ExecutorBuildingError),
     Measurement(#[from] MeasurementError),
 }
@@ -44,7 +40,7 @@ pub fn benchmark(
     database: &Database,
     commit_hash: CommitHash,
     benchmark_config: BenchmarkConfig,
-    backend_config_path: &Path,
+    backend_config: BackendConfig,
     measurement_method: String,
 ) -> Result<(), BenchmarkingError> {
     let BenchmarkConfig {
@@ -75,8 +71,6 @@ pub fn benchmark(
     if points.is_empty() {
         return Ok(());
     }
-
-    let backend_config: BackendConfig = find_config(&benchmark_name, backend_config_path)?;
 
     let built_source = build_source(backend_config.build_command)?;
 

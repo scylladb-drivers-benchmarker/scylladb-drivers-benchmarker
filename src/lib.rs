@@ -3,7 +3,7 @@ use std::{path::Path, str::FromStr};
 use crate::{
     benchmarking::BenchmarkingError,
     commit_hash::{CommitHash, CommitHashError},
-    config::{ConfigError, benchmark::BenchmarkConfig, find_config},
+    config::{ConfigError, backend::BackendConfig, benchmark::BenchmarkConfig, find_config},
     database::Database,
     plotting::error::PlotError,
     utilities::RepositoryWithCommits,
@@ -22,7 +22,8 @@ pub mod utilities;
 #[justerror::Error]
 pub enum RunBenchmarksError {
     Benchmarking(#[from] BenchmarkingError),
-    BenchmarkConfig(#[from] ConfigError),
+    BenchmarkConfig(#[source] ConfigError),
+    BackendConfig(#[source] ConfigError),
     CommitHash(#[from] CommitHashError),
 }
 
@@ -42,14 +43,19 @@ pub fn run_benchmarks(
     measurement_method: String,
     backend_config_path: &Path,
 ) -> Result<(), RunBenchmarksError> {
-    let benchmark_config: BenchmarkConfig = find_config(benchmark_name, benchmark_config_path)?;
+    let benchmark_config: BenchmarkConfig = find_config(benchmark_name, benchmark_config_path)
+        .map_err(RunBenchmarksError::BenchmarkConfig)?;
+
+    let backend_config: BackendConfig = find_config(benchmark_name, backend_config_path)
+        .map_err(RunBenchmarksError::BackendConfig)?;
 
     let commit_hash: CommitHash = CommitHash::from_current_repository()?;
+
     Ok(benchmarking::benchmark(
         database,
         commit_hash,
         benchmark_config,
-        backend_config_path,
+        backend_config,
         measurement_method,
     )?)
 }
