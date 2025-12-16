@@ -56,6 +56,16 @@ impl Executor {
         })
     }
 
+    fn handle_output(output: Output) -> Result<BenchmarkRecord, MeasurementError> {
+        if !output.status.success() {
+            Err(MeasurementError::ExecutionFailed(output))
+        } else {
+            let str_stdout = String::from_utf8(output.stdout)?;
+            let str_stderr = String::from_utf8(output.stderr)?;
+            Ok(BenchmarkRecord::Data(str_stdout + &str_stderr))
+        }
+    }
+
     pub fn execute_with_timeout(
         &self,
         param: BenchmarkPoint,
@@ -69,25 +79,12 @@ impl Executor {
         else {
             return Ok(BenchmarkRecord::Timeout);
         };
-
-        if !output.status.success() {
-            Err(MeasurementError::ExecutionFailed(output))
-        } else {
-            let str_stdout = String::from_utf8(output.stdout)?;
-            let str_stderr = String::from_utf8(output.stderr)?;
-            Ok(BenchmarkRecord::Data(str_stdout + &str_stderr))
-        }
+        Self::handle_output(output)
     }
 
     pub fn execute(&self, param: BenchmarkPoint) -> Result<BenchmarkRecord, MeasurementError> {
         let output: Output = self.command.clone().with_arg(param.to_string()).output()?;
-        if !output.status.success() {
-            Err(MeasurementError::ExecutionFailed(output))
-        } else {
-            let str_stdout = String::from_utf8(output.stdout)?;
-            let str_stderr = String::from_utf8(output.stderr)?;
-            Ok(BenchmarkRecord::Data(str_stdout + &str_stderr))
-        }
+        Self::handle_output(output)
     }
 }
 
