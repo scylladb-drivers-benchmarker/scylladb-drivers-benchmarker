@@ -2,9 +2,11 @@ use std::path::PathBuf;
 
 use sqlite::Connection;
 use sqlite::State;
+use sqlite::Statement;
 
-use crate::utilities::BenchmarkParams;
-use crate::utilities::BenchmarkRecord;
+use crate::CommitHash;
+
+use crate::utilities::{BenchmarkFilters, BenchmarkParams, BenchmarkRecord};
 
 pub struct Database {
     connection: Connection,
@@ -16,6 +18,64 @@ pub enum DatabaseError {
 }
 
 impl Database {
+    fn bind_params<'stmt>(
+        stmt: &mut Statement<'stmt>,
+        params: BenchmarkParams,
+    ) -> Result<(), DatabaseError> {
+        stmt.bind((1, params.commit_hash.as_str()))?;
+        stmt.bind((2, params.benchmark_name.as_str()))?;
+        stmt.bind((3, params.benchmark_point.to_string().as_str()))?;
+        stmt.bind((4, params.measurement_method.as_str()))?;
+        Ok(())
+    }
+
+    /// Returns WHERE clause:
+    /// "WHERE commit_hash IN (...) AND benchmark_name IN (...)"
+    /// or empty string if no filters.
+    fn data_filtration(&self, filters: &BenchmarkFilters) -> String {
+        // Helper function to build in cluase for one column.
+        fn build_in_clause<T: ToString>(column_name: &str, values: &[T]) -> Option<String> {
+            if values.is_empty() {
+                return None;
+            }
+
+            let formatted_values: Vec<String> = values
+                .iter()
+                .map(|v| {
+                    let s = v.to_string();
+                    // If numeric, keep as is; if string, wrap in quotes and escape
+                    if s.parse::<i64>().is_ok() {
+                        s
+                    } else {
+                        format!("'{}'", s.replace('\'', "''"))
+                    }
+                })
+                .collect();
+
+            Some(format!(
+                "{} IN ({})",
+                column_name,
+                formatted_values.join(", ")
+            ))
+        }
+
+        let clauses: Vec<String> = [
+            build_in_clause("commit_hash", &filters.commit_hashes),
+            build_in_clause("benchmark_name", &filters.benchmark_names),
+            build_in_clause("benchmark_point", &filters.benchmark_points),
+            build_in_clause("measurement_method", &filters.measurement_methods),
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
+
+        if clauses.is_empty() {
+            "".to_string()
+        } else {
+            format!("WHERE {}", clauses.join(" AND "))
+        }
+    }
+
     pub fn new(path: PathBuf) -> Result<Database, DatabaseError> {
         let db = Database {
             connection: Connection::open(path)?,
@@ -50,10 +110,7 @@ impl Database {
                 ",
         )?;
 
-        stmt.bind((1, params.commit_hash.as_str()))?;
-        stmt.bind((2, params.benchmark_name.as_str()))?;
-        stmt.bind((3, params.benchmark_point.to_string().as_str()))?;
-        stmt.bind((4, params.measurement_method.as_str()))?;
+        Database::bind_params(&mut stmt, params)?;
 
         if let BenchmarkRecord::Data(data_json) = result {
             stmt.bind((5, data_json.as_str()))?;
@@ -65,48 +122,11 @@ impl Database {
 
     pub fn get_data(
         &self,
-        params: BenchmarkParams,
-    ) -> Result<Option<BenchmarkRecord>, DatabaseError> {
-        let mut stmt = self.connection.prepare(
-            "
-                SELECT data_json from  Benchmarks
-                WHERE commit_hash = ? 
-                    and benchmark_name = ?
-                    and benchmark_point = ?
-                    and measurement_method = ?;
-                ",
-        )?;
-
-        stmt.bind((1, params.commit_hash.as_str()))?;
-        stmt.bind((2, params.benchmark_name.as_str()))?;
-        stmt.bind((3, params.benchmark_point.to_string().as_str()))?;
-        stmt.bind((4, params.measurement_method.as_str()))?;
-
-        Ok(match stmt.next()? {
-            State::Row => {
-                let data: Option<String> = stmt.read(0)?;
-                Some(data.into())
-            }
-            State::Done => None,
-        })
-    }
-
-    pub fn data_exists(&self, params: BenchmarkParams) -> Result<bool, DatabaseError> {
-        Ok(self.get_data(params)?.is_some())
-    }
-}
-
-pub mod test_utils {
-    use super::*;
-    use crate::CommitHash;
-
-    pub fn get_all_data(
-        db: &Database,
+        filters: &BenchmarkFilters,
     ) -> Result<Vec<(BenchmarkParams, BenchmarkRecord)>, DatabaseError> {
-        let mut stmt = db.connection.prepare(
-            "SELECT commit_hash, benchmark_name, benchmark_point, measurement_method, data_json 
-                FROM Benchmarks;",
-        )?;
+        let mut stmt = self
+            .connection
+            .prepare("SELECT * FROM Benchmarks ".to_string() + &self.data_filtration(filters))?;
 
         let mut results = Vec::new();
 
@@ -130,15 +150,45 @@ pub mod test_utils {
         Ok(results)
     }
 
-    pub fn drop_table(db: &Database) -> Result<(), DatabaseError> {
-        db.connection.execute("DELETE FROM Benchmarks;")?;
+    pub fn get_all_data(&self) -> Result<Vec<(BenchmarkParams, BenchmarkRecord)>, DatabaseError> {
+        self.get_data(&BenchmarkFilters::all())
+    }
+
+    pub fn drop_data(&self, filters: &BenchmarkFilters) -> Result<(), DatabaseError> {
+        self.connection
+            .prepare("DELETE FROM Benchmarks ".to_string() + &self.data_filtration(filters))?
+            .next()?;
+
         Ok(())
+    }
+
+    pub fn drop_all_data(&self) -> Result<(), DatabaseError> {
+        self.drop_data(&BenchmarkFilters::all())
+    }
+
+    pub fn get_result(
+        &self,
+        params: BenchmarkParams,
+    ) -> Result<Option<BenchmarkRecord>, DatabaseError> {
+        let filters = BenchmarkFilters::filter_exact_param(&params);
+
+        let results = self.get_data(&filters)?;
+
+        match results.len() {
+            0 => Ok(None),
+            1 => Ok(Some(results.into_iter().next().unwrap().1)),
+            _ => todo!("add diagnostic, maybe print params?"),
+        }
+    }
+
+    pub fn result_exists(&self, params: BenchmarkParams) -> Result<bool, DatabaseError> {
+        Ok(self.get_result(params)?.is_some())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{commit_hash::CommitHash, database::test_utils::*, database::*};
+    use crate::{commit_hash::CommitHash, database::*};
     use tempfile::NamedTempFile;
 
     fn get_db() -> (Database, NamedTempFile) {
@@ -160,14 +210,14 @@ mod tests {
 
         db.insert_data(params.clone(), result).unwrap();
 
-        let retrieved = db.get_data(params.clone()).unwrap().unwrap();
+        let retrieved = db.get_result(params.clone()).unwrap().unwrap();
 
-        assert!(db.data_exists(params).unwrap());
+        assert!(db.result_exists(params).unwrap());
         assert!(retrieved == BenchmarkRecord::Data("result_result ".into()));
     }
 
     #[test]
-    fn insert_get_empty_imeout_all_clear() {
+    fn insert_get_empty_timeout_all_clear() {
         let (db, _file) = get_db();
 
         let params1 = BenchmarkParams::new(
@@ -191,13 +241,13 @@ mod tests {
         db.insert_data(params2.clone(), result_timeout.clone())
             .unwrap();
 
-        let retrieved_empty = db.get_data(params1.clone()).unwrap().unwrap();
-        let retrieved_timeout = db.get_data(params2.clone()).unwrap().unwrap();
+        let retrieved_empty = db.get_result(params1.clone()).unwrap().unwrap();
+        let retrieved_timeout = db.get_result(params2.clone()).unwrap().unwrap();
 
         assert_eq!(retrieved_timeout, BenchmarkRecord::Timeout);
         assert_eq!(retrieved_empty, BenchmarkRecord::Data("".into()));
 
-        let data = get_all_data(&db).unwrap();
+        let data = db.get_all_data().unwrap();
 
         assert!(data.len() == 2);
         assert!(
@@ -207,9 +257,9 @@ mod tests {
                     && data[0] == (params2.clone(), result_timeout.clone()))
         );
 
-        drop_table(&db).unwrap();
+        db.drop_all_data().unwrap();
 
-        let data = get_all_data(&db).unwrap();
+        let data = db.get_all_data().unwrap();
         assert!(data.is_empty());
     }
 
@@ -224,7 +274,7 @@ mod tests {
             "nope".into(),
         );
 
-        let result = db.get_data(params).unwrap();
+        let result = db.get_result(params).unwrap();
 
         assert!(result.is_none());
     }
@@ -245,5 +295,165 @@ mod tests {
 
         assert!(db.insert_data(params.clone(), result1).is_err());
         assert!(db.insert_data(params, result2).is_err());
+    }
+
+    #[test]
+    fn test_data_filtration() {
+        let db = Database::new(":memory:".into()).unwrap();
+
+        let commit_hashes = vec!["a", "b"];
+        let benchmark_names = vec!["x", "y"];
+        let benchmark_points = vec![1, 2];
+        let measurement_methods = vec!["cold", "hot"];
+
+        // Add all data to database.
+        // Test data_filtration (creating WHERE clouse).
+        for &ch in &commit_hashes {
+            for &bn in &benchmark_names {
+                for &bp in &benchmark_points {
+                    for &mm in &measurement_methods {
+                        let filters = BenchmarkFilters {
+                            commit_hashes: vec![ch.into()],
+                            benchmark_names: vec![bn.into()],
+                            benchmark_points: vec![bp],
+                            measurement_methods: vec![mm.into()],
+                        };
+
+                        let sql = db.data_filtration(&filters);
+
+                        let expected_sql = format!(
+                            "WHERE commit_hash IN ('{}') AND benchmark_name IN ('{}') AND benchmark_point IN ({}) AND measurement_method IN ('{}')",
+                            ch, bn, bp, mm
+                        );
+
+                        assert_eq!(
+                            sql, expected_sql,
+                            "Failed for combination: ch={}, bn={}, bp={}, mm={}",
+                            ch, bn, bp, mm
+                        );
+
+                        let params = BenchmarkParams::new(
+                            CommitHash::new_unchecked(ch.into()),
+                            bn.into(),
+                            bp,
+                            mm.into(),
+                        );
+                        let record =
+                            BenchmarkRecord::Data(format!("data_{}{}{}{}", ch, bn, bp, mm));
+                        db.insert_data(params, record).unwrap();
+                    }
+                }
+            }
+        }
+
+        // Test get_data functionality.
+        let filters_list = vec![
+            (
+                BenchmarkFilters {
+                    commit_hashes: vec!["a".into()],
+                    benchmark_names: vec!["x".into()],
+                    benchmark_points: vec![1],
+                    measurement_methods: vec!["cold".into()],
+                },
+                1,
+            ),
+            (
+                BenchmarkFilters {
+                    commit_hashes: vec![],
+                    benchmark_names: vec!["y".into()],
+                    benchmark_points: vec![2],
+                    measurement_methods: vec![
+                        "'but_has_funny_chars'''''''".into(),
+                        "hot".into(),
+                        "'but_has_funny_chars'''''''".into(),
+                    ],
+                },
+                2,
+            ),
+            (
+                BenchmarkFilters {
+                    commit_hashes: vec![],
+                    benchmark_names: vec!["x".into()],
+                    benchmark_points: vec![],
+                    measurement_methods: vec!["cold".into()],
+                },
+                4,
+            ),
+        ];
+
+        for (filters, expected_count) in filters_list {
+            let results = db.get_data(&filters).unwrap();
+
+            // Check number of rows
+            assert_eq!(results.len(), expected_count);
+
+            // Check that all rows match the filter
+            for (params, _record) in results {
+                if !filters.commit_hashes.is_empty() {
+                    assert!(
+                        filters
+                            .commit_hashes
+                            .contains(&String::from(params.commit_hash))
+                    );
+                }
+                if !filters.benchmark_names.is_empty() {
+                    assert!(filters.benchmark_names.contains(&params.benchmark_name));
+                }
+                if !filters.benchmark_points.is_empty() {
+                    assert!(filters.benchmark_points.contains(&params.benchmark_point));
+                }
+                if !filters.measurement_methods.is_empty() {
+                    assert!(
+                        filters
+                            .measurement_methods
+                            .contains(&params.measurement_method)
+                    );
+                }
+            }
+        }
+
+        // Test deleting from table.
+        let filter_single = BenchmarkFilters {
+            commit_hashes: vec!["a".into()],
+            benchmark_names: vec!["x".into()],
+            benchmark_points: vec![1],
+            measurement_methods: vec!["cold".into(), "sasdsadasdads".into()],
+        };
+
+        let filter_multiple = BenchmarkFilters {
+            commit_hashes: vec!["b".into()],
+            benchmark_names: vec!["y".into()],
+            benchmark_points: vec![],
+            measurement_methods: vec!["hot".into()],
+        };
+
+        db.drop_data(&filter_single).unwrap();
+        let remaining = db.get_all_data().unwrap();
+        for (params, _record) in &remaining {
+            assert!(
+                !(String::from(params.commit_hash.clone()) == "a"
+                    && params.benchmark_name == "x"
+                    && params.benchmark_point == 1
+                    && params.measurement_method == "cold"),
+                "Row matching single filter was not deleted"
+            );
+        }
+
+        db.drop_data(&filter_multiple).unwrap();
+        let remaining = db.get_all_data().unwrap();
+        for (params, _record) in &remaining {
+            assert!(
+                !(String::from(params.commit_hash.clone()) == "b"
+                    && params.benchmark_name == "y"
+                    && params.measurement_method == "hot"),
+                "Row(s) matching multiple filter were not deleted"
+            );
+        }
+
+        assert_eq!(
+            remaining.len(),
+            16 - 1 - 2,
+            "Unexpected number of remaining rows"
+        );
     }
 }

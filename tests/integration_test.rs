@@ -3,13 +3,11 @@ use std::path::Path;
 use assert_cmd::cargo;
 use scylladb_drivers_benchmarker::{
     commit_hash::CommitHash,
-    database::{self, test_utils::*},
+    database::{self},
     utilities::{BenchmarkParams, BenchmarkRecord},
 };
 
 fn setup_git(repo: &str) {
-    println!("{}", repo);
-
     if Path::new(&(repo.to_owned() + "/.git/")).is_dir() {
         return;
     }
@@ -105,13 +103,13 @@ fn test_cpp_vs_rust() {
     setup_git("./tests/data/rust/");
 
     let db = database::Database::new(Path::new("./tests/data/test.db").to_owned()).unwrap();
-    drop_table(&db).unwrap();
+    db.drop_all_data().unwrap();
 
     let hash_cpp = gather_data("./tests/data/cpp/");
     let hash_rust = gather_data("./tests/data/rust/");
     assert!(hash_cpp != hash_rust);
 
-    let db_data = get_all_data(&db).unwrap();
+    let db_data = db.get_all_data().unwrap();
 
     let data_cpp = db_data
         .iter()
