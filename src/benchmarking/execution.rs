@@ -13,15 +13,23 @@ pub struct BuiltSource {
 pub enum CompileError {
     CommandParsing(#[from] CommandParsingError),
 
-    CompilationRunning(#[from] std::io::Error),
+    CompilationStarting(#[from] std::io::Error),
+    #[error(fmt=debug)]
+    CompilationRunning {
+        output: std::process::Output,
+    },
 }
 
-pub fn build_source(build_command: impl AsRef<str>) -> Result<BuiltSource, CompileError> {
-    let command = Command::from_str(build_command.as_ref())?;
+pub fn build_source(build_command: &str) -> Result<BuiltSource, CompileError> {
+    let command = Command::from_str(build_command)?;
     let mut command = command.process();
 
-    command.output()?;
-    Ok(BuiltSource { _private: () })
+    let output = command.output()?;
+    if !output.status.success() {
+        Err(CompileError::CompilationRunning { output })
+    } else {
+        Ok(BuiltSource { _private: () })
+    }
 }
 
 #[justerror::Error(desc = "measuring failed")]
@@ -33,6 +41,7 @@ pub enum MeasurementError {
     WrongOutputFormat(#[from] std::string::FromUtf8Error),
 }
 
+#[derive(Debug)]
 pub struct Executor {
     command: Command,
 }
@@ -40,17 +49,17 @@ pub struct Executor {
 impl Executor {
     pub fn new(
         _: BuiltSource,
-        run_command: impl AsRef<str>,
+        run_command: &str,
     ) -> Result<Executor, CommandParsingError> {
-        let command = Command::from_str(run_command.as_ref())?;
+        let command = Command::from_str(run_command)?;
         Ok(Executor { command })
     }
 
     pub fn with_measure(
         self,
-        measurement_method: impl AsRef<str>,
+        measurement_method: &str,
     ) -> Result<Executor, CommandParsingError> {
-        let measurement_command = Command::from_str(measurement_method.as_ref())?;
+        let measurement_command = Command::from_str(measurement_method)?;
         Ok(Executor {
             command: measurement_command.with_arg(self.command.to_string()),
         })

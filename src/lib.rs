@@ -3,10 +3,12 @@ use std::{path::Path, str::FromStr};
 use crate::{
     benchmarking::BenchmarkingError,
     commit_hash::{CommitHash, CommitHashError},
-    config::{ConfigError, benchmark::BenchmarkConfig, find_config},
-    database::Database,
+    config::{ConfigError, backend::BackendConfig, benchmark::BenchmarkConfig, find_config},
+    database::{Database, DatabaseError},
     plotting::error::PlotError,
-    utilities::RepositoryWithCommits,
+    utilities::{
+        BenchmarkFilters, BenchmarkMode, DatabaseCommand, RepositoryWithCommits, format_entry,
+    },
 };
 
 pub use plotting::VisKind;
@@ -22,7 +24,8 @@ pub mod utilities;
 #[justerror::Error]
 pub enum RunBenchmarksError {
     Benchmarking(#[from] BenchmarkingError),
-    BenchmarkConfig(#[from] ConfigError),
+    BenchmarkConfig(#[source] ConfigError),
+    BackendConfig(#[source] ConfigError),
     CommitHash(#[from] CommitHashError),
 }
 
@@ -41,16 +44,23 @@ pub fn run_benchmarks(
     benchmark_config_path: &Path,
     measurement_method: String,
     backend_config_path: &Path,
+    bechmark_mode: BenchmarkMode,
 ) -> Result<(), RunBenchmarksError> {
-    let benchmark_config: BenchmarkConfig = find_config(benchmark_name, benchmark_config_path)?;
+    let benchmark_config: BenchmarkConfig = find_config(benchmark_name, benchmark_config_path)
+        .map_err(RunBenchmarksError::BenchmarkConfig)?;
+
+    let backend_config: BackendConfig = find_config(benchmark_name, backend_config_path)
+        .map_err(RunBenchmarksError::BackendConfig)?;
 
     let commit_hash: CommitHash = CommitHash::from_current_repository()?;
+
     Ok(benchmarking::benchmark(
         database,
         commit_hash,
         benchmark_config,
-        backend_config_path,
+        backend_config,
         measurement_method,
+        bechmark_mode,
     )?)
 }
 
@@ -125,4 +135,23 @@ pub fn plot_benchmarks(
             PlotError::UnknownMeasureKind(other.to_owned()),
         )),
     }
+}
+
+pub fn access_database(
+    database: &Database,
+    operation: DatabaseCommand,
+) -> Result<(), DatabaseError> {
+    match operation {
+        DatabaseCommand::Print { filters } => {
+            let results = database.get_data(&BenchmarkFilters::from_input_commands(filters))?;
+            for (params, result) in results.into_iter() {
+                print!("{}", format_entry(&params, &result));
+            }
+        }
+        DatabaseCommand::Drop { filters } => {
+            database.drop_data(&BenchmarkFilters::from_input_commands(filters))?
+        }
+    }
+
+    Ok(())
 }

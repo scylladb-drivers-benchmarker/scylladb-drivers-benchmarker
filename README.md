@@ -73,14 +73,14 @@ backends:
 
 The benchmarker accepts following options:
 
-* `-d`, `—db-path` — the path to the database location
-* `-b`, `—benchmark-config-path` — the path to the configuration file of the benchmark
-* `-m`, `—measurement-method` — the command to measure the performance of the benchmark (e.g. time).
+* `-d`, `--db-path` — the path to the database location
+* `-b`, `--benchmark-config-path` — the path to the configuration file of the benchmark
+* `-m`, `--measurement-method` — the command to measure the performance of the benchmark (e.g. time).
 
 The benchmark name should be passed next and be followed by one of the two subcommands:
 
 * `run` — Executes, measures, and stores to the database the results of the measurements. It should be invoked from the inside of the repository holding the application being measured.
-  * `-b`, `—backend-config-path` — the path to the configuration file of the backend
+  * `-b`, `--backend-config-path` — the path to the configuration file of the backend
 * `plot` — Visualizes and compares the results of previous `runs`, reading them from the database
   * `--from <repository path:tag1,tag2,...>` — specifies which tags should be used in the comparison and to which repository they refer. Including this option multiple times adds more to the comparison. Here tags are used broadly, and include things like branches, tags, `HEAD`, with relative versions of thereof.
 

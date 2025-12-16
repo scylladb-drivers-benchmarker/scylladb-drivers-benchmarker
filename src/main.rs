@@ -1,6 +1,10 @@
 use clap::Parser;
 
-use scylladb_drivers_benchmarker::{VisKind, database::Database, utilities::RepositoryWithCommits};
+use scylladb_drivers_benchmarker::{
+    VisKind,
+    database::Database,
+    utilities::{BenchmarkMode, DatabaseCommand, RepositoryWithCommits},
+};
 use std::path::PathBuf;
 
 #[derive(Debug, clap::Subcommand)]
@@ -19,6 +23,13 @@ enum AppSubcommand {
     Run {
         #[arg(short, long, default_value = "./config.yml")]
         backend_config_path: PathBuf,
+
+        #[arg(long, short = 'm', value_enum, default_value_t = BenchmarkMode::UseCached)]
+        benchmark_mode: BenchmarkMode,
+    },
+    Database {
+        #[command(subcommand)]
+        command: DatabaseCommand,
     },
 }
 
@@ -30,7 +41,7 @@ struct App {
     db_path: Option<PathBuf>,
 
     #[arg(short, long)]
-    #[clap(default_value = "time -f \"%S\"")]
+    #[clap(default_value = "time -f \"%e\"")]
     measurement_method: String,
 
     benchmark_name: String,
@@ -72,12 +83,14 @@ fn main() {
     match args.subcommand {
         AppSubcommand::Run {
             backend_config_path,
+            benchmark_mode,
         } => scylladb_drivers_benchmarker::run_benchmarks(
             &database,
             &args.benchmark_name,
             &args.benchmark_config_path,
             args.measurement_method,
             backend_config_path.as_path(),
+            benchmark_mode,
         )
         .unwrap_or_else(print_error),
         AppSubcommand::Plot {
@@ -92,6 +105,10 @@ fn main() {
             from,
         )
         .unwrap_or_else(print_error),
+        AppSubcommand::Database { command } => {
+            scylladb_drivers_benchmarker::access_database(&database, command)
+                .unwrap_or_else(print_error)
+        }
     }
 }
 
@@ -106,7 +123,7 @@ mod test {
     #[test]
     fn basic_run() {
         let args = App::parse_from(vec!["scylladb-drivers-benchmarker", "select", "run"]);
-        assert_eq!(args.measurement_method, "time -f \"%S\"");
+        assert_eq!(args.measurement_method, "time -f \"%e\"");
         assert_eq!(args.benchmark_name, "select");
         assert!(matches!(args.subcommand, AppSubcommand::Run { .. }));
     }
@@ -121,7 +138,7 @@ mod test {
             "--from",
             "repo2:commit",
         ]);
-        assert_eq!(args.measurement_method, "time -f \"%S\"");
+        assert_eq!(args.measurement_method, "time -f \"%e\"");
         assert_eq!(args.benchmark_name, "select");
 
         let AppSubcommand::Plot {

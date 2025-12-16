@@ -10,8 +10,8 @@ pub trait Configuration {
 pub trait ConfigurationList: DeserializeOwned + Debug + Clone + Eq {
     type ConfigType: Configuration<ConfigListType = Self>;
     fn configs(&self) -> impl Iterator<Item = Self::ConfigType>;
-    fn find_config(&self, benchmark_name: impl AsRef<str>) -> Option<Self::ConfigType> {
+    fn find_config(&self, benchmark_name: &str) -> Option<Self::ConfigType> {
         self.configs()
-            .find(|config| config.benchmark_name() == benchmark_name.as_ref())
+            .find(|config| config.benchmark_name() == benchmark_name)
     }
 }

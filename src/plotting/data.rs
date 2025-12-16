@@ -76,7 +76,7 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         let results = benchmark_data
             .benchmark_points()
             .map(|point| -> Result<_, PlotError> {
-                let record = database.get_data(benchmark_params(point))?;
+                let record = database.get_result(benchmark_params(point))?;
 
                 if let Some(record) = record {
                     let value = match record {

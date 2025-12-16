@@ -38,7 +38,7 @@ pub fn open_config<ConfigListType: ConfigurationList>(
 }
 
 pub fn find_config<ConfigType: Configuration>(
-    benchmark_name: impl AsRef<str>,
+    benchmark_name: &str,
     config_path: &Path,
 ) -> Result<ConfigType, ConfigError> {
     let config_list: ConfigType::ConfigListType = open_config(config_path)?;
@@ -46,7 +46,7 @@ pub fn find_config<ConfigType: Configuration>(
         .find_config(benchmark_name.as_ref())
         .ok_or(ConfigError::ConfigurationNotFound {
             path: config_path.to_path_buf(),
-            benchmark_name: benchmark_name.as_ref().to_owned(),
+            benchmark_name: benchmark_name.to_owned(),
         })
 }
 
