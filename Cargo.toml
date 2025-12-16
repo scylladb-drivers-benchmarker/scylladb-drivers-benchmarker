@@ -16,6 +16,7 @@ justerror = "1.1.0"
 thiserror = "2.0.17"
 home = "0.5.12"
 wait-timeout = "0.2.1"
+humantime-serde = "1.1.1"
 
 [dev-dependencies]
 assert_cmd = "2.1.1"

@@ -1,7 +1,8 @@
+use std::time::Duration;
+
 use serde::{Deserialize, Serialize};
 
 use crate::config::config_traits::{Configuration, ConfigurationList};
-use crate::config::my_yml::duration::MyDuration;
 use crate::utilities::BenchmarkPoint;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,8 +19,12 @@ pub struct BenchmarkData {
     pub no_steps: BenchmarkPoint,
     pub step_progress: BenchmarkPoint,
     pub progress_type: ProgressType,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub timeout: Option<MyDuration>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "humantime_serde"
+    )]
+    pub timeout: Option<Duration>,
 }
 
 impl BenchmarkData {
