@@ -2,7 +2,7 @@ use std::path::Path;
 
 use assert_cmd::cargo;
 use scylladb_drivers_benchmarker::{
-    commit_hash::{self, CommitHash},
+    commit_hash::CommitHash,
     database::{self, test_utils::*},
     utilities::{BenchmarkParams, BenchmarkRecord},
 };
@@ -13,7 +13,7 @@ fn setup_git(repo: &str) {
     if Path::new(&(repo.to_owned() + "/.git/")).is_dir() {
         return;
     }
-    
+
     assert!(
         std::process::Command::new("git")
             .current_dir(repo)
@@ -124,5 +124,4 @@ fn test_cpp_vs_rust() {
         .filter(|(params, _)| params.commit_hash == hash_rust)
         .map(Clone::clone);
     check_data(&hash_rust, data_rust);
-
 }
