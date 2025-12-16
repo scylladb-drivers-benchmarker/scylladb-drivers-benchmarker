@@ -41,8 +41,8 @@ fn filter_points(
     config_points: impl Iterator<Item = BenchmarkPoint>,
     params_generator: impl Fn(BenchmarkPoint) -> BenchmarkParams,
     benchmark_mode: BenchmarkMode,
-) -> Result<Vec<BenchmarkPoint>, BenchmarkingError> {
-    Ok(match benchmark_mode {
+) -> Result<Vec<BenchmarkPoint>, DatabaseError> {
+    match benchmark_mode {
         BenchmarkMode::UseCached => config_points
             .filter_map(
                 |point| match database.result_exists(params_generator(point)) {
@@ -51,7 +51,7 @@ fn filter_points(
                     Err(e) => Some(Err(e)),
                 },
             )
-            .collect::<Result<Vec<BenchmarkPoint>, DatabaseError>>()?,
+            .collect::<Result<Vec<BenchmarkPoint>, DatabaseError>>(),
         BenchmarkMode::ForceRerun => config_points
             .map(|point| {
                 database.drop_data(&BenchmarkFilters::filter_exact_param(&params_generator(
@@ -59,8 +59,8 @@ fn filter_points(
                 )))?;
                 Ok(point)
             })
-            .collect::<Result<Vec<BenchmarkPoint>, DatabaseError>>()?,
-    })
+            .collect::<Result<Vec<BenchmarkPoint>, DatabaseError>>(),
+    }
 }
 
 pub fn benchmark(
