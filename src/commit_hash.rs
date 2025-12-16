@@ -3,6 +3,9 @@ use crate::command::Command;
 use std::env;
 use std::path::Path;
 
+
+// Z perspektywy czytelności wyników, przydatna byłaby jeszcze informacja o branchu.
+// Planujecie jakoś ją dodać?
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CommitHash {
     value: String,

@@ -47,27 +47,30 @@ pub enum DbPathError {
     NoHomeDir,
 }
 
-fn default_db_path() -> Result<std::path::PathBuf, DbPathError> {
-    Ok(home::home_dir()
-        .ok_or(DbPathError::NoHomeDir)?
-        .join("benchmarker.db"))
+// Brak ścieżki domowej wydaje się na tyle dużym powodem,
+// aby uzasadnić tutaj użycie panica. Zresztą i tak kończycie działanie z błędem,
+// ale zwracając tutaj błąd, oddalacie ten moment w czasie.
+
+// Dodatkowo, użycie exit zamiast panica utrudnia debugowanie problemu,
+// jako że ukrywa miejsce w kodzie które faktycznie wygenerowało problem
+fn default_db_path() -> std::path::PathBuf {
+    home::home_dir()
+        .expect("Failed to obtain default database location. Provide one.")
+        .join("benchmarker.db")
 }
 
-fn print_error<T>(err: impl std::error::Error) -> T {
-    println!("{}", err);
-    std::process::exit(1);
-}
-
-fn main() {
+// Możecie zwrócić Box<dyn std::error::Error>, aby wspierać róże rodzaje błędów,
+// co dostajecie. Wówczas możecie na spokojnie używać "?" na wynikach,
+// bez potrzeby na funkcję print error.
+fn main() -> Result<(), Box<dyn std::error::Error>>{
     let args = App::parse();
 
+    // Co więcej, taki sposób obsługi błędów wprowadza niepotrzebny chaos w obsłudze wyników...
+    // .map(Ok) jest tutaj bardzo nieczytelne
     let db_path = args
-        .db_path
-        .map(Ok)
-        .unwrap_or_else(default_db_path)
-        .unwrap_or_else(print_error);
+        .db_path.unwrap_or_else(default_db_path);
 
-    let database = Database::new(db_path).unwrap_or_else(print_error);
+    let database = Database::new(db_path)?;
 
     match args.subcommand {
         AppSubcommand::Run {
@@ -78,8 +81,7 @@ fn main() {
             &args.benchmark_config_path,
             args.measurement_method,
             backend_config_path.as_path(),
-        )
-        .unwrap_or_else(print_error),
+        )?,
         AppSubcommand::Plot {
             visualization_kind,
             from,
@@ -90,9 +92,9 @@ fn main() {
             &args.measurement_method,
             visualization_kind,
             from,
-        )
-        .unwrap_or_else(print_error),
+        )?,
     }
+    Ok(())
 }
 
 #[cfg(test)]
