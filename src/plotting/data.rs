@@ -76,16 +76,21 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         let results = benchmark_data
             .benchmark_points()
             .map(|point| -> Result<_, PlotError> {
-                let record = database.get_result(benchmark_params(point))?;
+                let params = benchmark_params(point.clone());
 
-                if let Some(record) = record {
-                    Ok(match record {
-                        BenchmarkRecord::Data(text) => T::from_json(&text),
-                        BenchmarkRecord::Timeout => None,
-                    })
-                } else {
-                    Err(PlotError::MissingRecords)
-                }
+                let record = database.get_result(params.clone())?;
+
+                let record = record.ok_or_else(|| PlotError::MissingRecord {
+                    commit_hash: commit_hash.as_str().to_owned(),
+                    benchmark: benchmark_name.clone(),
+                    point,
+                    measurement_method: measurement_method.to_owned(),
+                })?;
+
+                Ok(match record {
+                    BenchmarkRecord::Data(text) => T::from_json(&text),
+                    BenchmarkRecord::Timeout => None,
+                })
             })
             .collect::<Result<Vec<Option<T>>, _>>()?;
 
@@ -233,7 +238,19 @@ mod tests {
 
         let dataset: Result<BenchmarkDataset<f64>, PlotError> =
             BenchmarkDataset::new(&db, &config, &hashes, &measure);
-        assert!(matches!(dataset.unwrap_err(), PlotError::MissingRecords));
+
+        assert!(matches!(
+            dataset.unwrap_err(),
+            PlotError::MissingRecord {
+                commit_hash,
+                benchmark,
+                point,
+                measurement_method,
+            } if commit_hash == "1"
+                && benchmark == "wrong"
+                && point == 1
+                && measurement_method == "time"
+        ));
 
         // No idea how to force db to fail on read.
         // let dataset: Result<BenchmarkDataset<f64>, PlotError> = BenchmarkDataset::new(..., &configs[1], &vec![hashes[2].clone()], &measure);
