@@ -104,7 +104,7 @@ mod tests {
             no_steps: 3,
             step_progress: 2,
             progress_type: ProgressType::Additive,
-            timeout: None
+            timeout: None,
         };
         let points: Vec<u64> = data.benchmark_points().collect();
         assert_eq!(points, vec![7, 9, 11]);
@@ -117,7 +117,7 @@ mod tests {
             no_steps: 3,
             step_progress: 2,
             progress_type: ProgressType::Multiplicative,
-            timeout: None
+            timeout: None,
         };
         let points: Vec<u64> = data.benchmark_points().collect();
         assert_eq!(points, vec![3, 6, 12]);
@@ -132,7 +132,7 @@ mod tests {
                 no_steps: 5,
                 step_progress: 2,
                 progress_type: ProgressType::Multiplicative,
-                timeout: Some(Duration::from_secs(3).into())
+                timeout: Some(Duration::from_secs(3).into()),
             },
         };
 
@@ -161,7 +161,7 @@ timeout: '3s'
                 no_steps: 5,
                 step_progress: 2,
                 progress_type: ProgressType::Multiplicative,
-                timeout: None
+                timeout: None,
             },
         };
 

@@ -47,18 +47,12 @@ pub struct Executor {
 }
 
 impl Executor {
-    pub fn new(
-        _: BuiltSource,
-        run_command: &str,
-    ) -> Result<Executor, CommandParsingError> {
+    pub fn new(_: BuiltSource, run_command: &str) -> Result<Executor, CommandParsingError> {
         let command = Command::from_str(run_command)?;
         Ok(Executor { command })
     }
 
-    pub fn with_measure(
-        self,
-        measurement_method: &str,
-    ) -> Result<Executor, CommandParsingError> {
+    pub fn with_measure(self, measurement_method: &str) -> Result<Executor, CommandParsingError> {
         let measurement_command = Command::from_str(measurement_method)?;
         Ok(Executor {
             command: measurement_command.with_arg(self.command.to_string()),

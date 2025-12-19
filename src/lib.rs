@@ -85,12 +85,13 @@ pub fn plot_benchmarks(
         })
         .collect::<Vec<String>>();
 
-    let commit_hashes = from
-        .into_iter()
-        .try_fold(Vec::new(), |mut acc, repo| -> Result<_, PlotBenchmarksError> {
+    let commit_hashes = from.into_iter().try_fold(
+        Vec::new(),
+        |mut acc, repo| -> Result<_, PlotBenchmarksError> {
             acc.extend(repo.to_commit_hashes()?);
             Ok(acc)
-        })?;
+        },
+    )?;
 
     let cmd = command::Command::from_str(measurement_method)?;
 
