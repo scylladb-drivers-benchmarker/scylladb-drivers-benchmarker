@@ -79,11 +79,10 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
                 let record = database.get_result(benchmark_params(point))?;
 
                 if let Some(record) = record {
-                    let value = match record {
+                    Ok( match record {
                         BenchmarkRecord::Data(text) => T::from_json(&text),
                         BenchmarkRecord::Timeout => None,
-                    };
-                    Ok(value)
+                    } )
                 } else {
                     Err(PlotError::MissingRecords)
                 }

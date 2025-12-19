@@ -1,14 +1,9 @@
 use std::{path::Path, str::FromStr};
 
 use crate::{
-    benchmarking::BenchmarkingError,
-    commit_hash::{CommitHash, CommitHashError},
-    config::{ConfigError, backend::BackendConfig, benchmark::BenchmarkConfig, find_config},
-    database::{Database, DatabaseError},
-    plotting::error::PlotError,
-    utilities::{
+    benchmarking::BenchmarkingError, command::CommandParsingError, commit_hash::{CommitHash, CommitHashError}, config::{ConfigError, backend::BackendConfig, benchmark::BenchmarkConfig, find_config}, database::{Database, DatabaseError}, plotting::{PlotKind, error::PlotError}, utilities::{
         BenchmarkFilters, BenchmarkMode, DatabaseCommand, RepositoryWithCommits, format_entry,
-    },
+    }
 };
 
 pub use plotting::VisKind;
@@ -32,10 +27,9 @@ pub enum RunBenchmarksError {
 #[justerror::Error]
 pub enum PlotBenchmarksError {
     Plotting(#[from] PlotError),
-
     BenchmarkConfig(#[from] ConfigError),
-
     CommitHash(#[from] CommitHashError),
+    CommandParsingError(#[from] CommandParsingError),
 }
 
 pub fn run_benchmarks(
@@ -93,48 +87,37 @@ pub fn plot_benchmarks(
         .flatten()
         .collect();
 
+    let cmd = command::Command::from_str(measurement_method)?;
     // Fix this unwrap
-    match command::Command::from_str(measurement_method)
-        .unwrap()
-        .program()
-    {
+    let plot_kind = match cmd.program() {
         "time" => {
             // Default to linear if no vis kind provided
             let vis_kind = visualization_kind.unwrap_or(VisKind::Linear);
-
-            Ok(plotting::plot(
-                plotting::PlotKind::Series(vis_kind),
-                database,
-                benchmark_name,
-                &benchmark_config,
-                measurement_method,
-                &commit_hashes,
-                &names,
-            )?)
-        }
-
+            PlotKind::Series(vis_kind)
+        },
         "flamegraph" => {
-            // Should not provide vis_kind
             if visualization_kind.is_some() {
                 return Err(PlotBenchmarksError::Plotting(
                     PlotError::UnexpectedVisualizationKind(),
                 ));
             }
+            PlotKind::Flamegraph
+        },
+        other => return Err(PlotBenchmarksError::Plotting(
+            PlotError::UnknownMeasureKind(other.to_owned()))),
+    };
 
-            Ok(plotting::plot(
-                plotting::PlotKind::Flamegraph,
-                database,
-                benchmark_name,
-                &benchmark_config,
-                measurement_method,
-                &commit_hashes,
-                &names,
-            )?)
-        }
-        other => Err(PlotBenchmarksError::Plotting(
-            PlotError::UnknownMeasureKind(other.to_owned()),
-        )),
-    }
+    plotting::plot(
+        plot_kind,
+        database,
+        benchmark_name,
+        &benchmark_config,
+        measurement_method,
+        &commit_hashes,
+        &names
+    )?;
+
+    Ok(())
 }
 
 pub fn access_database(

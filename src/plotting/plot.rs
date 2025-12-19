@@ -7,6 +7,18 @@ use super::series::{LinearSeries, LogSeries, SeriesValue, ValueTransformation};
 
 use plotters::prelude::*;
 
+const IMAGE_SIZE: (u32, u32) = (1024, 768);
+const MARGIN_SIZE: u32 = 10;
+const X_LABEL_AREA_SIZE: u32 = 30;
+const Y_LABEL_AREA_SIZE: u32 = 40;
+
+const FONT_FAMILY: &str = "sans-serif";
+const FONT_SIZE: u32 = 40;
+const FONT: (&str, u32) = (FONT_FAMILY, FONT_SIZE);
+
+const BACKGROUND_COLOR: RGBColor = WHITE;
+const LEGEND_BORDER_COLOR: RGBColor = BLACK;
+
 pub(crate) trait Plot {
     fn plot(&self) -> Result<(), PlotError>;
 }
@@ -83,17 +95,14 @@ impl Plot for SeriesPlot {
             y_max = 1.0;
         }
 
-        let root = BitMapBackend::new("test.png", (1024, 768)).into_drawing_area();
-        root.fill(&WHITE)?;
+        let root = BitMapBackend::new("test.png", IMAGE_SIZE).into_drawing_area();
+        root.fill(&BACKGROUND_COLOR)?;
 
         let mut chart = ChartBuilder::on(&root)
-            .caption(
-                format!("Benchmark {} Results", &self.benchmark_name),
-                ("sans-serif", 40),
-            )
-            .margin(10)
-            .x_label_area_size(30)
-            .y_label_area_size(40)
+            .caption(format!("Benchmark {} Results", &self.benchmark_name), FONT)
+            .margin(MARGIN_SIZE)
+            .x_label_area_size(X_LABEL_AREA_SIZE)
+            .y_label_area_size(Y_LABEL_AREA_SIZE)
             .build_cartesian_2d(x_start..x_end, y_min..y_max)?;
 
         chart.configure_mesh().draw()?;
@@ -105,8 +114,8 @@ impl Plot for SeriesPlot {
         chart
             .configure_series_labels()
             .position(SeriesLabelPosition::MiddleRight)
-            .border_style(BLACK)
-            .background_style(WHITE.mix(0.8))
+            .border_style(LEGEND_BORDER_COLOR)
+            .background_style(BACKGROUND_COLOR)
             .draw()?;
 
         Ok(())

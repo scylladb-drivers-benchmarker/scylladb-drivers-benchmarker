@@ -12,7 +12,7 @@ pub(crate) struct RenderableSeries {
     pub points: Vec<BenchmarkPoint>,
     pub series: Vec<Option<f64>>,
     pub color: PaletteColor<Palette99>,
-    pub range: Option<(f64, f64)>,
+    range: Option<(f64, f64)>,
 }
 
 impl RenderableSeries {
