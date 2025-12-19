@@ -87,14 +87,13 @@ pub fn plot_benchmarks(
 
     let commit_hashes: Vec<CommitHash> = from
         .into_iter()
-        .map(|repo| repo.to_commit_hashes())
-        .collect::<Result<Vec<_>, _>>()?
-        .into_iter()
-        .flatten()
-        .collect();
+        .try_fold(Vec::new(), |mut acc, repo| -> Result<_, PlotBenchmarksError> {
+            acc.extend(repo.to_commit_hashes()?);
+            Ok(acc)
+        })?;
 
     let cmd = command::Command::from_str(measurement_method)?;
-    // Fix this unwrap
+
     let plot_kind = match cmd.program() {
         "time" => {
             // Default to linear if no vis kind provided
