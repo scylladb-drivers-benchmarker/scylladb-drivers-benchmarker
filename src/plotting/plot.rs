@@ -3,7 +3,7 @@ use super::VisKind;
 use super::data::BenchmarkDataset;
 use super::error::PlotError;
 use super::render::{Renderable, RenderableSeries};
-use super::series::{LinearSeries, LogSeries, SeriesValue, ValueTransformation};
+use super::series::{LinearSeries, LogSeries, SeriesValue, ValueTransformation, calc_min_max};
 
 use plotters::prelude::*;
 
@@ -83,17 +83,8 @@ impl Plot for SeriesPlot {
             .and_then(|r| r.points.last())
             .unwrap_or(&1);
 
-        let (mut y_min, mut y_max) = self.results.iter().filter_map(|r| r.range()).fold(
-            (f64::INFINITY, f64::NEG_INFINITY),
-            |(min_acc, max_acc), (min, max)| (min_acc.min(min), max_acc.max(max)),
-        );
-
-        if !y_min.is_finite() {
-            y_min = 0.0;
-        }
-        if !y_max.is_finite() {
-            y_max = 1.0;
-        }
+        let (y_min, y_max) =
+            calc_min_max(self.results.iter().filter_map(|r| r.range())).unwrap_or((0.0, 1.0));
 
         let root = BitMapBackend::new("test.png", IMAGE_SIZE).into_drawing_area();
         root.fill(&BACKGROUND_COLOR)?;

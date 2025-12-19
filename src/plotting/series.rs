@@ -23,23 +23,6 @@ pub(crate) enum ValueTransformation<T: SeriesValue> {
     Log(LogSeries<T>),
 }
 
-fn calc_range<T: SeriesValue>(iter: impl Iterator<Item = T>) -> Option<(T, T)> {
-    let mut iter = iter;
-    let first = iter.next()?;
-    let (mut min, mut max) = (first.clone(), first);
-
-    for v in iter {
-        if v < min {
-            min = v.clone()
-        }
-        if v > max {
-            max = v.clone()
-        }
-    }
-
-    Some((min, max))
-}
-
 impl<T: SeriesValue> LinearSeries<T> {
     fn series(&self) -> Vec<Option<f64>> {
         self.y
@@ -50,8 +33,7 @@ impl<T: SeriesValue> LinearSeries<T> {
     }
 
     fn range(&self) -> Option<(f64, f64)> {
-        let (min, max) = calc_range(self.y.iter().filter_map(|v| v.clone()))?;
-        Some((min.into(), max.into()))
+        calc_min_max(self.series().iter().filter_map(|v| v.map(|val| (val, val))))
     }
 }
 
@@ -77,17 +59,11 @@ impl<T: SeriesValue> LogSeries<T> {
     }
 
     fn range(&self) -> Result<Option<(f64, f64)>, PlotError> {
-        if let Some((min, max)) = calc_range(self.y.iter().filter_map(|v| v.clone())) {
-            let min_f = min.into();
-            if min_f <= 0.0 {
-                return Err(PlotError::InvalidLogValue(min_f));
-            }
+        let series = self.series()?;
 
-            let max_f = max.into();
-            Ok(Some((min_f.log10(), max_f.log10())))
-        } else {
-            Ok(None)
-        }
+        Ok(calc_min_max(
+            series.iter().filter_map(|&v| v.map(|val| (val, val))),
+        ))
     }
 }
 
@@ -105,6 +81,16 @@ impl<T: SeriesValue> ValueTransformation<T> {
             ValueTransformation::Log(s) => s.range(),
         }
     }
+}
+
+pub fn calc_min_max(iter: impl Iterator<Item = (f64, f64)>) -> Option<(f64, f64)> {
+    iter.fold(
+        None,
+        |acc: Option<(f64, f64)>, (min, max): (f64, f64)| match acc {
+            Some((acc_min, acc_max)) => Some((acc_min.min(min), acc_max.max(max))),
+            None => Some((min, max)),
+        },
+    )
 }
 
 #[cfg(test)]

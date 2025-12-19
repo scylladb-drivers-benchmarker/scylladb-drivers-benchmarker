@@ -1,9 +1,15 @@
 use std::{path::Path, str::FromStr};
 
 use crate::{
-    benchmarking::BenchmarkingError, command::CommandParsingError, commit_hash::{CommitHash, CommitHashError}, config::{ConfigError, backend::BackendConfig, benchmark::BenchmarkConfig, find_config}, database::{Database, DatabaseError}, plotting::{PlotKind, error::PlotError}, utilities::{
+    benchmarking::BenchmarkingError,
+    command::CommandParsingError,
+    commit_hash::{CommitHash, CommitHashError},
+    config::{ConfigError, backend::BackendConfig, benchmark::BenchmarkConfig, find_config},
+    database::{Database, DatabaseError},
+    plotting::{PlotKind, error::PlotError},
+    utilities::{
         BenchmarkFilters, BenchmarkMode, DatabaseCommand, RepositoryWithCommits, format_entry,
-    }
+    },
 };
 
 pub use plotting::VisKind;
@@ -94,7 +100,7 @@ pub fn plot_benchmarks(
             // Default to linear if no vis kind provided
             let vis_kind = visualization_kind.unwrap_or(VisKind::Linear);
             PlotKind::Series(vis_kind)
-        },
+        }
         "flamegraph" => {
             if visualization_kind.is_some() {
                 return Err(PlotBenchmarksError::Plotting(
@@ -102,9 +108,12 @@ pub fn plot_benchmarks(
                 ));
             }
             PlotKind::Flamegraph
-        },
-        other => return Err(PlotBenchmarksError::Plotting(
-            PlotError::UnknownMeasureKind(other.to_owned()))),
+        }
+        other => {
+            return Err(PlotBenchmarksError::Plotting(
+                PlotError::UnknownMeasureKind(other.to_owned()),
+            ));
+        }
     };
 
     plotting::plot(
@@ -114,7 +123,7 @@ pub fn plot_benchmarks(
         &benchmark_config,
         measurement_method,
         &commit_hashes,
-        &names
+        &names,
     )?;
 
     Ok(())

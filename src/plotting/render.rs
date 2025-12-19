@@ -3,6 +3,9 @@ use crate::utilities::{BenchmarkPoint, RangedCoordBenchmarkPoint};
 use plotters::coord::types::RangedCoordf64;
 use plotters::prelude::*;
 
+const LEGEND_LINE_LENGTH: i32 = 20;
+const CROSS_SIZE: u32 = 5;
+
 pub(crate) trait Renderable<'a, BC> {
     fn add_to_plot(&self, backend_or_chart: &mut BC) -> Result<(), PlotError>;
 }
@@ -62,7 +65,11 @@ impl<'a>
                 Some(y) => line_points.push((x, *y)),
                 None => {
                     line_points.push((x, y_max));
-                    chart.draw_series(std::iter::once(Cross::new((x, y_max), 5, color)))?;
+                    chart.draw_series(std::iter::once(Cross::new(
+                        (x, y_max),
+                        CROSS_SIZE,
+                        color,
+                    )))?;
                 }
             }
         }
@@ -70,7 +77,9 @@ impl<'a>
         chart
             .draw_series(LineSeries::new(line_points, color))?
             .label(name)
-            .legend(move |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], color));
+            .legend(move |(x, y)| {
+                PathElement::new(vec![(x, y), (x + LEGEND_LINE_LENGTH, y)], color)
+            });
 
         Ok(())
     }

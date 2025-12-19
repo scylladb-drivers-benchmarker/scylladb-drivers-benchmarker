@@ -79,10 +79,10 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
                 let record = database.get_result(benchmark_params(point))?;
 
                 if let Some(record) = record {
-                    Ok( match record {
+                    Ok(match record {
                         BenchmarkRecord::Data(text) => T::from_json(&text),
                         BenchmarkRecord::Timeout => None,
-                    } )
+                    })
                 } else {
                     Err(PlotError::MissingRecords)
                 }
@@ -121,7 +121,7 @@ mod tests {
                 no_steps: 2,
                 step_progress: 1,
                 progress_type: config::benchmark::ProgressType::Additive,
-                timeout: None
+                timeout: None,
             },
         };
 
@@ -170,7 +170,7 @@ mod tests {
                 no_steps: 1,
                 step_progress: 1,
                 progress_type: config::benchmark::ProgressType::Additive,
-                timeout: None
+                timeout: None,
             },
         };
 
@@ -227,7 +227,7 @@ mod tests {
                 no_steps: 2,
                 step_progress: 3,
                 progress_type: config::benchmark::ProgressType::Multiplicative,
-                timeout: None
+                timeout: None,
             },
         };
 
