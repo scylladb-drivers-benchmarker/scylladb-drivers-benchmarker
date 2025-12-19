@@ -44,7 +44,7 @@ pub fn run_benchmarks(
     benchmark_config_path: &Path,
     measurement_method: String,
     backend_config_path: &Path,
-    bechmark_mode: BenchmarkMode,
+    benchmark_mode: BenchmarkMode,
 ) -> Result<(), RunBenchmarksError> {
     let benchmark_config: BenchmarkConfig = find_config(benchmark_name, benchmark_config_path)
         .map_err(RunBenchmarksError::BenchmarkConfig)?;
@@ -60,7 +60,7 @@ pub fn run_benchmarks(
         benchmark_config,
         backend_config,
         measurement_method,
-        bechmark_mode,
+        benchmark_mode,
     )?)
 }
 
