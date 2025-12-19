@@ -4,7 +4,7 @@ use crate::{
     benchmarking::BenchmarkingError,
     command::CommandParsingError,
     commit_hash::{CommitHash, CommitHashError},
-    config::{ConfigError, backend::BackendConfig, benchmark::BenchmarkConfig, find_config},
+    config::{ConfigError, benchmark::BenchmarkConfig, find_config},
     database::{Database, DatabaseError},
     plotting::{PlotKind, error::PlotError},
     utilities::{
@@ -46,13 +46,13 @@ pub fn run_benchmarks(
     backend_config_path: &Path,
     benchmark_mode: BenchmarkMode,
 ) -> Result<(), RunBenchmarksError> {
-    let benchmark_config: BenchmarkConfig = find_config(benchmark_name, benchmark_config_path)
+    let benchmark_config = find_config(benchmark_name, benchmark_config_path)
         .map_err(RunBenchmarksError::BenchmarkConfig)?;
 
-    let backend_config: BackendConfig = find_config(benchmark_name, backend_config_path)
+    let backend_config = find_config(benchmark_name, backend_config_path)
         .map_err(RunBenchmarksError::BackendConfig)?;
 
-    let commit_hash: CommitHash = CommitHash::from_current_repository()?;
+    let commit_hash = CommitHash::from_current_repository()?;
 
     Ok(benchmarking::benchmark(
         database,
@@ -72,7 +72,7 @@ pub fn plot_benchmarks(
     visualization_kind: Option<VisKind>,
     from: Vec<RepositoryWithCommits>,
 ) -> Result<(), PlotBenchmarksError> {
-    let benchmark_config: BenchmarkConfig = find_config(benchmark_name, benchmark_config_path)?;
+    let benchmark_config = find_config(benchmark_name, benchmark_config_path)?;
 
     let names = from
         .iter()
@@ -85,7 +85,7 @@ pub fn plot_benchmarks(
         })
         .collect::<Vec<String>>();
 
-    let commit_hashes: Vec<CommitHash> = from
+    let commit_hashes = from
         .into_iter()
         .try_fold(Vec::new(), |mut acc, repo| -> Result<_, PlotBenchmarksError> {
             acc.extend(repo.to_commit_hashes()?);
