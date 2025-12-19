@@ -87,12 +87,20 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         }
 
         if !missing.is_empty() {
-            return Err(PlotError::MissingRecords {
-                commit_hash: commit_hash.as_str().to_owned(),
-                benchmark: benchmark_name.clone(),
-                points: missing,
-                measurement_method: measurement_method.to_owned(),
-            });
+            if missing.len() == benchmark_data.no_steps as usize {
+                return Err(PlotError::MissingBenchmark {
+                    commit_hash: commit_hash.as_str().to_owned(),
+                    benchmark: benchmark_name.clone(),
+                    measurement_method: measurement_method.to_owned()
+                });
+            } else {
+                return Err(PlotError::MissingRecords {
+                    commit_hash: commit_hash.as_str().to_owned(),
+                    benchmark: benchmark_name.clone(),
+                    points: missing,
+                    measurement_method: measurement_method.to_owned(),
+                });
+            }
         }
 
         Ok(results)
@@ -242,14 +250,12 @@ mod tests {
 
         assert!(matches!(
             dataset.unwrap_err(),
-            PlotError::MissingRecords {
+            PlotError::MissingBenchmark {
                 commit_hash,
                 benchmark,
-                points,
                 measurement_method,
             } if commit_hash == "1"
                 && benchmark == "wrong"
-                && points == vec![1, 3]
                 && measurement_method == "time"
         ));
 
