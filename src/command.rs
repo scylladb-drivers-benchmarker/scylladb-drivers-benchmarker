@@ -27,7 +27,7 @@ impl fmt::Display for Command {
 pub enum CommandParsingError {
     #[error(desc = "program not given")]
     ProgramNotGiven,
-    #[error(desc = "shexing failed")]
+    #[error(desc = "shlexing failed")]
     FailedShlexing(#[from] shell_words::ParseError),
 }
 
