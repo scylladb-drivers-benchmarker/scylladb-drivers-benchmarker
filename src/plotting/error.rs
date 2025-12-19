@@ -20,11 +20,11 @@ pub enum PlotError {
     #[error(desc = "invalid value for logarithmic plot")]
     InvalidLogValue(f64),
 
-    #[error(desc = "missing record in the database")]
-    MissingRecord {
+    #[error(desc = "missing record in the database", fmt = debug)]
+    MissingRecords {
         commit_hash: String,
         benchmark: String,
-        point: BenchmarkPoint,
+        points: Vec<BenchmarkPoint>,
         measurement_method: String,
     },
 }

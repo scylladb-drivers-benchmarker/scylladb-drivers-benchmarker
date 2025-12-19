@@ -73,26 +73,27 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
             )
         };
 
-        let results = benchmark_data
-            .benchmark_points()
-            .map(|point| -> Result<_, PlotError> {
-                let params = benchmark_params(point.clone());
+        let mut results = Vec::new();
+        let mut missing = Vec::new();
 
-                let record = database.get_result(params.clone())?;
+        for point in benchmark_data.benchmark_points() {
+            let params = benchmark_params(point);
 
-                let record = record.ok_or_else(|| PlotError::MissingRecord {
-                    commit_hash: commit_hash.as_str().to_owned(),
-                    benchmark: benchmark_name.clone(),
-                    point,
-                    measurement_method: measurement_method.to_owned(),
-                })?;
+            match database.get_result(params)? {
+                Some(BenchmarkRecord::Data(text)) => results.push(T::from_json(&text)),
+                Some(BenchmarkRecord::Timeout) => results.push(None),
+                None => missing.push(point), // This invalidates the result, but for better errors, we continue
+            }
+        }
 
-                Ok(match record {
-                    BenchmarkRecord::Data(text) => T::from_json(&text),
-                    BenchmarkRecord::Timeout => None,
-                })
-            })
-            .collect::<Result<Vec<Option<T>>, _>>()?;
+        if !missing.is_empty() {
+            return Err(PlotError::MissingRecords {
+                commit_hash: commit_hash.as_str().to_owned(),
+                benchmark: benchmark_name.clone(),
+                points: missing,
+                measurement_method: measurement_method.to_owned(),
+            });
+        }
 
         Ok(results)
     }
@@ -241,14 +242,14 @@ mod tests {
 
         assert!(matches!(
             dataset.unwrap_err(),
-            PlotError::MissingRecord {
+            PlotError::MissingRecords {
                 commit_hash,
                 benchmark,
-                point,
+                points,
                 measurement_method,
             } if commit_hash == "1"
                 && benchmark == "wrong"
-                && point == 1
+                && points == vec![1, 3]
                 && measurement_method == "time"
         ));
 
