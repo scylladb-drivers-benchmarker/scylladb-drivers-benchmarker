@@ -4,7 +4,7 @@ use crate::{
     benchmarking::BenchmarkingError,
     command::CommandParsingError,
     commit_hash::{CommitHash, CommitHashError},
-    config::{ConfigError, benchmark::BenchmarkConfig, find_config},
+    config::{ConfigError, find_config},
     database::{Database, DatabaseError},
     plotting::{PlotKind, error::PlotError},
     utilities::{
