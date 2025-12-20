@@ -5,9 +5,7 @@ use std::str::FromStr;
 use crate::command::{Command, CommandParsingError};
 use crate::utilities::{BenchmarkPoint, BenchmarkRecord};
 
-pub struct BuiltSource {
-    _private: (),
-}
+pub struct BuiltSource {}
 
 #[justerror::Error(desc = "compilation failed")]
 pub enum CompileError {
@@ -26,7 +24,7 @@ pub fn build_source(build_command: &str) -> Result<BuiltSource, CompileError> {
 
     let output = command.output()?;
     if output.status.success() {
-        Ok(BuiltSource { _private: () })
+        Ok(BuiltSource {})
     } else {
         Err(CompileError::CompilationRunning { output })
     }
@@ -97,7 +95,7 @@ mod test {
 
     #[test]
     fn test_execution_error() {
-        let source = BuiltSource { _private: () };
+        let source = BuiltSource {};
         let executor = Executor::new(source, "git fail").unwrap();
         let error = executor.execute(0).unwrap_err();
         assert!(matches!(error, MeasurementError::ExecutionFailed(_)));
@@ -105,7 +103,7 @@ mod test {
 
     #[test]
     fn test_execution_timeout() {
-        let source = BuiltSource { _private: () };
+        let source = BuiltSource {};
         let executor = Executor::new(source, "sleep").unwrap();
         let output = executor
             .execute_with_timeout(2, std::time::Duration::from_secs(1))
@@ -114,7 +112,7 @@ mod test {
     }
     #[test]
     fn test_execution_in_time() {
-        let source = BuiltSource { _private: () };
+        let source = BuiltSource {};
         let executor = Executor::new(source, "sleep").unwrap();
         let output = executor
             .execute_with_timeout(1, std::time::Duration::from_secs(2))
