@@ -45,7 +45,7 @@ pub struct Executor {
 }
 
 impl Executor {
-    pub fn new(_: BuiltSource, run_command: &str) -> Result<Executor, CommandParsingError> {
+    pub fn new(run_command: &str) -> Result<Executor, CommandParsingError> {
         let command = Command::from_str(run_command)?;
         Ok(Executor { command })
     }
