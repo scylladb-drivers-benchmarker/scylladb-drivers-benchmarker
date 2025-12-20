@@ -48,7 +48,7 @@ impl FromStr for Command {
 }
 
 impl Command {
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn new_program(program: String) -> Self {
         Command {
             program,
@@ -79,7 +79,7 @@ impl Command {
         self.program.as_str()
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn args(&self) -> &Vec<String> {
         &self.arguments
     }
