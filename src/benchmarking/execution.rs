@@ -91,20 +91,18 @@ impl Executor {
 
 #[cfg(test)]
 mod test {
-    use super::{BuiltSource, Executor, MeasurementError};
+    use super::{Executor, MeasurementError};
 
     #[test]
     fn test_execution_error() {
-        let source = BuiltSource {};
-        let executor = Executor::new(source, "git fail").unwrap();
+        let executor = Executor::new("git fail").unwrap();
         let error = executor.execute(0).unwrap_err();
         assert!(matches!(error, MeasurementError::ExecutionFailed(_)));
     }
 
     #[test]
     fn test_execution_timeout() {
-        let source = BuiltSource {};
-        let executor = Executor::new(source, "sleep").unwrap();
+        let executor = Executor::new("sleep").unwrap();
         let output = executor
             .execute_with_timeout(2, std::time::Duration::from_secs(1))
             .unwrap();
@@ -112,8 +110,7 @@ mod test {
     }
     #[test]
     fn test_execution_in_time() {
-        let source = BuiltSource {};
-        let executor = Executor::new(source, "sleep").unwrap();
+        let executor = Executor::new("sleep").unwrap();
         let output = executor
             .execute_with_timeout(1, std::time::Duration::from_secs(2))
             .unwrap();
