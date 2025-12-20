@@ -25,10 +25,10 @@ pub fn build_source(build_command: &str) -> Result<BuiltSource, CompileError> {
     let mut command = command.process();
 
     let output = command.output()?;
-    if !output.status.success() {
-        Err(CompileError::CompilationRunning { output })
-    } else {
+    if output.status.success() {
         Ok(BuiltSource { _private: () })
+    } else {
+        Err(CompileError::CompilationRunning { output })
     }
 }
 
@@ -60,12 +60,12 @@ impl Executor {
     }
 
     fn handle_output(output: Output) -> Result<BenchmarkRecord, MeasurementError> {
-        if !output.status.success() {
-            Err(MeasurementError::ExecutionFailed(output))
-        } else {
+        if output.status.success() {
             let str_stdout = String::from_utf8(output.stdout)?;
             let str_stderr = String::from_utf8(output.stderr)?;
             Ok(BenchmarkRecord::Data(str_stdout + &str_stderr))
+        } else {
+            Err(MeasurementError::ExecutionFailed(output))
         }
     }
 
