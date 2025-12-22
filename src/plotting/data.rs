@@ -73,21 +73,35 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
             )
         };
 
-        let results = benchmark_data
-            .benchmark_points()
-            .map(|point| -> Result<_, PlotError> {
-                let record = database.get_result(benchmark_params(point))?;
+        let mut results = Vec::new();
+        let mut missing = Vec::new();
 
-                if let Some(record) = record {
-                    Ok(match record {
-                        BenchmarkRecord::Data(text) => T::from_json(&text),
-                        BenchmarkRecord::Timeout => None,
-                    })
-                } else {
-                    Err(PlotError::MissingRecords)
-                }
-            })
-            .collect::<Result<Vec<Option<T>>, _>>()?;
+        for point in benchmark_data.benchmark_points() {
+            let params = benchmark_params(point);
+
+            match database.get_result(params)? {
+                Some(BenchmarkRecord::Data(text)) => results.push(T::from_json(&text)),
+                Some(BenchmarkRecord::Timeout) => results.push(None),
+                None => missing.push(point), // This invalidates the result, but for better errors, we continue
+            }
+        }
+
+        if !missing.is_empty() {
+            if missing.len() == benchmark_data.no_steps as usize {
+                return Err(PlotError::MissingBenchmark {
+                    commit_hash: commit_hash.as_str().to_owned(),
+                    benchmark: benchmark_name.clone(),
+                    measurement_method: measurement_method.to_owned()
+                });
+            } else {
+                return Err(PlotError::MissingRecords {
+                    commit_hash: commit_hash.as_str().to_owned(),
+                    benchmark: benchmark_name.clone(),
+                    points: missing,
+                    measurement_method: measurement_method.to_owned(),
+                });
+            }
+        }
 
         Ok(results)
     }
@@ -118,7 +132,7 @@ mod tests {
             name: "benchmark1".to_string(),
             data: config::benchmark::BenchmarkData {
                 starting_step: 1,
-                no_steps: 2,
+                no_steps: 3,
                 step_progress: 1,
                 progress_type: config::benchmark::ProgressType::Additive,
                 timeout: None,
@@ -144,24 +158,42 @@ mod tests {
         let record2 = utilities::BenchmarkRecord::Data("2.5".to_string());
         db.insert_data(params2, record2).unwrap();
 
-        let commit_hash_2 = CommitHash::new_unchecked("2".to_string());
         let params3 = BenchmarkParams::new(
+            commit_hash_1.clone(),
+            config1.name.clone(),
+            3,
+            "time".to_string(),
+        );
+        let record3 = utilities::BenchmarkRecord::Data("4.5".to_string());
+        db.insert_data(params3, record3).unwrap();
+
+        let commit_hash_2 = CommitHash::new_unchecked("2".to_string());
+        let params4 = BenchmarkParams::new(
             commit_hash_2.clone(),
             config1.name.clone(),
             1,
             "time".to_string(),
         );
-        let record3 = utilities::BenchmarkRecord::Data("2".to_string());
-        db.insert_data(params3, record3).unwrap();
+        let record4 = utilities::BenchmarkRecord::Data("2".to_string());
+        db.insert_data(params4, record4).unwrap();
 
-        let params4 = BenchmarkParams::new(
+        let params5 = BenchmarkParams::new(
             commit_hash_2.clone(),
             config1.name.clone(),
             2,
             "time".to_string(),
         );
-        let record4 = utilities::BenchmarkRecord::Data("3.5".to_string());
-        db.insert_data(params4, record4).unwrap();
+        let record5 = utilities::BenchmarkRecord::Data("3.5".to_string());
+        db.insert_data(params5, record5).unwrap();
+
+        let params6 = BenchmarkParams::new(
+            commit_hash_2.clone(),
+            config1.name.clone(),
+            3,
+            "time".to_string(),
+        );
+        let record6 = utilities::BenchmarkRecord::Data("5.5".to_string());
+        db.insert_data(params6, record6).unwrap();
 
         let config2 = BenchmarkConfig {
             name: "benchmark2".to_string(),
@@ -175,14 +207,14 @@ mod tests {
         };
 
         let commit_hash_3 = CommitHash::new_unchecked("3".to_string());
-        let params5 = BenchmarkParams::new(
+        let params6 = BenchmarkParams::new(
             commit_hash_3.clone(),
             config2.name.clone(),
             10,
             "time".to_string(),
         );
-        let record5 = utilities::BenchmarkRecord::Data("3.5".to_string());
-        db.insert_data(params5, record5).unwrap();
+        let record6 = utilities::BenchmarkRecord::Data("3.5".to_string());
+        db.insert_data(params6, record6).unwrap();
 
         (
             db,
@@ -204,10 +236,10 @@ mod tests {
             &measure,
         )
         .unwrap();
-        assert_eq!(dataset.points, vec![1, 2]);
+        assert_eq!(dataset.points, vec![1, 2, 3]);
         assert_eq!(
             dataset.results,
-            vec![vec![Some(1.5), Some(2.5)], vec![Some(2.0), Some(3.5)]]
+            vec![vec![Some(1.5), Some(2.5), Some(4.5)], vec![Some(2.0), Some(3.5), Some(5.5)]]
         );
 
         let dataset: BenchmarkDataset<f64> =
@@ -218,22 +250,69 @@ mod tests {
 
     #[test]
     fn extract_failure() {
-        let (db, _file, _configs, hashes, measure) = init_db();
+        let (db, _file, configs, hashes, measure) = init_db();
 
-        let config = BenchmarkConfig {
-            name: "wrong".to_string(),
-            data: config::benchmark::BenchmarkData {
-                starting_step: 1,
-                no_steps: 2,
-                step_progress: 3,
-                progress_type: config::benchmark::ProgressType::Multiplicative,
-                timeout: None,
-            },
+        let params_to_remove = BenchmarkFilters {
+            commit_hashes: vec![hashes[0].as_str().to_owned()],
+            benchmark_names: vec![configs[0].name.clone()],
+            benchmark_points: vec![3],
+            measurement_methods: vec![measure.clone()]
         };
 
+        db.drop_data(&params_to_remove).unwrap();
+
         let dataset: Result<BenchmarkDataset<f64>, PlotError> =
-            BenchmarkDataset::new(&db, &config, &hashes, &measure);
-        assert!(matches!(dataset.unwrap_err(), PlotError::MissingRecords));
+            BenchmarkDataset::new(&db, &configs[0], &[hashes[0].clone()], &measure);
+
+        assert!(matches!(
+            dataset.unwrap_err(),
+            PlotError::MissingRecords { commit_hash, benchmark, points, measurement_method }
+                if commit_hash == hashes[0].as_str()
+                && benchmark == configs[0].name
+                && points == vec![3]
+                && measurement_method == measure
+        ));
+
+        let params_to_remove = BenchmarkFilters {
+            commit_hashes: vec![hashes[0].as_str().to_owned()],
+            benchmark_names: vec![configs[0].name.clone()],
+            benchmark_points: vec![2],
+            measurement_methods: vec![measure.clone()]
+        };
+
+        db.drop_data(&params_to_remove).unwrap();
+
+        let dataset: Result<BenchmarkDataset<f64>, PlotError> =
+            BenchmarkDataset::new(&db, &configs[0], &[hashes[0].clone()], &measure);
+
+        assert!(matches!(
+            dataset.unwrap_err(),
+            PlotError::MissingRecords { commit_hash, benchmark, points, measurement_method }
+                if commit_hash == hashes[0].as_str()
+                && benchmark == configs[0].name
+                && points == vec![2, 3]
+                && measurement_method == measure
+        ));
+
+        let params_to_remove = BenchmarkFilters {
+            commit_hashes: vec![hashes[0].as_str().to_owned()],
+            benchmark_names: vec![configs[0].name.clone()],
+            benchmark_points: vec![1],
+            measurement_methods: vec![measure.clone()]
+        };
+
+        db.drop_data(&params_to_remove).unwrap();
+
+        let dataset: Result<BenchmarkDataset<f64>, PlotError> =
+            BenchmarkDataset::new(&db, &configs[0], &[hashes[0].clone()], &measure);
+
+        assert!(matches!(
+            dataset.unwrap_err(),
+            PlotError::MissingBenchmark { commit_hash, benchmark, measurement_method }
+                if commit_hash == hashes[0].as_str()
+                && benchmark == configs[0].name
+                && measurement_method == measure
+        ));
 
         // No idea how to force db to fail on read.
         // let dataset: Result<BenchmarkDataset<f64>, PlotError> = BenchmarkDataset::new(..., &configs[1], &vec![hashes[2].clone()], &measure);

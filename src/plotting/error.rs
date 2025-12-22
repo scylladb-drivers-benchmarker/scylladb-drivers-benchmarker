@@ -1,4 +1,4 @@
-use crate::database::DatabaseError;
+use crate::{database::DatabaseError, utilities::BenchmarkPoint};
 use plotters::prelude::DrawingAreaErrorKind;
 use std::error::Error;
 
@@ -9,19 +9,31 @@ pub enum PlotError {
     #[error(desc = "visualization kinds do not apply to flamegraph")]
     UnexpectedVisualizationKind(),
 
-    #[error(desc = "unknown measurement method: {0}")]
+    #[error(desc = "unknown measurement method")]
     UnknownMeasureKind(String),
 
     SerdeJson(#[from] serde_json::Error),
 
-    #[error(desc = "Plotters error: {0}")]
+    #[error(desc = "Plotters error")]
     Plotters(String),
 
-    #[error(desc = "invalid value for logarithmic plot: {0}")]
+    #[error(desc = "invalid value for logarithmic plot")]
     InvalidLogValue(f64),
 
-    #[error(desc = "missing records in database")]
-    MissingRecords,
+    #[error(desc = "missing records in the database", fmt = debug)]
+    MissingRecords {
+        commit_hash: String,
+        benchmark: String,
+        points: Vec<BenchmarkPoint>,
+        measurement_method: String,
+    },
+
+    #[error(desc = "no records in the database, this benchmark most likely did not run", fmt = debug)]
+    MissingBenchmark {
+        commit_hash: String,
+        benchmark: String,
+        measurement_method: String,
+    }
 }
 
 impl<E> From<DrawingAreaErrorKind<E>> for PlotError
