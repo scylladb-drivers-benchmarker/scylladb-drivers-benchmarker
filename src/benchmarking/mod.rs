@@ -112,8 +112,8 @@ pub fn benchmark(
     };
 
     for point in points.into_iter() {
-        let benchmark_record = execute(point)?;
-        database.insert_data(param_generator(point), benchmark_record)?;
+        let benchmark_result = execute(point)?;
+        database.insert_data(param_generator(point), benchmark_result)?;
     }
 
     Ok(())
