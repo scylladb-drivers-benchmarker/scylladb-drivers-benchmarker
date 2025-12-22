@@ -104,8 +104,8 @@ pub fn benchmark(
         .map_err(ExecutorBuildingError::MeasureParsing)?;
 
     let execute = |point| {
-        if let Some(timeout) = benchmark_data.timeout.clone() {
-            executor.execute_with_timeout(point, timeout.into())
+        if let Some(timeout) = benchmark_data.timeout {
+            executor.execute_with_timeout(point, timeout)
         } else {
             executor.execute(point)
         }

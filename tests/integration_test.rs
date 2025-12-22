@@ -85,7 +85,7 @@ fn check_data(
     };
 
     let mut cnt = 0;
-    for (params, record) in data {
+    for (params, _record) in data {
         cnt += 1;
         if params != get_params(params.benchmark_point) {
             println!("{:?}", params);

@@ -91,7 +91,7 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
                 return Err(PlotError::MissingBenchmark {
                     commit_hash: commit_hash.as_str().to_owned(),
                     benchmark: benchmark_name.clone(),
-                    measurement_method: measurement_method.to_owned()
+                    measurement_method: measurement_method.to_owned(),
                 });
             } else {
                 return Err(PlotError::MissingRecords {
@@ -239,7 +239,10 @@ mod tests {
         assert_eq!(dataset.points, vec![1, 2, 3]);
         assert_eq!(
             dataset.results,
-            vec![vec![Some(1.5), Some(2.5), Some(4.5)], vec![Some(2.0), Some(3.5), Some(5.5)]]
+            vec![
+                vec![Some(1.5), Some(2.5), Some(4.5)],
+                vec![Some(2.0), Some(3.5), Some(5.5)]
+            ]
         );
 
         let dataset: BenchmarkDataset<f64> =
@@ -256,7 +259,7 @@ mod tests {
             commit_hashes: vec![hashes[0].as_str().to_owned()],
             benchmark_names: vec![configs[0].name.clone()],
             benchmark_points: vec![3],
-            measurement_methods: vec![measure.clone()]
+            measurement_methods: vec![measure.clone()],
         };
 
         db.drop_data(&params_to_remove).unwrap();
@@ -277,7 +280,7 @@ mod tests {
             commit_hashes: vec![hashes[0].as_str().to_owned()],
             benchmark_names: vec![configs[0].name.clone()],
             benchmark_points: vec![2],
-            measurement_methods: vec![measure.clone()]
+            measurement_methods: vec![measure.clone()],
         };
 
         db.drop_data(&params_to_remove).unwrap();
@@ -298,7 +301,7 @@ mod tests {
             commit_hashes: vec![hashes[0].as_str().to_owned()],
             benchmark_names: vec![configs[0].name.clone()],
             benchmark_points: vec![1],
-            measurement_methods: vec![measure.clone()]
+            measurement_methods: vec![measure.clone()],
         };
 
         db.drop_data(&params_to_remove).unwrap();

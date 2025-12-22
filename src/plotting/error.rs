@@ -33,7 +33,7 @@ pub enum PlotError {
         commit_hash: String,
         benchmark: String,
         measurement_method: String,
-    }
+    },
 }
 
 impl<E> From<DrawingAreaErrorKind<E>> for PlotError
