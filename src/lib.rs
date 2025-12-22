@@ -85,7 +85,7 @@ pub fn plot_benchmarks(
         })
         .collect::<Vec<String>>();
 
-    let commit_hashes: Vec<CommitHash> = from.into_iter().try_fold(
+     let commit_hashes = from.into_iter().try_fold(
         Vec::new(),
         |mut acc, repo| -> Result<_, PlotBenchmarksError> {
             acc.extend(repo.to_commit_hashes()?);
