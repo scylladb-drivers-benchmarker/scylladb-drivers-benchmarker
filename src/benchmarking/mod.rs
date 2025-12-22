@@ -39,13 +39,13 @@ pub enum BenchmarkingError {
 fn filter_points(
     database: &Database,
     config_points: impl Iterator<Item = BenchmarkPoint>,
-    params_generator: impl Fn(BenchmarkPoint) -> BenchmarkParams,
+    param_generator: impl Fn(BenchmarkPoint) -> BenchmarkParams,
     benchmark_mode: BenchmarkMode,
 ) -> Result<Vec<BenchmarkPoint>, DatabaseError> {
     match benchmark_mode {
         BenchmarkMode::UseCached => config_points
             .filter_map(
-                |point| match database.result_exists(params_generator(point)) {
+                |point| match database.result_exists(param_generator(point)) {
                     Ok(true) => None,
                     Ok(false) => Some(Ok(point)),
                     Err(e) => Some(Err(e)),
@@ -54,7 +54,7 @@ fn filter_points(
             .collect::<Result<Vec<BenchmarkPoint>, DatabaseError>>(),
         BenchmarkMode::ForceRerun => config_points
             .map(|point| {
-                database.drop_data(&BenchmarkFilters::filter_exact_param(&params_generator(
+                database.drop_data(&BenchmarkFilters::filter_exact_param(&param_generator(
                     point,
                 )))?;
                 Ok(point)
@@ -76,7 +76,7 @@ pub fn benchmark(
         data: benchmark_data,
     } = benchmark_config;
 
-    let benchmark_params = |param: BenchmarkPoint| {
+    let param_generator = |param: BenchmarkPoint| {
         BenchmarkParams::new(
             commit_hash.clone(),
             benchmark_name.clone(),
@@ -88,7 +88,7 @@ pub fn benchmark(
     let points = filter_points(
         database,
         benchmark_data.benchmark_points(),
-        benchmark_params,
+        param_generator,
         benchmark_mode,
     )?;
 
@@ -113,7 +113,7 @@ pub fn benchmark(
 
     for point in points.into_iter() {
         let benchmark_record = execute(point)?;
-        database.insert_data(benchmark_params(point), benchmark_record)?;
+        database.insert_data(param_generator(point), benchmark_record)?;
     }
 
     Ok(())
