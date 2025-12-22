@@ -81,10 +81,6 @@ impl CommitHash {
     pub fn as_str(&self) -> &str {
         self.value.as_str()
     }
-
-    pub fn value(&self) -> &String {
-        &self.value
-    }
 }
 
 #[cfg(test)]
