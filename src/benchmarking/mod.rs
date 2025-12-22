@@ -96,9 +96,9 @@ pub fn benchmark(
         return Ok(());
     }
 
-    let built_source = build_source(&backend_config.build_command)?;
+    build_source(&backend_config.build_command)?;
 
-    let executor = Executor::new(built_source, &backend_config.run_command)
+    let executor = Executor::new(&backend_config.run_command)
         .map_err(ExecutorBuildingError::RunParsing)?
         .with_measure(&measurement_method)
         .map_err(ExecutorBuildingError::MeasureParsing)?;

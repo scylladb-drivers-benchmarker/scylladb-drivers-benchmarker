@@ -48,7 +48,7 @@ impl FromStr for Command {
 }
 
 impl Command {
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn new_program(program: String) -> Self {
         Command {
             program,
@@ -66,12 +66,8 @@ impl Command {
         }
     }
 
-    pub fn add_argument(&mut self, argument: String) {
-        self.arguments.push(argument);
-    }
-
     pub fn with_arg(mut self, argument: String) -> Self {
-        self.add_argument(argument);
+        self.arguments.push(argument);
         self
     }
 
@@ -79,7 +75,7 @@ impl Command {
         self.program.as_str()
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn args(&self) -> &Vec<String> {
         &self.arguments
     }
@@ -139,9 +135,10 @@ mod test {
 
     #[test]
     fn command_from_str() {
-        let mut command = Command::from_str("git commit -m \"This is a commit message\"").unwrap();
-        command.add_argument("--author".to_owned());
-        command.add_argument("This is a commit author".to_owned());
+        let command = Command::from_str("git commit -m \"This is a commit message\"")
+            .unwrap()
+            .with_arg("--author".to_owned())
+            .with_arg("This is a commit author".to_owned());
         let process_cmd = command.process();
         assert!(process_cmd.get_program() == "git");
         let args: Vec<&OsStr> = process_cmd.get_args().collect();
