@@ -69,7 +69,7 @@ pub fn benchmark(
     benchmark_config: BenchmarkConfig,
     backend_config: BackendConfig,
     measurement_method: String,
-    bechmark_mode: BenchmarkMode,
+    benchmark_mode: BenchmarkMode,
 ) -> Result<(), BenchmarkingError> {
     let BenchmarkConfig {
         name: benchmark_name,
@@ -89,7 +89,7 @@ pub fn benchmark(
         database,
         benchmark_data.benchmark_points(),
         benchmark_params,
-        bechmark_mode,
+        benchmark_mode,
     )?;
 
     if points.is_empty() {
