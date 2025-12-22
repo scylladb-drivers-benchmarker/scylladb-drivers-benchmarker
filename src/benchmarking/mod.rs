@@ -76,11 +76,11 @@ pub fn benchmark(
         data: benchmark_data,
     } = benchmark_config;
 
-    let param_generator = |param: BenchmarkPoint| {
+    let param_generator = |benchmark_point: BenchmarkPoint| {
         BenchmarkParams::new(
             commit_hash.clone(),
             benchmark_name.clone(),
-            param,
+            benchmark_point,
             measurement_method.clone(),
         )
     };
