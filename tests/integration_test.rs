@@ -67,8 +67,7 @@ fn gather_data(path: &str) -> CommitHash {
         println!("{}", path);
         assert!(output.status.success());
     }
-    let commit_hash = CommitHash::new(Path::new(path), "HEAD".to_owned()).unwrap();
-    commit_hash
+    CommitHash::new(Path::new(path), "HEAD".to_owned()).unwrap()
 }
 
 fn check_data(

@@ -132,7 +132,7 @@ mod tests {
                 no_steps: 5,
                 step_progress: 2,
                 progress_type: ProgressType::Multiplicative,
-                timeout: Some(Duration::from_secs(3).into()),
+                timeout: Some(Duration::from_secs(3)),
             },
         };
 
@@ -172,7 +172,7 @@ timeout: '3s'
                 no_steps: 6,
                 step_progress: 3,
                 progress_type: ProgressType::Additive,
-                timeout: Some(Duration::from_secs(2 * 60).into()),
+                timeout: Some(Duration::from_secs(2 * 60)),
             },
         };
 
