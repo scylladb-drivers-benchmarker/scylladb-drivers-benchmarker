@@ -10,18 +10,6 @@ use crate::config::{backend::BackendConfig, benchmark::BenchmarkConfig};
 
 use super::database::*;
 
-use clap::Parser;
-
-#[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
-pub struct BenchmarkingArguments {
-    #[arg(short, long)]
-    pub driver_name: String,
-
-    #[arg(short, long)]
-    pub measurement_method: String,
-}
-
 #[justerror::Error]
 pub enum ExecutorBuildingError {
     RunParsing(CommandParsingError),
