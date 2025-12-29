@@ -27,6 +27,8 @@ enum AppSubcommand {
         #[arg(long, short = 'm', value_enum, default_value_t = BenchmarkMode::UseCached)]
         benchmark_mode: BenchmarkMode,
     },
+
+    /// Interact with the underlying db
     Database {
         #[command(subcommand)]
         command: DatabaseCommand,
@@ -93,6 +95,7 @@ fn main() {
             benchmark_mode,
         )
         .unwrap_or_else(print_error),
+
         AppSubcommand::Plot {
             visualization_kind,
             from,
@@ -105,6 +108,7 @@ fn main() {
             from,
         )
         .unwrap_or_else(print_error),
+
         AppSubcommand::Database { command } => {
             scylladb_drivers_benchmarker::access_database(&database, command)
                 .unwrap_or_else(print_error)
