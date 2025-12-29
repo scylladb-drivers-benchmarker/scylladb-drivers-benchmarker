@@ -1,11 +1,16 @@
 use clap::Parser;
 
+mod aliasing;
+
 use scylladb_drivers_benchmarker::{
     VisKind,
     database::Database,
     utilities::{BenchmarkMode, DatabaseCommand, RepositoryWithCommits},
 };
+use std::fs::File;
 use std::path::PathBuf;
+
+use crate::aliasing::AliasingConfig;
 
 #[derive(Debug, clap::Subcommand)]
 enum AppSubcommand {
@@ -41,6 +46,9 @@ struct App {
     db_path: Option<PathBuf>,
 
     #[arg(short, long)]
+    aliasing_config_path: Option<PathBuf>,
+
+    #[arg(short, long)]
     #[clap(default_value = "time -f \"%e\"")]
     measurement_method: String,
 
@@ -71,9 +79,19 @@ fn print_error<T>(err: impl std::error::Error) -> T {
 
 fn main() {
     let args = App::parse();
+    let aliasing_config: Option<AliasingConfig> = args
+        .aliasing_config_path
+        .map(File::open)
+        .and_then(|file_res| {
+            file_res
+                .inspect_err(|err| println!("Failed opening the main config: {err}"))
+                .ok()
+        })
+        .and_then(|file| serde_yml::from_reader(file).unwrap_or_else(print_error));
 
     let db_path = args
         .db_path
+        .or_else(|| aliasing_config?.dp_path)
         .map(Ok)
         .unwrap_or_else(default_db_path)
         .unwrap_or_else(print_error);
