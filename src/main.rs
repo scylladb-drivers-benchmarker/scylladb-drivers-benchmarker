@@ -1,16 +1,14 @@
 use clap::Parser;
 
-mod aliasing;
-
 use scylladb_drivers_benchmarker::{
     VisKind,
     database::Database,
     utilities::{BenchmarkMode, DatabaseCommand, RepositoryWithCommits},
 };
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs::File;
 use std::path::PathBuf;
-
-use crate::aliasing::AliasingConfig;
 
 #[derive(Debug, clap::Subcommand)]
 enum AppSubcommand {
@@ -77,14 +75,20 @@ fn print_error<T>(err: impl std::error::Error) -> T {
     std::process::exit(1);
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+struct AliasingConfig {
+    dp_path: Option<PathBuf>,
+    repo_path: HashMap<String, PathBuf>,
+}
+
 fn main() {
     let args = App::parse();
     let aliasing_config: Option<AliasingConfig> = args
         .aliasing_config_path
         .map(File::open)
-        .and_then(|file_res| {
-            file_res
-                .inspect_err(|err| println!("Failed opening the main config: {err}"))
+        .and_then(|res| {
+            res.inspect_err(|err| println!("Failed opening the main config: {err}"))
                 .ok()
         })
         .and_then(|file| serde_yml::from_reader(file).unwrap_or_else(print_error));
@@ -111,6 +115,7 @@ fn main() {
             benchmark_mode,
         )
         .unwrap_or_else(print_error),
+
         AppSubcommand::Plot {
             visualization_kind,
             from,
@@ -123,6 +128,7 @@ fn main() {
             from,
         )
         .unwrap_or_else(print_error),
+
         AppSubcommand::Database { command } => {
             scylladb_drivers_benchmarker::access_database(&database, command)
                 .unwrap_or_else(print_error)
