@@ -1,5 +1,4 @@
 use clap::Args;
-use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
 use std::path::PathBuf;
@@ -7,7 +6,7 @@ use std::str::FromStr;
 
 use plotters::coord::types::RangedCoordu64;
 
-use crate::commit_hash::{CommitHash, CommitHashError};
+use crate::commit_hash::CommitHash;
 
 pub type BenchmarkPoint = u64;
 pub type RangedCoordBenchmarkPoint = RangedCoordu64;
@@ -131,46 +130,10 @@ impl BenchmarkFilters {
     }
 }
 
-#[derive(Parser, Debug, Clone, PartialEq, Eq)]
-pub struct RepositoryWithCommits {
-    pub repo_path: PathBuf,
-    pub commits: Vec<String>,
-}
-
 #[derive(Copy, Clone, Debug, ValueEnum)]
 pub enum BenchmarkMode {
     UseCached,
     ForceRerun,
-}
-
-#[justerror::Error]
-pub enum RepositoryWithCommitsParsingError {
-    PathNotSupplied,
-    Infallible(#[from] std::convert::Infallible),
-}
-
-impl FromStr for RepositoryWithCommits {
-    type Err = RepositoryWithCommitsParsingError;
-
-    fn from_str(string: &str) -> Result<Self, Self::Err> {
-        let (repo_path_str, commits_str) = string
-            .split_once(':')
-            .ok_or(RepositoryWithCommitsParsingError::PathNotSupplied)?;
-
-        Ok(RepositoryWithCommits {
-            repo_path: PathBuf::from_str(repo_path_str)?,
-            commits: commits_str.split(',').map(str::to_owned).collect(),
-        })
-    }
-}
-
-impl RepositoryWithCommits {
-    pub fn to_commit_hashes(self) -> Result<Vec<CommitHash>, CommitHashError> {
-        self.commits
-            .into_iter()
-            .map(|commit| CommitHash::new(&self.repo_path, commit))
-            .collect()
-    }
 }
 
 pub fn format_entry(params: &BenchmarkParams, record: &BenchmarkRecord) -> String {
@@ -202,4 +165,16 @@ pub fn format_entry(params: &BenchmarkParams, record: &BenchmarkRecord) -> Strin
     }
 
     out
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RepoPathWithCommits {
+    pub repo_path: PathBuf,
+    pub git_hashes: Vec<CommitHash>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RepoNameWithTags {
+    pub name: String,
+    pub tags: Vec<String>,
 }
