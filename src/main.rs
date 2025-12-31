@@ -34,6 +34,8 @@ enum AppSubcommand {
         #[arg(long, short = 'm', value_enum, default_value_t = BenchmarkMode::UseCached)]
         benchmark_mode: BenchmarkMode,
     },
+
+    /// Interact with the underlying db
     Database {
         #[command(subcommand)]
         command: DatabaseCommand,

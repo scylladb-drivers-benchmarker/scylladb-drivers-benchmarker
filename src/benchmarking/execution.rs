@@ -1,3 +1,8 @@
+//! This module supports the execution and measuring of the benchmarked code
+//! from arbitrary commands. It performs little to no validation of those
+//! commands eg. whether the run command they actually interacts with the
+//! output of the build command.
+
 use std::io;
 use std::process::Output;
 use std::str::FromStr;
@@ -5,12 +10,22 @@ use std::str::FromStr;
 use crate::command::{Command, CommandParsingError};
 use crate::utilities::{BenchmarkPoint, BenchmarkRecord};
 
-pub struct BuiltSource {}
+/// This is a token proving that the code being executed was compiled earlier.
+/// Getting this from outside of this module happens only by invoking `build_source`.
+#[must_use]
+pub struct BuiltSource {
+    _private: (),
+}
+
+impl BuiltSource {
+    fn new_unchecked() -> Self {
+        BuiltSource { _private: () }
+    }
+}
 
 #[justerror::Error(desc = "compilation failed")]
 pub enum CompileError {
     CommandParsing(#[from] CommandParsingError),
-
     CompilationStarting(#[from] std::io::Error),
     #[error(fmt=debug)]
     CompilationRunning {
@@ -18,13 +33,15 @@ pub enum CompileError {
     },
 }
 
+/// Builds the source code, using the provided command.
+/// This is the only way to receive `BuiltSource` from outside.
 pub fn build_source(build_command: &str) -> Result<BuiltSource, CompileError> {
     let command = Command::from_str(build_command)?;
     let mut command = command.process();
 
     let output = command.output()?;
     if output.status.success() {
-        Ok(BuiltSource {})
+        Ok(BuiltSource::new_unchecked())
     } else {
         Err(CompileError::CompilationRunning { output })
     }
@@ -45,7 +62,7 @@ pub struct Executor {
 }
 
 impl Executor {
-    pub fn new(run_command: &str) -> Result<Executor, CommandParsingError> {
+    pub fn new(_: BuiltSource, run_command: &str) -> Result<Executor, CommandParsingError> {
         let command = Command::from_str(run_command)?;
         Ok(Executor { command })
     }
@@ -91,18 +108,20 @@ impl Executor {
 
 #[cfg(test)]
 mod test {
+    use crate::benchmarking::execution::BuiltSource;
+
     use super::{Executor, MeasurementError};
 
     #[test]
     fn test_execution_error() {
-        let executor = Executor::new("git fail").unwrap();
+        let executor = Executor::new(BuiltSource::new_unchecked(), "git fail").unwrap();
         let error = executor.execute(0).unwrap_err();
         assert!(matches!(error, MeasurementError::ExecutionFailed(_)));
     }
 
     #[test]
     fn test_execution_timeout() {
-        let executor = Executor::new("sleep").unwrap();
+        let executor = Executor::new(BuiltSource::new_unchecked(), "sleep").unwrap();
         let output = executor
             .execute_with_timeout(2, std::time::Duration::from_secs(1))
             .unwrap();
@@ -110,7 +129,7 @@ mod test {
     }
     #[test]
     fn test_execution_in_time() {
-        let executor = Executor::new("sleep").unwrap();
+        let executor = Executor::new(BuiltSource::new_unchecked(), "sleep").unwrap();
         let output = executor
             .execute_with_timeout(1, std::time::Duration::from_secs(2))
             .unwrap();
