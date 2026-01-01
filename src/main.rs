@@ -216,7 +216,7 @@ mod test {
             "--commit-hash=test:21123123:ff",
             "--benchmark-name=my:benchmark:",
             "--benchmark-point=1:2:5:3",
-            "--measurementmethod=m1:m2:m4",
+            "--measurement-method=m1:m2:m4",
         ]);
         let AppSubcommand::Database { command } = args.subcommand else {
             panic!("Expected Database subcommand");
