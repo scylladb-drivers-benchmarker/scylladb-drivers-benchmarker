@@ -24,7 +24,7 @@ fn run_bin(args: &[&str]) -> String {
 
 #[test]
 fn database() {
-    let db_path = "./tests/cpp_vs_rust_test/test.db";
+    let db_path = "./tests/database_test/test.db";
     let db = database::Database::new(Path::new(db_path).to_owned()).unwrap();
     db.drop_all_data().unwrap();
 
