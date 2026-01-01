@@ -4,23 +4,24 @@ SDB is a tool for benchmarking, comparing, and visualizing the performance of di
 
 ## Quick Start
 
-SDB has two main functions:
+SDB has three main functions:
 
 1. **`run`**: Execute a benchmark run and save the results.
 2. **`plot`**: Visualize and compare results from previous runs.
+3. **`database`**: Access database - print its content or remove it.
 
 ### Example usage
 
-From inside the `tests/data/cpp` and `tests/data/rust` directories execute:
+From inside the `tests/cpp_vs_rust_test/cpp` and `tests/cpp_vs_rust_test/rust` directories execute:
 
 ```sh
-cargo run regex -d ../test.db -b ../config.yml run
+cargo run -- -d ../test.db run regex -b ../config.yml 
 ```
 
-Then, later to graph the results execute (from `tests/data`):
+Then, later to graph the results execute (from `tests/cpp_vs_rust_test`):
 
 ```sh
-cargo run regex -b config.yml -d test.db plot --from=cpp/:HEAD --from=rust/:HEAD
+cargo run -- -d test.db plot regex -b config.yml --from=cpp/:HEAD --from=rust/:HEAD
 ```
 
 ## Definitions
