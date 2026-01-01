@@ -1,0 +1,6 @@
+backends:
+  - name: regex-cpp
+    benchmark-name: regex
+    build-command: make regex
+    run-command: ./regex
+

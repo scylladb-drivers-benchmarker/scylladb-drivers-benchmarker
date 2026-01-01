@@ -1,0 +1,6 @@
+backends:
+  - name: regex-rust
+    benchmark-name: regex
+    build-command: rustc -C opt-level=z -C lto=thin -C codegen-units=1 -C panic=abort regex.rs
+    run-command: ./regex
+
