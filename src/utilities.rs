@@ -27,27 +27,17 @@ pub enum DatabaseCommand {
 
 #[derive(Args, Debug)]
 pub struct InputDatabaseFilters {
-    #[arg(long = "commit-hash", value_parser = parse_list::<String>)]
+    #[arg(long = "commit-hash", value_delimiter = ':', num_args(1..))]
     pub commit_hashes: Vec<String>,
 
-    #[arg(long = "benchmark-name", value_parser = parse_list::<String>)]
+    #[arg(long = "benchmark-name", value_delimiter = ':', num_args(1..))]
     pub benchmark_names: Vec<String>,
 
-    #[arg(long = "benchmark-point", value_parser = parse_list::<BenchmarkPoint>)]
+    #[arg(long = "benchmark-point", value_delimiter = ':', num_args(1..))]
     pub benchmark_points: Vec<BenchmarkPoint>,
 
-    #[arg(long = "measurement-method", value_parser = parse_list::<String>)]
+    #[arg(long = "measurement-method", value_delimiter = ':', num_args(1..))]
     pub measurement_methods: Vec<String>,
-}
-
-fn parse_list<T>(s: &str) -> Result<Vec<T>, String>
-where
-    T: FromStr,
-    <T as FromStr>::Err: ToString,
-{
-    s.split(':')
-        .map(|v| v.parse::<T>().map_err(|e| e.to_string()))
-        .collect()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

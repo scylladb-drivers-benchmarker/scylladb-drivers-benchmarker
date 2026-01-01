@@ -50,10 +50,11 @@ fn gather_data(path: &str) -> CommitHash {
         .current_dir(path)
         .arg("-d")
         .arg("../test.db")
+        .arg("run")
         .arg("-b")
         .arg("../config.yml")
-        .arg("regex")
-        .arg("run");
+        .arg("regex");
+
     let output = command.output().unwrap();
     if !output.status.success() {
         println!(
@@ -96,14 +97,15 @@ fn check_data(
 
 #[test]
 fn test_cpp_vs_rust() {
-    setup_git("./tests/data/cpp/");
-    setup_git("./tests/data/rust/");
+    setup_git("./tests/cpp_vs_rust_test/cpp/");
+    setup_git("./tests/cpp_vs_rust_test/rust/");
 
-    let db = database::Database::new(Path::new("./tests/data/test.db").to_owned()).unwrap();
+    let db =
+        database::Database::new(Path::new("./tests/cpp_vs_rust_test/test.db").to_owned()).unwrap();
     db.drop_all_data().unwrap();
 
-    let hash_cpp = gather_data("./tests/data/cpp/");
-    let hash_rust = gather_data("./tests/data/rust/");
+    let hash_cpp = gather_data("./tests/cpp_vs_rust_test/cpp/");
+    let hash_rust = gather_data("./tests/cpp_vs_rust_test/rust/");
     assert!(hash_cpp != hash_rust);
 
     let db_data = db.get_all_data().unwrap();
