@@ -8,9 +8,9 @@ use scylladb_drivers_benchmarker::{
     utilities::{BenchmarkMode, DatabaseCommand, RepoNameWithTags, RepoPathWithCommits},
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::fs::File;
-use std::path::PathBuf;
+use std::{collections::HashMap, env};
+use std::{fs::File, path::Path};
+use std::{io, path::PathBuf};
 
 use crate::repo_with_commits::{ParsableRepoNameWithTags, resolve_repo_tags};
 
@@ -88,21 +88,33 @@ fn print_error<T>(err: impl std::error::Error) -> T {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Default)]
 #[serde(rename_all = "kebab-case")]
 struct AliasingConfig {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     dp_path: Option<PathBuf>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     repo_path: HashMap<String, PathBuf>,
+}
+
+#[justerror::Error(desc = "Failed reading the main config file")]
+enum MainConfigError {
+    FailedOpening(#[from] io::Error),
+    FailedParsing(#[from] serde_yml::Error),
+}
+
+impl AliasingConfig {
+    fn read_config(path: &Path) -> Result<Self, MainConfigError> {
+        let file = File::open(path)?;
+        Ok(serde_yml::from_reader(file)?)
+    }
 }
 
 fn main() {
     let args = App::parse();
     let aliasing_config: AliasingConfig = args
         .aliasing_config_path
-        .map(File::open)
-        .and_then(|res| {
-            res.inspect_err(|err| println!("Failed opening the main config: {err}"))
-                .ok()
-        })
-        .and_then(|file| serde_yml::from_reader(file).unwrap_or_else(print_error))
+        .or_else(|| env::var_os("SDB_CONFIG").map(Into::into))
+        .map(|path| AliasingConfig::read_config(&path).unwrap_or_else(print_error))
         .unwrap_or_default();
+    println!("aliasing_config: {aliasing_config:?}");
 
     let db_path = args
         .db_path
@@ -130,7 +142,7 @@ fn main() {
         AppSubcommand::Plot {
             visualization_kind,
             from,
-            output
+            output,
         } => {
             let parsed: Vec<RepoNameWithTags> = from.into_iter().map(Into::into).collect();
 
@@ -147,7 +159,7 @@ fn main() {
                 visualization_kind,
                 parsed,
                 resolved,
-            output.as_deref(),
+                output.as_deref(),
             )
             .unwrap_or_else(print_error)
         }

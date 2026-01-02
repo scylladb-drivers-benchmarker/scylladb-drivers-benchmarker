@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{env, fs::File, io::Write, path::Path};
 
 use assert_cmd::cargo;
 use scylladb_drivers_benchmarker::{
@@ -73,9 +73,13 @@ struct CppVsRust {
 }
 
 impl CppVsRust {
-    fn new(db: database::Database) -> Self {
+    fn new() -> Self {
         setup_git("./tests/data/cpp/");
         setup_git("./tests/data/rust/");
+
+        let db = database::Database::new(Path::new("./tests/data/test.db").to_owned()).unwrap();
+        db.drop_all_data().unwrap();
+
         CppVsRust { db }
     }
 
@@ -117,12 +121,13 @@ impl CppVsRust {
     }
 }
 
+fn sdb_command() -> std::process::Command {
+    std::process::Command::new(cargo::cargo_bin!("scylladb-drivers-benchmarker"))
+}
+
 #[test]
 fn simple() {
-    let db = database::Database::new(Path::new("./tests/data/test.db").to_owned()).unwrap();
-    db.drop_all_data().unwrap();
-
-    let mut command = std::process::Command::new(cargo::cargo_bin!("scylladb-drivers-benchmarker"));
+    let mut command = sdb_command();
     command
         .arg("-d")
         .arg("../test.db")
@@ -131,5 +136,28 @@ fn simple() {
         .arg("regex")
         .arg("run");
 
-    CppVsRust::new(db).run(&mut command);
+    //CppVsRust::new().run(&mut command);
+}
+
+#[test]
+fn aliasing_db() {
+    let path = Path::new(file!()).parent().unwrap().canonicalize().unwrap();
+
+    let dp_path = path.join("data").join("test.db");
+    let config_path = path.join("data").join("aliasing.yml");
+
+    let mut config_file = File::create("./tests/data/aliasing.yml")
+        .expect("Cannot create and write an aliasing file");
+    config_file
+        .write_all(format!("dp-path: {dp_path:?}\n").as_bytes())
+        .unwrap();
+    let mut command = sdb_command();
+    command
+        .env("SDB_CONFIG", config_path)
+        .arg("-b")
+        .arg("../config.yml")
+        .arg("regex")
+        .arg("run");
+
+    CppVsRust::new().run(&mut command);
 }
