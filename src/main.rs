@@ -1,11 +1,18 @@
+mod repo_with_commits;
+
 use clap::Parser;
 
 use scylladb_drivers_benchmarker::{
     VisKind,
     database::Database,
-    utilities::{BenchmarkMode, DatabaseCommand, RepositoryWithCommits},
+    utilities::{BenchmarkMode, DatabaseCommand, RepoNameWithTags, RepoPathWithCommits},
 };
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::fs::File;
 use std::path::PathBuf;
+
+use crate::repo_with_commits::{ParsableRepoNameWithTags, resolve_repo_tags};
 
 #[derive(Debug, clap::Subcommand)]
 enum AppSubcommand {
@@ -16,7 +23,7 @@ enum AppSubcommand {
 
         /// The source of data for the plot
         #[arg(long, value_name = "REPOSITORY_PATH:TAG1,TAG2,...")]
-        from: Vec<RepositoryWithCommits>,
+        from: Vec<ParsableRepoNameWithTags>,
 
         /// Path to save the plot image
         #[arg(short, long, value_name = "FILE_PATH")]
@@ -47,6 +54,9 @@ struct App {
     db_path: Option<PathBuf>,
 
     #[arg(short, long)]
+    aliasing_config_path: Option<PathBuf>,
+
+    #[arg(short, long)]
     #[clap(default_value = "time -f \"%e\"")]
     measurement_method: String,
 
@@ -75,11 +85,28 @@ fn print_error<T>(err: impl std::error::Error) -> T {
     std::process::exit(1);
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Default)]
+#[serde(rename_all = "kebab-case")]
+struct AliasingConfig {
+    dp_path: Option<PathBuf>,
+    repo_path: HashMap<String, PathBuf>,
+}
+
 fn main() {
     let args = App::parse();
+    let aliasing_config: AliasingConfig = args
+        .aliasing_config_path
+        .map(File::open)
+        .and_then(|res| {
+            res.inspect_err(|err| println!("Failed opening the main config: {err}"))
+                .ok()
+        })
+        .and_then(|file| serde_yml::from_reader(file).unwrap_or_else(print_error))
+        .unwrap_or_default();
 
     let db_path = args
         .db_path
+        .or(aliasing_config.dp_path)
         .map(Ok)
         .unwrap_or_else(default_db_path)
         .unwrap_or_else(print_error);
@@ -103,17 +130,27 @@ fn main() {
         AppSubcommand::Plot {
             visualization_kind,
             from,
-            output,
-        } => scylladb_drivers_benchmarker::plot_benchmarks(
-            &database,
-            &args.benchmark_name,
-            &args.benchmark_config_path,
-            &args.measurement_method,
-            visualization_kind,
-            from,
+            output
+        } => {
+            let parsed: Vec<RepoNameWithTags> = from.into_iter().map(Into::into).collect();
+
+            let resolved = parsed
+                .iter()
+                .map(|repo| resolve_repo_tags(repo.clone(), &aliasing_config.repo_path))
+                .collect::<Result<Vec<RepoPathWithCommits>, _>>()
+                .unwrap_or_else(print_error);
+            scylladb_drivers_benchmarker::plot_benchmarks(
+                &database,
+                &args.benchmark_name,
+                &args.benchmark_config_path,
+                &args.measurement_method,
+                visualization_kind,
+                parsed,
+                resolved,
             output.as_deref(),
-        )
-        .unwrap_or_else(print_error),
+            )
+            .unwrap_or_else(print_error)
+        }
 
         AppSubcommand::Database { command } => {
             scylladb_drivers_benchmarker::access_database(&database, command)
@@ -124,11 +161,10 @@ fn main() {
 
 #[cfg(test)]
 mod test {
-    use std::path::Path;
-
     use clap::Parser;
 
-    use crate::{App, AppSubcommand, RepositoryWithCommits};
+    use crate::{App, AppSubcommand};
+    use scylladb_drivers_benchmarker::utilities::RepoNameWithTags;
 
     #[test]
     fn basic_run() {
@@ -160,17 +196,19 @@ mod test {
             panic!("Not a plot");
         };
 
+        let from: Vec<RepoNameWithTags> = from.into_iter().map(From::from).collect();
+
         assert_eq!(visualization_kind, None);
         assert_eq!(
             from,
             vec!(
-                RepositoryWithCommits {
-                    repo_path: Path::new("repo").to_path_buf(),
-                    commits: vec!("branch".to_owned())
+                RepoNameWithTags {
+                    name: "repo".to_owned(),
+                    tags: vec!("branch".to_owned())
                 },
-                RepositoryWithCommits {
-                    repo_path: Path::new("repo2").to_path_buf(),
-                    commits: vec!("commit".to_owned())
+                RepoNameWithTags {
+                    name: "repo2".to_owned(),
+                    tags: vec!("commit".to_owned())
                 }
             )
         );

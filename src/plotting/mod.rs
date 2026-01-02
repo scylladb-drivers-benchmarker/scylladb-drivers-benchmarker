@@ -24,7 +24,7 @@ pub fn plot(
     benchmark_name: &str,
     benchmark_config: &BenchmarkConfig,
     measurement_method: &str,
-    commit_hashes: &[CommitHash],
+    commit_hashes: impl Iterator<Item = CommitHash>,
     names: &[String],
     output: &str,
 ) -> Result<(), PlotError> {
