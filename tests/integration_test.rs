@@ -6,6 +6,7 @@ use scylladb_drivers_benchmarker::{
     database::{self, Database},
     utilities::{BenchmarkParams, BenchmarkRecord},
 };
+use serial_test::serial;
 
 fn setup_git(repo: &str) {
     if Path::new(&(repo.to_owned() + "/.git/")).is_dir() {
@@ -126,6 +127,7 @@ fn sdb_command() -> std::process::Command {
 }
 
 #[test]
+#[serial]
 fn simple() {
     let mut command = sdb_command();
     command
@@ -136,10 +138,11 @@ fn simple() {
         .arg("regex")
         .arg("run");
 
-    //CppVsRust::new().run(&mut command);
+    CppVsRust::new().run(&mut command);
 }
 
 #[test]
+#[serial]
 fn aliasing_db() {
     let path = Path::new(file!()).parent().unwrap().canonicalize().unwrap();
 
