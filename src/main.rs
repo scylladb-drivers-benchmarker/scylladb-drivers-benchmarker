@@ -117,7 +117,6 @@ fn main() {
         .or_else(|| env::var_os("SDB_CONFIG").map(Into::into))
         .map(|path| AliasingConfig::read_config(&path).unwrap_or_else(print_error))
         .unwrap_or_default();
-    println!("aliasing_config: {aliasing_config:?}");
 
     let db_path = args
         .db_path

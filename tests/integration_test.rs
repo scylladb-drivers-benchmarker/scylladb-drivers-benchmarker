@@ -86,7 +86,7 @@ impl CppVsRust {
 
     fn gather_data(&self, path: &str, command: &mut std::process::Command) -> CommitHash {
         let output = command.current_dir(path).output().unwrap();
-        if !output.status.success() {
+        if !output.status.success() || !output.stdout.is_empty() || !output.stderr.is_empty()  {
             println!(
                 "my_stdout: {}",
                 String::from_utf8_lossy(output.stdout.as_slice())
@@ -97,6 +97,8 @@ impl CppVsRust {
             );
             println!("{}", path);
             assert!(output.status.success());
+            assert!(output.stdout.is_empty());
+            assert!(output.stderr.is_empty());
         }
         CommitHash::new(Path::new(path), "HEAD".to_owned()).unwrap()
     }
