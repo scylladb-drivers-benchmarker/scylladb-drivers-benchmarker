@@ -6,8 +6,15 @@ use plotters::prelude::*;
 const LEGEND_LINE_LENGTH: i32 = 20;
 const CROSS_SIZE: u32 = 5;
 
-pub(crate) trait Renderable<'a, BC> {
-    fn add_to_plot(&self, backend_or_chart: &mut BC) -> Result<(), PlotError>;
+pub(crate) trait Renderable<'a, DB>
+where
+    DB: DrawingBackend + 'a,
+    <DB as DrawingBackend>::ErrorType: 'static,
+{
+    fn add_to_plot(
+        &self,
+        chart: &mut ChartContext<'a, DB, Cartesian2d<RangedCoordBenchmarkPoint, RangedCoordf64>>,
+    ) -> Result<(), PlotError>;
 }
 
 pub(crate) struct RenderableSeries {
@@ -40,19 +47,14 @@ impl RenderableSeries {
     }
 }
 
-impl<'a>
-    Renderable<
-        'a,
-        ChartContext<'a, BitMapBackend<'a>, Cartesian2d<RangedCoordBenchmarkPoint, RangedCoordf64>>,
-    > for RenderableSeries
+impl<'a, DB> Renderable<'a, DB> for RenderableSeries
+where
+    DB: DrawingBackend + 'a,
+    <DB as DrawingBackend>::ErrorType: 'static,
 {
     fn add_to_plot(
         &self,
-        chart: &mut ChartContext<
-            'a,
-            BitMapBackend<'a>,
-            Cartesian2d<RangedCoordBenchmarkPoint, RangedCoordf64>,
-        >,
+        chart: &mut ChartContext<'a, DB, Cartesian2d<RangedCoordBenchmarkPoint, RangedCoordf64>>,
     ) -> Result<(), PlotError> {
         let color = self.color.to_rgba();
         let name = self.name.clone();

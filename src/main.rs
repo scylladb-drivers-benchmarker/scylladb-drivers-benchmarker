@@ -3,7 +3,7 @@ mod repo_with_commits;
 use clap::Parser;
 
 use scylladb_drivers_benchmarker::{
-    VisKind,
+    OutputFormat, VisKind,
     database::Database,
     utilities::{BenchmarkMode, DatabaseCommand, RepoNameWithTags, RepoPathWithCommits},
 };
@@ -24,6 +24,9 @@ enum AppSubcommand {
         /// The source of data for the plot
         #[arg(long, value_name = "REPOSITORY_PATH:TAG1,TAG2,...")]
         from: Vec<ParsableRepoNameWithTags>,
+
+        #[arg(long, value_enum, default_value_t = OutputFormat::Png)]
+        format: OutputFormat,
 
         /// Path to save the plot image
         #[arg(short, long, value_name = "FILE_PATH")]
@@ -142,6 +145,7 @@ fn main() {
         AppSubcommand::Plot {
             visualization_kind,
             from,
+            format,
             output,
         } => {
             let parsed: Vec<RepoNameWithTags> = from.into_iter().map(Into::into).collect();
@@ -159,6 +163,7 @@ fn main() {
                 visualization_kind,
                 parsed,
                 resolved,
+                format,
                 output.as_deref(),
             )
             .unwrap_or_else(print_error)
@@ -178,6 +183,8 @@ mod test {
     use crate::{App, AppSubcommand};
     use scylladb_drivers_benchmarker::utilities::RepoNameWithTags;
 
+    use super::OutputFormat;
+
     #[test]
     fn basic_run() {
         let args = App::parse_from(vec!["scylladb-drivers-benchmarker", "select", "run"]);
@@ -195,6 +202,7 @@ mod test {
             "--from=repo:branch",
             "--from",
             "repo2:commit",
+            "--format=svg",
         ]);
         assert_eq!(args.measurement_method, "time -f \"%e\"");
         assert_eq!(args.benchmark_name, "select");
@@ -203,6 +211,7 @@ mod test {
             visualization_kind,
             from,
             output,
+            format,
         } = args.subcommand
         else {
             panic!("Not a plot");
@@ -225,5 +234,6 @@ mod test {
             )
         );
         assert_eq!(output, None);
+        assert!(matches!(format, OutputFormat::Svg));
     }
 }
