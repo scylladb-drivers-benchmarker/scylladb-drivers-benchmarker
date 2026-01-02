@@ -26,6 +26,7 @@ pub fn plot(
     measurement_method: &str,
     commit_hashes: impl Iterator<Item = CommitHash>,
     names: &[String],
+    output: &str,
 ) -> Result<(), PlotError> {
     match plot_kind {
         PlotKind::Series(vis_kind) => {
@@ -43,7 +44,7 @@ pub fn plot(
             let plot =
                 SeriesPlot::from_dataset(dataset, benchmark_name.to_string(), names, vis_kind)?;
 
-            plot.plot()
+            plot.plot(output)
         }
         PlotKind::Flamegraph => todo!(),
     }

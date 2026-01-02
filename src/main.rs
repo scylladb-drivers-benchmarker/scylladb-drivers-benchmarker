@@ -24,6 +24,10 @@ enum AppSubcommand {
         /// The source of data for the plot
         #[arg(long, value_name = "REPOSITORY_PATH:TAG1,TAG2,...")]
         from: Vec<ParsableRepoNameWithTags>,
+
+        /// Path to save the plot image
+        #[arg(short, long, value_name = "FILE_PATH")]
+        output: Option<PathBuf>,
     },
 
     /// Collect the results of benchmarks and store to the database.
@@ -126,6 +130,7 @@ fn main() {
         AppSubcommand::Plot {
             visualization_kind,
             from,
+            output
         } => {
             let parsed: Vec<RepoNameWithTags> = from.into_iter().map(Into::into).collect();
 
@@ -142,6 +147,7 @@ fn main() {
                 visualization_kind,
                 parsed,
                 resolved,
+            output.as_deref(),
             )
             .unwrap_or_else(print_error)
         }
@@ -184,6 +190,7 @@ mod test {
         let AppSubcommand::Plot {
             visualization_kind,
             from,
+            output,
         } = args.subcommand
         else {
             panic!("Not a plot");
@@ -205,5 +212,6 @@ mod test {
                 }
             )
         );
+        assert_eq!(output, None);
     }
 }

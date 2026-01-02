@@ -7,7 +7,7 @@ use super::series::{LinearSeries, LogSeries, SeriesValue, ValueTransformation, c
 
 use plotters::prelude::*;
 
-const IMAGE_SIZE: (u32, u32) = (1024, 768);
+const IMAGE_SIZE: (u32, u32) = (1920, 1080);
 const MARGIN_SIZE: u32 = 10;
 const X_LABEL_AREA_SIZE: u32 = 30;
 const Y_LABEL_AREA_SIZE: u32 = 40;
@@ -20,7 +20,7 @@ const BACKGROUND_COLOR: RGBColor = WHITE;
 const LEGEND_BORDER_COLOR: RGBColor = BLACK;
 
 pub(crate) trait Plot {
-    fn plot(&self) -> Result<(), PlotError>;
+    fn plot(&self, output: &str) -> Result<(), PlotError>;
 }
 
 pub(crate) struct SeriesPlot {
@@ -70,7 +70,7 @@ impl SeriesPlot {
 }
 
 impl Plot for SeriesPlot {
-    fn plot(&self) -> Result<(), PlotError> {
+    fn plot(&self, output: &str) -> Result<(), PlotError> {
         let x_start = *self
             .results
             .first()
@@ -86,7 +86,7 @@ impl Plot for SeriesPlot {
         let (y_min, y_max) =
             calc_min_max(self.results.iter().filter_map(|r| r.range())).unwrap_or((0.0, 1.0));
 
-        let root = BitMapBackend::new("test.png", IMAGE_SIZE).into_drawing_area();
+        let root = BitMapBackend::new(output, IMAGE_SIZE).into_drawing_area();
         root.fill(&BACKGROUND_COLOR)?;
 
         let mut chart = ChartBuilder::on(&root)
@@ -109,6 +109,7 @@ impl Plot for SeriesPlot {
             .background_style(BACKGROUND_COLOR)
             .draw()?;
 
+        root.present()?;
         Ok(())
     }
 }
@@ -152,10 +153,84 @@ mod tests {
         )
         .unwrap();
 
-        let result = plot.plot();
+        let result = plot.plot("somethingweird.png");
         assert!(result.is_ok());
 
-        // As of now, plot does not accept a path.
-        std::fs::remove_file("test.png").unwrap();
+        std::fs::remove_file("somethingweird.png").unwrap();
+
+        let result = plot.plot("../somethingweird.png");
+        assert!(result.is_ok());
+
+        std::fs::remove_file("../somethingweird.png").unwrap();
+    }
+
+    #[test]
+    fn series_plot_fails() {
+        let dataset = BenchmarkDataset {
+            points: vec![1, 2, 3],
+            results: vec![
+                vec![Some(Dummy(10.0)), Some(Dummy(20.0)), None],
+                vec![Some(Dummy(5.0)), Some(Dummy(15.0)), Some(Dummy(20.0))],
+            ],
+        };
+
+        let names = vec!["first".to_string(), "second".to_string()];
+        let plot = SeriesPlot::from_dataset(
+            dataset,
+            "TestBenchmark".to_string(),
+            &names,
+            VisKind::Linear,
+        )
+        .unwrap();
+
+        let result = plot.plot("/this/path/should/not/exist/lmao.png");
+
+        assert!(
+            matches!(result.unwrap_err(), PlotError::Plotters ( problem )
+        if problem == "backend error: Drawing backend error: ImageError(IoError(Os { code: 2, kind: NotFound, message: \"No such file or directory\" }))")
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn series_plot_fails_on_permission_denied() {
+        use std::fs::{self, File};
+        use std::os::unix::fs::PermissionsExt;
+        use std::path::Path;
+
+        let path = Path::new("no_write.png");
+
+        File::create(path).unwrap();
+
+        let mut perms = fs::metadata(path).unwrap().permissions();
+        perms.set_mode(0o444);
+        fs::set_permissions(path, perms).unwrap();
+
+        let dataset = BenchmarkDataset {
+            points: vec![1, 2, 3],
+            results: vec![
+                vec![Some(Dummy(10.0)), Some(Dummy(20.0)), None],
+                vec![Some(Dummy(5.0)), Some(Dummy(15.0)), Some(Dummy(20.0))],
+            ],
+        };
+
+        let names = vec!["first".to_string(), "second".to_string()];
+        let plot = SeriesPlot::from_dataset(
+            dataset,
+            "TestBenchmark".to_string(),
+            &names,
+            VisKind::Linear,
+        )
+        .unwrap();
+
+        let result = plot.plot("no_write.png");
+
+        assert!(matches!(result.unwrap_err(), PlotError::Plotters ( msg )
+        if msg == "backend error: Drawing backend error: ImageError(IoError(Os { code: 13, kind: PermissionDenied, message: \"Permission denied\" }))"));
+
+        let mut perms = fs::metadata(path).unwrap().permissions();
+        perms.set_mode(0o644);
+        fs::set_permissions(path, perms).unwrap();
+        fs::remove_file(path).unwrap();
     }
 }

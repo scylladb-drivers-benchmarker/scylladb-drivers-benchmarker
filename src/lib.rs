@@ -73,6 +73,7 @@ pub fn plot_benchmarks(
     visualization_kind: Option<VisKind>,
     from: Vec<RepoNameWithTags>,
     resolved: Vec<RepoPathWithCommits>,
+    output: Option<&Path>,
 ) -> Result<(), PlotBenchmarksError> {
     let benchmark_config = find_config(benchmark_name, benchmark_config_path)?;
 
@@ -118,6 +119,7 @@ pub fn plot_benchmarks(
         measurement_method,
         commit_hashes,
         &names,
+        output.and_then(|p| p.to_str()).unwrap_or("plot.png"),
     )?;
 
     Ok(())
