@@ -13,6 +13,7 @@ use crate::{
     },
 };
 
+pub use plotting::OutputFormat;
 pub use plotting::VisKind;
 
 mod benchmarking;
@@ -73,6 +74,7 @@ pub fn plot_benchmarks(
     visualization_kind: Option<VisKind>,
     from: Vec<RepoNameWithTags>,
     resolved: Vec<RepoPathWithCommits>,
+    format: OutputFormat,
     output: Option<&Path>,
 ) -> Result<(), PlotBenchmarksError> {
     let benchmark_config = find_config(benchmark_name, benchmark_config_path)?;
@@ -119,6 +121,7 @@ pub fn plot_benchmarks(
         measurement_method,
         commit_hashes,
         &names,
+        format,
         output.and_then(|p| p.to_str()).unwrap_or("plot.png"),
     )?;
 
