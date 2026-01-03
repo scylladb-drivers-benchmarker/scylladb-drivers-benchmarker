@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use plotters::coord::types::RangedCoordu64;
 
 use crate::commit_hash::CommitHash;
+use crate::database::utilities::{BenchmarkFilters, BenchmarkParams, BenchmarkRecord};
 
 pub type BenchmarkPoint = u64;
 pub type RangedCoordBenchmarkPoint = RangedCoordu64;
@@ -38,83 +39,13 @@ pub struct InputDatabaseFilters {
     pub measurement_methods: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BenchmarkParams {
-    pub commit_hash: CommitHash,
-    pub benchmark_name: String,
-    pub benchmark_point: BenchmarkPoint,
-    pub measurement_method: String,
-}
-
-impl BenchmarkParams {
-    pub fn new(
-        commit_hash: CommitHash,
-        benchmark_name: String,
-        benchmark_point: BenchmarkPoint,
-        measurement_method: String,
-    ) -> BenchmarkParams {
-        BenchmarkParams {
-            commit_hash,
-            benchmark_name,
-            benchmark_point,
-            measurement_method,
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BenchmarkRecord {
-    Data(String),
-    Timeout,
-}
-
-impl BenchmarkRecord {
-    pub fn is_timeout(&self) -> bool {
-        matches!(self, BenchmarkRecord::Timeout)
-    }
-}
-
-impl From<Option<String>> for BenchmarkRecord {
-    fn from(value: Option<String>) -> Self {
-        match value {
-            Some(s) => BenchmarkRecord::Data(s),
-            None => BenchmarkRecord::Timeout,
-        }
-    }
-}
-
-pub struct BenchmarkFilters {
-    pub commit_hashes: Vec<String>,
-    pub benchmark_names: Vec<String>,
-    pub benchmark_points: Vec<BenchmarkPoint>,
-    pub measurement_methods: Vec<String>,
-}
-
-impl BenchmarkFilters {
-    pub fn all() -> Self {
+impl From<InputDatabaseFilters> for BenchmarkFilters {
+    fn from(input: InputDatabaseFilters) -> Self {
         BenchmarkFilters {
-            commit_hashes: Vec::new(),
-            benchmark_names: Vec::new(),
-            benchmark_points: Vec::new(),
-            measurement_methods: Vec::new(),
-        }
-    }
-
-    pub fn filter_exact_param(params: &BenchmarkParams) -> Self {
-        BenchmarkFilters {
-            commit_hashes: vec![String::from(params.commit_hash.clone())],
-            benchmark_names: vec![params.benchmark_name.clone()],
-            benchmark_points: vec![params.benchmark_point],
-            measurement_methods: vec![params.measurement_method.clone()],
-        }
-    }
-
-    pub fn from_input_commands(filters: InputDatabaseFilters) -> Self {
-        BenchmarkFilters {
-            commit_hashes: filters.commit_hashes,
-            benchmark_names: filters.benchmark_names,
-            benchmark_points: filters.benchmark_points,
-            measurement_methods: filters.measurement_methods,
+            commit_hashes: input.commit_hashes,
+            benchmark_names: input.benchmark_names,
+            benchmark_points: input.benchmark_points,
+            measurement_methods: input.measurement_methods,
         }
     }
 }
@@ -123,6 +54,18 @@ impl BenchmarkFilters {
 pub enum BenchmarkMode {
     UseCached,
     ForceRerun,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RepoPathWithCommits {
+    pub repo_path: PathBuf,
+    pub git_hashes: Vec<CommitHash>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RepoNameWithTags {
+    pub name: String,
+    pub tags: Vec<String>,
 }
 
 pub fn format_entry(params: &BenchmarkParams, record: &BenchmarkRecord) -> String {
@@ -154,16 +97,4 @@ pub fn format_entry(params: &BenchmarkParams, record: &BenchmarkRecord) -> Strin
     }
 
     out
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RepoPathWithCommits {
-    pub repo_path: PathBuf,
-    pub git_hashes: Vec<CommitHash>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RepoNameWithTags {
-    pub name: String,
-    pub tags: Vec<String>,
 }

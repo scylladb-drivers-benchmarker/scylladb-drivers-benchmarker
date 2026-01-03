@@ -3,8 +3,8 @@ use std::{env, fs::File, io::Write, path::Path};
 use assert_cmd::cargo;
 use scylladb_drivers_benchmarker::{
     commit_hash::CommitHash,
+    database::utilities::{BenchmarkParams, BenchmarkRecord},
     database::{self, Database},
-    utilities::{BenchmarkParams, BenchmarkRecord},
 };
 use serial_test::serial;
 

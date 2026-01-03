@@ -8,8 +8,7 @@ use crate::{
     database::{Database, DatabaseError},
     plotting::{PlotKind, error::PlotError},
     utilities::{
-        BenchmarkFilters, BenchmarkMode, DatabaseCommand, RepoNameWithTags, RepoPathWithCommits,
-        format_entry,
+        BenchmarkMode, DatabaseCommand, RepoNameWithTags, RepoPathWithCommits, format_entry,
     },
 };
 
@@ -134,14 +133,12 @@ pub fn access_database(
 ) -> Result<(), DatabaseError> {
     match operation {
         DatabaseCommand::Print { filters } => {
-            let results = database.get_data(&BenchmarkFilters::from_input_commands(filters))?;
+            let results = database.get_data(&filters.into())?;
             for (params, result) in results.into_iter() {
                 print!("{}", format_entry(&params, &result));
             }
         }
-        DatabaseCommand::Drop { filters } => {
-            database.drop_data(&BenchmarkFilters::from_input_commands(filters))?
-        }
+        DatabaseCommand::Drop { filters } => database.drop_data(&filters.into())?,
     }
 
     Ok(())

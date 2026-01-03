@@ -1,8 +1,8 @@
 use assert_cmd::cargo;
 use scylladb_drivers_benchmarker::{
     commit_hash::CommitHash,
+    database::utilities::{BenchmarkParams, BenchmarkRecord},
     database::{self},
-    utilities::{BenchmarkParams, BenchmarkRecord},
 };
 use std::path::Path;
 

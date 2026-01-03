@@ -1,0 +1,74 @@
+use crate::CommitHash;
+use crate::utilities::BenchmarkPoint;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BenchmarkParams {
+    pub commit_hash: CommitHash,
+    pub benchmark_name: String,
+    pub benchmark_point: BenchmarkPoint,
+    pub measurement_method: String,
+}
+
+impl BenchmarkParams {
+    pub fn new(
+        commit_hash: CommitHash,
+        benchmark_name: String,
+        benchmark_point: BenchmarkPoint,
+        measurement_method: String,
+    ) -> BenchmarkParams {
+        BenchmarkParams {
+            commit_hash,
+            benchmark_name,
+            benchmark_point,
+            measurement_method,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BenchmarkRecord {
+    Data(String),
+    Timeout,
+}
+
+impl BenchmarkRecord {
+    pub fn is_timeout(&self) -> bool {
+        matches!(self, BenchmarkRecord::Timeout)
+    }
+}
+
+impl From<Option<String>> for BenchmarkRecord {
+    fn from(value: Option<String>) -> Self {
+        match value {
+            Some(s) => BenchmarkRecord::Data(s),
+            None => BenchmarkRecord::Timeout,
+        }
+    }
+}
+
+pub struct BenchmarkFilters {
+    pub commit_hashes: Vec<String>,
+    pub benchmark_names: Vec<String>,
+    pub benchmark_points: Vec<BenchmarkPoint>,
+    pub measurement_methods: Vec<String>,
+}
+
+impl BenchmarkFilters {
+    pub fn all() -> Self {
+        BenchmarkFilters {
+            commit_hashes: Vec::new(),
+            benchmark_names: Vec::new(),
+            benchmark_points: Vec::new(),
+            measurement_methods: Vec::new(),
+        }
+    }
+
+    pub fn filter_exact_param(params: &BenchmarkParams) -> Self {
+        BenchmarkFilters {
+            commit_hashes: vec![String::from(params.commit_hash.clone())],
+            benchmark_names: vec![params.benchmark_name.clone()],
+            benchmark_points: vec![params.benchmark_point],
+            measurement_methods: vec![params.measurement_method.clone()],
+        }
+    }
+}

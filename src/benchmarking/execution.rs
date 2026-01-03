@@ -8,7 +8,8 @@ use std::process::Output;
 use std::str::FromStr;
 
 use crate::command::{Command, CommandParsingError};
-use crate::utilities::{BenchmarkPoint, BenchmarkRecord};
+use crate::database::utilities::BenchmarkRecord;
+use crate::utilities::BenchmarkPoint;
 
 /// This is a token proving that the code being executed was compiled earlier.
 /// Getting this from outside of this module happens only by invoking `build_source`.

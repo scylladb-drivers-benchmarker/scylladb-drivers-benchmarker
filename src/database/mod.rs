@@ -1,14 +1,14 @@
+pub mod utilities;
+
 use std::path::PathBuf;
 
 use sqlite::Connection;
 use sqlite::State;
 use sqlite::Statement;
 
-use justerror::Error;
-
 use crate::CommitHash;
 
-use crate::utilities::{BenchmarkFilters, BenchmarkParams, BenchmarkRecord};
+use crate::database::utilities::{BenchmarkFilters, BenchmarkParams, BenchmarkRecord};
 
 pub struct Database {
     connection: Connection,
@@ -182,7 +182,7 @@ impl Database {
         match results.len() {
             0 => Ok(None),
             1 => Ok(Some(results.into_iter().next().unwrap().1)),
-            _ => Err(DatabaseError::MultpleResults)
+            _ => Err(DatabaseError::MultpleResults),
         }
     }
 
