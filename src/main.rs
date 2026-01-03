@@ -89,7 +89,7 @@ pub enum DbPathError {
 fn default_db_path() -> Result<std::path::PathBuf, DbPathError> {
     Ok(home::home_dir()
         .ok_or(DbPathError::NoHomeDir)?
-        .join("benchmarker.db"))
+        .join("SDB_benchmarker.db"))
 }
 
 fn print_error<T>(err: impl std::error::Error) -> T {
