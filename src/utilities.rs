@@ -50,6 +50,26 @@ impl From<InputDatabaseFilters> for BenchmarkFilters {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FlatBenchmarkRecord {
+    Data(String),
+    Timeout,
+}
+
+impl BenchmarkRecord {
+    pub fn flatten(self) -> FlatBenchmarkRecord {
+        match self {
+            BenchmarkRecord::Data(s) => FlatBenchmarkRecord::Data(s),
+            BenchmarkRecord::FilePath(path) => {
+                let s = std::fs::read_to_string(&path)
+                    .unwrap_or_else(|_| format!("Failed to read file: {}", path));
+                FlatBenchmarkRecord::Data(s)
+            }
+            BenchmarkRecord::Timeout => FlatBenchmarkRecord::Timeout,
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug, ValueEnum)]
 pub enum BenchmarkMode {
     UseCached,
@@ -90,6 +110,10 @@ pub fn format_entry(params: &BenchmarkParams, record: &BenchmarkRecord) -> Strin
         BenchmarkRecord::Data(s) => {
             out.push_str("Record Type:         Data\n");
             out.push_str(&format!("Data Content:        {:?}\n", s));
+        }
+        BenchmarkRecord::FilePath(path) => {
+            out.push_str("Record Type:         FilePath\n");
+            out.push_str(&format!("Data Content:        {:?}\n", path));
         }
         BenchmarkRecord::Timeout => {
             out.push_str("Record Type:         Timeout\n");

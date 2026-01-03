@@ -1,8 +1,8 @@
 use crate::commit_hash::CommitHash;
 use crate::config::benchmark::BenchmarkConfig;
 use crate::database::Database;
-use crate::database::utilities::{BenchmarkParams, BenchmarkRecord};
-use crate::utilities::BenchmarkPoint;
+use crate::database::utilities::BenchmarkParams;
+use crate::utilities::{BenchmarkPoint, FlatBenchmarkRecord};
 use serde::de::DeserializeOwned;
 use std::fmt::Debug;
 
@@ -79,9 +79,9 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         for point in benchmark_data.benchmark_points() {
             let params = benchmark_params(point);
 
-            match database.get_result(params)? {
-                Some(BenchmarkRecord::Data(text)) => results.push(T::from_json(&text)),
-                Some(BenchmarkRecord::Timeout) => results.push(None),
+            match database.get_result(params)?.map(|r| r.flatten()) {
+                Some(FlatBenchmarkRecord::Data(text)) => results.push(T::from_json(&text)),
+                Some(FlatBenchmarkRecord::Timeout) => results.push(None),
                 None => missing.push(point), // This invalidates the result, but for better errors, we continue
             }
         }
@@ -110,8 +110,7 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::database::utilities::BenchmarkFilters;
-    use crate::plotting::data::BenchmarkRecord;
+    use crate::database::utilities::{BenchmarkFilters, BenchmarkRecord};
     use crate::*;
     use tempfile::NamedTempFile;
 

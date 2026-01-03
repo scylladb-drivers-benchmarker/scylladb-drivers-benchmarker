@@ -244,8 +244,6 @@ mod test {
 
         let from: Vec<RepoNameWithTags> = from.into_iter().map(From::from).collect();
 
-        let from: Vec<RepoNameWithTags> = from.into_iter().map(From::from).collect();
-
         assert_eq!(benchmark_name, "select");
         assert_eq!(measurement_method, "time -f \"%e\"");
         assert_eq!(visualization_kind, None);

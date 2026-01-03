@@ -18,6 +18,8 @@ pub struct Database {
 pub enum DatabaseError {
     InternalError(#[from] sqlite::Error),
 
+    JsonError(#[from] serde_json::Error),
+
     #[error(desc = "Multiple results for same params in database")]
     MultpleResults,
 }
@@ -93,7 +95,7 @@ impl Database {
                 benchmark_name TEXT NOT NULL,
                 benchmark_point INTEGER NOT NULL,
                 measurement_method TEXT NOT NULL,
-                data_json TEXT,
+                data_json TEXT NOT NULL,
                 UNIQUE(commit_hash, benchmark_name, benchmark_point, measurement_method)
             );
             ",
@@ -117,9 +119,7 @@ impl Database {
 
         Database::bind_params(&mut stmt, params)?;
 
-        if let BenchmarkRecord::Data(data_json) = result {
-            stmt.bind((5, data_json.as_str()))?;
-        }
+        stmt.bind::<(usize, &str)>((5, &serde_json::to_string(&result)?))?;
 
         stmt.next()?;
         Ok(())
@@ -140,7 +140,7 @@ impl Database {
             let benchmark_name: String = stmt.read(1)?;
             let benchmark_point: u64 = stmt.read::<i64, usize>(2)? as u64;
             let measurement_method: String = stmt.read(3)?;
-            let result: Option<String> = stmt.read(4)?;
+            let result: BenchmarkRecord = serde_json::from_str(&stmt.read::<String, usize>(4)?)?;
 
             let params = BenchmarkParams::new(
                 CommitHash::new_unchecked(commit_hash_str),
@@ -149,7 +149,7 @@ impl Database {
                 measurement_method,
             );
 
-            results.push((params, result.into()));
+            results.push((params, result));
         }
 
         Ok(results)

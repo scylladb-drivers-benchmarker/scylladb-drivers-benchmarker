@@ -1,6 +1,8 @@
 use crate::CommitHash;
 use crate::utilities::BenchmarkPoint;
 
+use serde::{Deserialize, Serialize};
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BenchmarkParams {
     pub commit_hash: CommitHash,
@@ -25,24 +27,17 @@ impl BenchmarkParams {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "type", content = "value")]
 pub enum BenchmarkRecord {
     Data(String),
+    FilePath(String),
     Timeout,
 }
 
 impl BenchmarkRecord {
     pub fn is_timeout(&self) -> bool {
         matches!(self, BenchmarkRecord::Timeout)
-    }
-}
-
-impl From<Option<String>> for BenchmarkRecord {
-    fn from(value: Option<String>) -> Self {
-        match value {
-            Some(s) => BenchmarkRecord::Data(s),
-            None => BenchmarkRecord::Timeout,
-        }
     }
 }
 
