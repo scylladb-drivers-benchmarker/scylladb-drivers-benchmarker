@@ -75,10 +75,11 @@ struct CppVsRust {
 
 impl CppVsRust {
     fn new() -> Self {
-        setup_git("./tests/data/cpp/");
-        setup_git("./tests/data/rust/");
+        setup_git("./tests/cpp_vs_rust_test/cpp/");
+        setup_git("./tests/cpp_vs_rust_test/rust/");
 
-        let db = database::Database::new(Path::new("./tests/data/test.db").to_owned()).unwrap();
+        let db = database::Database::new(Path::new("./tests/cpp_vs_rust_test/test.db").to_owned())
+            .unwrap();
         db.drop_all_data().unwrap();
 
         CppVsRust { db }
@@ -86,7 +87,7 @@ impl CppVsRust {
 
     fn gather_data(&self, path: &str, command: &mut std::process::Command) -> CommitHash {
         let output = command.current_dir(path).output().unwrap();
-        if !output.status.success() || !output.stdout.is_empty() || !output.stderr.is_empty()  {
+        if !output.status.success() || !output.stdout.is_empty() || !output.stderr.is_empty() {
             println!(
                 "my_stdout: {}",
                 String::from_utf8_lossy(output.stdout.as_slice())
@@ -104,8 +105,8 @@ impl CppVsRust {
     }
 
     fn run(&self, command: &mut std::process::Command) {
-        let hash_cpp = self.gather_data("./tests/data/cpp/", command);
-        let hash_rust = self.gather_data("./tests/data/rust/", command);
+        let hash_cpp = self.gather_data("./tests/cpp_vs_rust_test/cpp/", command);
+        let hash_rust = self.gather_data("./tests/cpp_vs_rust_test/rust/", command);
         assert!(hash_cpp != hash_rust);
 
         let db_data = self.db.get_all_data().unwrap();
@@ -135,10 +136,10 @@ fn simple() {
     command
         .arg("-d")
         .arg("../test.db")
+        .arg("run")
         .arg("-b")
         .arg("../config.yml")
-        .arg("regex")
-        .arg("run");
+        .arg("regex");
 
     CppVsRust::new().run(&mut command);
 }
@@ -148,10 +149,10 @@ fn simple() {
 fn aliasing_db() {
     let path = Path::new(file!()).parent().unwrap().canonicalize().unwrap();
 
-    let dp_path = path.join("data").join("test.db");
-    let config_path = path.join("data").join("aliasing.yml");
+    let dp_path = path.join("cpp_vs_rust_test").join("test.db");
+    let config_path = path.join("cpp_vs_rust_test").join("aliasing.yml");
 
-    let mut config_file = File::create("./tests/data/aliasing.yml")
+    let mut config_file = File::create("./tests/cpp_vs_rust_test/aliasing.yml")
         .expect("Cannot create and write an aliasing file");
     config_file
         .write_all(format!("dp-path: {dp_path:?}\n").as_bytes())
@@ -159,10 +160,10 @@ fn aliasing_db() {
     let mut command = sdb_command();
     command
         .env("SDB_CONFIG", config_path)
+        .arg("run")
         .arg("-b")
         .arg("../config.yml")
-        .arg("regex")
-        .arg("run");
+        .arg("regex");
 
     CppVsRust::new().run(&mut command);
 }

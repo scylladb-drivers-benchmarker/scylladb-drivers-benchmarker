@@ -18,6 +18,15 @@ use crate::repo_with_commits::{ParsableRepoNameWithTags, resolve_repo_tags};
 enum AppSubcommand {
     /// Plot the results of previous benchmarks from the database.
     Plot {
+        benchmark_name: String,
+
+        #[arg(short, long)]
+        #[clap(default_value = "time -f \"%e\"")]
+        measurement_method: String,
+
+        #[arg(short, long, default_value = "./config.yml")]
+        benchmark_config_path: PathBuf,
+
         #[arg(short, long)]
         visualization_kind: Option<VisKind>,
 
@@ -35,10 +44,19 @@ enum AppSubcommand {
 
     /// Collect the results of benchmarks and store to the database.
     Run {
-        #[arg(short, long, default_value = "./config.yml")]
+        benchmark_name: String,
+
+        #[arg(short, long)]
+        #[clap(default_value = "time -f \"%e\"")]
+        measurement_method: String,
+
+        #[arg(short = 'B', long, default_value = "./config.yml")]
         backend_config_path: PathBuf,
 
-        #[arg(long, short = 'm', value_enum, default_value_t = BenchmarkMode::UseCached)]
+        #[arg(short, long, default_value = "./config.yml")]
+        benchmark_config_path: PathBuf,
+
+        #[arg(long, short = 'M', value_enum, default_value_t = BenchmarkMode::UseCached)]
         benchmark_mode: BenchmarkMode,
     },
 
@@ -58,15 +76,6 @@ struct App {
 
     #[arg(short, long)]
     aliasing_config_path: Option<PathBuf>,
-
-    #[arg(short, long)]
-    #[clap(default_value = "time -f \"%e\"")]
-    measurement_method: String,
-
-    benchmark_name: String,
-
-    #[arg(short, long, default_value = "./config.yml")]
-    benchmark_config_path: PathBuf,
 
     #[clap(subcommand)]
     subcommand: AppSubcommand,
@@ -129,19 +138,25 @@ fn main() {
 
     match args.subcommand {
         AppSubcommand::Run {
+            benchmark_name,
+            measurement_method,
+            benchmark_config_path,
             backend_config_path,
             benchmark_mode,
         } => scylladb_drivers_benchmarker::run_benchmarks(
             &database,
-            &args.benchmark_name,
-            &args.benchmark_config_path,
-            args.measurement_method,
+            &benchmark_name,
+            &benchmark_config_path,
+            measurement_method,
             backend_config_path.as_path(),
             benchmark_mode,
         )
         .unwrap_or_else(print_error),
 
         AppSubcommand::Plot {
+            benchmark_name,
+            measurement_method,
+            benchmark_config_path,
             visualization_kind,
             from,
             format,
@@ -154,11 +169,12 @@ fn main() {
                 .map(|repo| resolve_repo_tags(repo.clone(), &aliasing_config.repo_path))
                 .collect::<Result<Vec<RepoPathWithCommits>, _>>()
                 .unwrap_or_else(print_error);
+
             scylladb_drivers_benchmarker::plot_benchmarks(
                 &database,
-                &args.benchmark_name,
-                &args.benchmark_config_path,
-                &args.measurement_method,
+                &benchmark_name,
+                &benchmark_config_path,
+                &measurement_method,
                 visualization_kind,
                 parsed,
                 resolved,
@@ -179,34 +195,44 @@ fn main() {
 mod test {
     use clap::Parser;
 
-    use crate::{App, AppSubcommand};
+    use crate::{App, AppSubcommand, DatabaseCommand};
     use scylladb_drivers_benchmarker::utilities::RepoNameWithTags;
 
     use super::OutputFormat;
 
     #[test]
     fn basic_run() {
-        let args = App::parse_from(vec!["scylladb-drivers-benchmarker", "select", "run"]);
-        assert_eq!(args.measurement_method, "time -f \"%e\"");
-        assert_eq!(args.benchmark_name, "select");
-        assert!(matches!(args.subcommand, AppSubcommand::Run { .. }));
+        let args = App::parse_from(vec!["scylladb-drivers-benchmarker", "run", "select"]);
+
+        let AppSubcommand::Run {
+            benchmark_name,
+            measurement_method,
+            ..
+        } = args.subcommand
+        else {
+            panic!("Not a run")
+        };
+
+        assert_eq!(benchmark_name, "select");
+        assert_eq!(measurement_method, "time -f \"%e\"");
     }
 
     #[test]
     fn advanced_plot() {
         let args = App::parse_from(vec![
             "scylladb-drivers-benchmarker",
-            "select",
             "plot",
+            "select",
             "--from=repo:branch",
             "--from",
             "repo2:commit",
             "--format=svg",
         ]);
-        assert_eq!(args.measurement_method, "time -f \"%e\"");
-        assert_eq!(args.benchmark_name, "select");
 
         let AppSubcommand::Plot {
+            benchmark_name,
+            measurement_method,
+            benchmark_config_path: _,
             visualization_kind,
             from,
             output,
@@ -218,7 +244,12 @@ mod test {
 
         let from: Vec<RepoNameWithTags> = from.into_iter().map(From::from).collect();
 
+        let from: Vec<RepoNameWithTags> = from.into_iter().map(From::from).collect();
+
+        assert_eq!(benchmark_name, "select");
+        assert_eq!(measurement_method, "time -f \"%e\"");
         assert_eq!(visualization_kind, None);
+
         assert_eq!(
             from,
             vec!(
@@ -234,5 +265,30 @@ mod test {
         );
         assert_eq!(output, None);
         assert!(matches!(format, OutputFormat::Svg));
+    }
+
+    #[test]
+    fn advanced_database() {
+        let args = App::parse_from(vec![
+            "scylladb-drivers-benchmarker",
+            "database",
+            "print",
+            "--commit-hash=test:21123123:ff",
+            "--benchmark-name=my:benchmark:",
+            "--benchmark-point=1:2:5:3",
+            "--measurement-method=m1:m2:m4",
+        ]);
+        let AppSubcommand::Database { command } = args.subcommand else {
+            panic!("Expected Database subcommand");
+        };
+
+        let DatabaseCommand::Print { filters } = command else {
+            panic!("Expected DatabaseCommand::Print");
+        };
+
+        assert_eq!(filters.commit_hashes, vec!["test", "21123123", "ff"]);
+        assert_eq!(filters.benchmark_names, vec!["my", "benchmark", ""]);
+        assert_eq!(filters.benchmark_points, vec![1, 2, 5, 3]);
+        assert_eq!(filters.measurement_methods, vec!["m1", "m2", "m4"]);
     }
 }

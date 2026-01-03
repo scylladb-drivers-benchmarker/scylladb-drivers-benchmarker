@@ -4,23 +4,42 @@ SDB is a tool for benchmarking, comparing, and visualizing the performance of di
 
 ## Quick Start
 
-SDB has two main functions:
+SDB has three main functions:
 
 1. **`run`**: Execute a benchmark run and save the results.
 2. **`plot`**: Visualize and compare results from previous runs.
+3. **`database`**: Access database - print its content or remove it.
 
 ### Example usage
 
-From inside the `tests/data/cpp` and `tests/data/rust` directories execute:
+From inside the `tests/cpp_vs_rust_test/cpp` and `tests/cpp_vs_rust_test/rust` directories execute:
 
 ```sh
-cargo run regex -d ../test.db -b ../config.yml run
+cargo run -- -d ../test.db run regex -b ../config.yml 
 ```
 
-Then, later to graph the results execute (from `tests/data`):
+Then, later to graph the results execute (from `tests/cpp_vs_rust_test`):
 
 ```sh
-cargo run regex -b config.yml -d test.db plot --from=cpp/:HEAD --from=rust/:HEAD
+cargo run -- -d test.db plot regex -b config.yml --from=cpp/:HEAD --from=rust/:HEAD
+```
+
+Finally it is possible to print data to stdout:
+
+```sh
+cargo run -- -d test.db database print
+```
+
+possibly applying filters:
+
+```sh
+cargo run -- -d test.db database print --benchmark-point 400000:6400000
+```
+
+Or remove it:
+
+```sh
+cargo run -- -d test.db database drop --benchmark-point=400000:6400000
 ```
 
 ## Definitions
@@ -73,16 +92,30 @@ backends:
 
 The benchmarker accepts following options:
 
-* `-d`, `--db-path` — the path to the database location
-* `-b`, `--benchmark-config-path` — the path to the configuration file of the benchmark
-* `-m`, `--measurement-method` — the command to measure the performance of the benchmark (e.g. time).
+* `-d`, `--db-path` — the path to the database location, default is `benchmarker.db` located in home directory. 
 
-The benchmark name should be passed next and be followed by one of the two subcommands:
+Subcommand should be provided after database:
 
 * `run` — Executes, measures, and stores to the database the results of the measurements. It should be invoked from the inside of the repository holding the application being measured.
-  * `-b`, `--backend-config-path` — the path to the configuration file of the backend
+  After `run` benchmark named should be passed.
+  * `-m`, `--measurement-method` — the command to measure the performance of the benchmark (e.g. time).
+  * `-b`, `--benchmark-config-path` — the path to the configuration file of the benchmark
+  * `-B`, `--backend-config-path` — the path to the configuration file of the backend
+  * `-M`, `--benchmark-mode` — `used_cached`(default, uses data from database) or `force-rerun`(overrides database data).
+
 * `plot` — Visualizes and compares the results of previous `runs`, reading them from the database
+  After `plot` benchmark name should be passed.
+  * `-m`, `--measurement-method` — the command to measure the performance of the benchmark (e.g. time).
+  * `-b`, `--benchmark-config-path` — the path to the configuration file of the benchmark
+  * `-o`, `--output` — the path where plot should be saved
+  * `-v`, `--visualization-kind` — type of plot `linear` or `log`
   * `--from <repository path:tag1,tag2,...>` — specifies which tags should be used in the comparison and to which repository they refer. Including this option multiple times adds more to the comparison. Here tags are used broadly, and include things like branches, tags, `HEAD`, with relative versions of thereof.
+
+* `database drop` or `database print` — prints or removes data from database.
+  * `--commit-hash` Accepts list of accepted commit hashes divided by `:`, empty (or lack of argument) means it is not restricted.
+  * `--benchmark-name` In same format restricts benchmark names.
+  * `--measurement-method` In same format restricts measurement methods.       
+  * `--benchmark-point` In same format restricts benchmark points. Provided elements must be non negative integers.
 
 ## Authors
 
