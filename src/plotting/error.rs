@@ -34,6 +34,12 @@ pub enum PlotError {
         benchmark: String,
         measurement_method: String,
     },
+
+    #[error(desc = "incompatible file extension for the selected output format", fmt=debug)]
+    IncompatibleFileExtension {
+        extension: String,
+        format: String,
+    },
 }
 
 impl<E> From<DrawingAreaErrorKind<E>> for PlotError

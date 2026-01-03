@@ -8,10 +8,12 @@ use crate::{
     database::{Database, DatabaseError},
     plotting::{PlotKind, error::PlotError},
     utilities::{
-        BenchmarkFilters, BenchmarkMode, DatabaseCommand, RepositoryWithCommits, format_entry,
+        BenchmarkFilters, BenchmarkMode, DatabaseCommand, RepoNameWithTags, RepoPathWithCommits,
+        format_entry,
     },
 };
 
+pub use plotting::OutputFormat;
 pub use plotting::VisKind;
 
 mod benchmarking;
@@ -70,29 +72,23 @@ pub fn plot_benchmarks(
     benchmark_config_path: &Path,
     measurement_method: &str,
     visualization_kind: Option<VisKind>,
-    from: Vec<RepositoryWithCommits>,
+    from: Vec<RepoNameWithTags>,
+    resolved: Vec<RepoPathWithCommits>,
+    format: OutputFormat,
     output: Option<&Path>,
 ) -> Result<(), PlotBenchmarksError> {
     let benchmark_config = find_config(benchmark_name, benchmark_config_path)?;
 
     let names = from
-        .iter()
+        .into_iter()
         .flat_map(|repo| {
-            let repo_name = repo.repo_path.to_string_lossy();
-
-            repo.commits
-                .iter()
-                .map(move |commit| format!("{}@{}", repo_name, commit))
+            repo.tags
+                .into_iter()
+                .map(move |commit| format!("{}@{}", repo.name, commit))
         })
         .collect::<Vec<String>>();
 
-    let commit_hashes = from.into_iter().try_fold(
-        Vec::new(),
-        |mut acc, repo| -> Result<_, PlotBenchmarksError> {
-            acc.extend(repo.to_commit_hashes()?);
-            Ok(acc)
-        },
-    )?;
+    let commit_hashes = resolved.into_iter().flat_map(|repo| repo.git_hashes);
 
     let cmd = command::Command::from_str(measurement_method)?;
 
@@ -123,8 +119,9 @@ pub fn plot_benchmarks(
         benchmark_name,
         &benchmark_config,
         measurement_method,
-        &commit_hashes,
+        commit_hashes,
         &names,
+        format,
         output.and_then(|p| p.to_str()).unwrap_or("plot.png"),
     )?;
 

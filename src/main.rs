@@ -1,11 +1,18 @@
+mod repo_with_commits;
+
 use clap::Parser;
 
 use scylladb_drivers_benchmarker::{
-    VisKind,
+    OutputFormat, VisKind,
     database::Database,
-    utilities::{BenchmarkMode, DatabaseCommand, RepositoryWithCommits},
+    utilities::{BenchmarkMode, DatabaseCommand, RepoNameWithTags, RepoPathWithCommits},
 };
-use std::path::PathBuf;
+use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, env};
+use std::{fs::File, path::Path};
+use std::{io, path::PathBuf};
+
+use crate::repo_with_commits::{ParsableRepoNameWithTags, resolve_repo_tags};
 
 #[derive(Debug, clap::Subcommand)]
 enum AppSubcommand {
@@ -25,7 +32,10 @@ enum AppSubcommand {
 
         /// The source of data for the plot
         #[arg(long, value_name = "REPOSITORY_PATH:TAG1,TAG2,...")]
-        from: Vec<RepositoryWithCommits>,
+        from: Vec<ParsableRepoNameWithTags>,
+
+        #[arg(long, value_enum, default_value_t = OutputFormat::Png)]
+        format: OutputFormat,
 
         /// Path to save the plot image
         #[arg(short, long, value_name = "FILE_PATH")]
@@ -64,6 +74,9 @@ struct App {
     #[arg(short, long)]
     db_path: Option<PathBuf>,
 
+    #[arg(short, long)]
+    aliasing_config_path: Option<PathBuf>,
+
     #[clap(subcommand)]
     subcommand: AppSubcommand,
 }
@@ -84,11 +97,39 @@ fn print_error<T>(err: impl std::error::Error) -> T {
     std::process::exit(1);
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Default)]
+#[serde(rename_all = "kebab-case")]
+struct AliasingConfig {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    dp_path: Option<PathBuf>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    repo_path: HashMap<String, PathBuf>,
+}
+
+#[justerror::Error(desc = "Failed reading the main config file")]
+enum MainConfigError {
+    FailedOpening(#[from] io::Error),
+    FailedParsing(#[from] serde_yml::Error),
+}
+
+impl AliasingConfig {
+    fn read_config(path: &Path) -> Result<Self, MainConfigError> {
+        let file = File::open(path)?;
+        Ok(serde_yml::from_reader(file)?)
+    }
+}
+
 fn main() {
     let args = App::parse();
+    let aliasing_config: AliasingConfig = args
+        .aliasing_config_path
+        .or_else(|| env::var_os("SDB_CONFIG").map(Into::into))
+        .map(|path| AliasingConfig::read_config(&path).unwrap_or_else(print_error))
+        .unwrap_or_default();
 
     let db_path = args
         .db_path
+        .or(aliasing_config.dp_path)
         .map(Ok)
         .unwrap_or_else(default_db_path)
         .unwrap_or_else(print_error);
@@ -118,17 +159,30 @@ fn main() {
             benchmark_config_path,
             visualization_kind,
             from,
+            format,
             output,
-        } => scylladb_drivers_benchmarker::plot_benchmarks(
-            &database,
-            &benchmark_name,
-            &benchmark_config_path,
-            &measurement_method,
-            visualization_kind,
-            from,
-            output.as_deref(),
-        )
-        .unwrap_or_else(print_error),
+        } =>{
+            let parsed: Vec<RepoNameWithTags> = from.into_iter().map(Into::into).collect();
+
+            let resolved = parsed
+                .iter()
+                .map(|repo| resolve_repo_tags(repo.clone(), &aliasing_config.repo_path))
+                .collect::<Result<Vec<RepoPathWithCommits>, _>>()
+                .unwrap_or_else(print_error);
+
+              scylladb_drivers_benchmarker::plot_benchmarks(
+                &database,
+                &benchmark_name,
+                &benchmark_config_path,
+                &measurement_method,
+                visualization_kind,
+                parsed,
+                resolved,
+                format,
+                output.as_deref(),
+            )
+            .unwrap_or_else(print_error)
+    },
 
         AppSubcommand::Database { command } => {
             scylladb_drivers_benchmarker::access_database(&database, command)
@@ -139,13 +193,12 @@ fn main() {
 
 #[cfg(test)]
 mod test {
-    use std::path::Path;
-
     use clap::Parser;
 
-    use crate::{App, AppSubcommand, RepositoryWithCommits};
+    use crate::{App, AppSubcommand};
+    use scylladb_drivers_benchmarker::utilities::RepoNameWithTags;
 
-    use crate::DatabaseCommand;
+    use super::OutputFormat;
 
     #[test]
     fn basic_run() {
@@ -173,6 +226,7 @@ mod test {
             "--from=repo:branch",
             "--from",
             "repo2:commit",
+            "--format=svg",
         ]);
 
         let AppSubcommand::Plot {
@@ -182,10 +236,15 @@ mod test {
             visualization_kind,
             from,
             output,
+            format,
         } = args.subcommand
         else {
             panic!("Not a plot");
         };
+
+        let from: Vec<RepoNameWithTags> = from.into_iter().map(From::from).collect();
+
+        let from: Vec<RepoNameWithTags> = from.into_iter().map(From::from).collect();
 
         assert_eq!(benchmark_name, "select");
         assert_eq!(measurement_method, "time -f \"%e\"");
@@ -194,17 +253,18 @@ mod test {
         assert_eq!(
             from,
             vec!(
-                RepositoryWithCommits {
-                    repo_path: Path::new("repo").to_path_buf(),
-                    commits: vec!("branch".to_owned())
+                RepoNameWithTags {
+                    name: "repo".to_owned(),
+                    tags: vec!("branch".to_owned())
                 },
-                RepositoryWithCommits {
-                    repo_path: Path::new("repo2").to_path_buf(),
-                    commits: vec!("commit".to_owned())
+                RepoNameWithTags {
+                    name: "repo2".to_owned(),
+                    tags: vec!("commit".to_owned())
                 }
             )
         );
         assert_eq!(output, None);
+        assert!(matches!(format, OutputFormat::Svg));
     }
 
     #[test]
