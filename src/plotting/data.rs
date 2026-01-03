@@ -117,7 +117,7 @@ mod tests {
     fn get_db() -> (Database, NamedTempFile) {
         let file = NamedTempFile::new().unwrap();
         let path = file.path().to_path_buf();
-        (Database::new(path).unwrap(), file)
+        (Database::new(&path).unwrap(), file)
     }
 
     fn init_db() -> (

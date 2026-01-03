@@ -1,6 +1,6 @@
 pub mod utilities;
 
-use std::path::PathBuf;
+use std::path::Path;
 
 use sqlite::Connection;
 use sqlite::State;
@@ -83,7 +83,7 @@ impl Database {
         }
     }
 
-    pub fn new(path: PathBuf) -> Result<Database, DatabaseError> {
+    pub fn new(path: &Path) -> Result<Database, DatabaseError> {
         let db = Database {
             connection: Connection::open(path)?,
         };
@@ -199,7 +199,7 @@ mod tests {
     fn get_db() -> (Database, NamedTempFile) {
         let file = NamedTempFile::new().unwrap();
         let path = file.path().to_path_buf();
-        (Database::new(path).unwrap(), file)
+        (Database::new(&path).unwrap(), file)
     }
 
     #[test]
@@ -304,7 +304,7 @@ mod tests {
 
     #[test]
     fn test_data_filtration() {
-        let db = Database::new(":memory:".into()).unwrap();
+        let db = Database::new(Path::new(":memory:")).unwrap();
 
         let commit_hashes = vec!["a", "b"];
         let benchmark_names = vec!["x", "y"];

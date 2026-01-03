@@ -134,7 +134,7 @@ fn main() {
         .unwrap_or_else(default_db_path)
         .unwrap_or_else(print_error);
 
-    let database = Database::new(db_path).unwrap_or_else(print_error);
+    let database = Database::new(&db_path).unwrap_or_else(print_error);
 
     match args.subcommand {
         AppSubcommand::Run {

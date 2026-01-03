@@ -28,7 +28,7 @@ fn run_bin(args: &[&str]) -> String {
 #[test]
 fn database() {
     let db_path = "./tests/database_test/test.db";
-    let db = database::Database::new(Path::new(db_path).to_owned()).unwrap();
+    let db = database::Database::new(Path::new(db_path)).unwrap();
     db.drop_all_data().unwrap();
 
     let commits = [
@@ -76,7 +76,7 @@ fn database() {
 #[test]
 fn database_file() {
     let db_path = "./tests/database_test/tmp_file_test.db";
-    let db = database::Database::new(Path::new(db_path).to_owned()).unwrap();
+    let db = database::Database::new(&Path::new(db_path).to_owned()).unwrap();
     db.drop_all_data().unwrap();
 
     // Create temporary file with some data and insert it to database.
