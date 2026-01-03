@@ -78,7 +78,7 @@ impl Database {
         .collect();
 
         if clauses.is_empty() {
-            "".to_string()
+            "".to_owned()
         } else {
             format!("WHERE {}", clauses.join(" AND "))
         }
@@ -132,7 +132,7 @@ impl Database {
     ) -> Result<Vec<(BenchmarkParams, BenchmarkRecord)>, DatabaseError> {
         let mut stmt = self
             .connection
-            .prepare("SELECT * FROM Benchmarks ".to_string() + &self.data_filtration(filters))?;
+            .prepare("SELECT * FROM Benchmarks ".to_owned() + &self.data_filtration(filters))?;
 
         let mut results = Vec::new();
 
@@ -162,7 +162,7 @@ impl Database {
 
     pub fn drop_data(&self, filters: &BenchmarkFilters) -> Result<(), DatabaseError> {
         self.connection
-            .prepare("DELETE FROM Benchmarks ".to_string() + &self.data_filtration(filters))?
+            .prepare("DELETE FROM Benchmarks ".to_owned() + &self.data_filtration(filters))?
             .next()?;
 
         Ok(())
