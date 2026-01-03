@@ -195,7 +195,7 @@ fn main() {
 mod test {
     use clap::Parser;
 
-    use crate::{App, AppSubcommand};
+    use crate::{App, AppSubcommand, DatabaseCommand};
     use scylladb_drivers_benchmarker::utilities::RepoNameWithTags;
 
     use super::OutputFormat;
