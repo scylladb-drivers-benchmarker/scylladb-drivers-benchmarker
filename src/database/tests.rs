@@ -29,7 +29,7 @@ mod tests {
     }
 
     #[test]
-    fn insert_get_empty_timeout_all_clear() {
+    fn timeout_vs_empty_data_dropall() {
         let (db, _file) = get_db();
 
         let params1 = BenchmarkParams::new(
