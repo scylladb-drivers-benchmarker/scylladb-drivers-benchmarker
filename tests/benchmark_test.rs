@@ -6,7 +6,7 @@ use scylladb_drivers_benchmarker::{
     database::utilities::{BenchmarkParams, BenchmarkRecord},
     database::{self, Database},
 };
-use serial_test::serial;
+use serial_test::file_serial;
 
 fn setup_git(repo: &str) {
     if Path::new(&(repo.to_owned() + "/.git/")).is_dir() {
@@ -129,8 +129,11 @@ fn sdb_command() -> std::process::Command {
     std::process::Command::new(cargo::cargo_bin!("scylladb-drivers-benchmarker"))
 }
 
+// Compiling rust by two tests in parallel sometimes fails.
+// We chose to serialize those two tests to avoid unpredictable test failures.
+
 #[test]
-#[serial]
+#[file_serial]
 fn simple() {
     let mut command = sdb_command();
     command
@@ -145,7 +148,7 @@ fn simple() {
 }
 
 #[test]
-#[serial]
+#[file_serial]
 fn aliasing_db() {
     let path = Path::new(file!()).parent().unwrap().canonicalize().unwrap();
 

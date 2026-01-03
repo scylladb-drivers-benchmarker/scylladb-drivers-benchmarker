@@ -21,4 +21,4 @@ humantime-serde = "1.1.1"
 assert_cmd = "2.1.1"
 tempfile = "3.23.0"
 plotters = "0.3.3"
-serial_test = "3.1.1"
+serial_test = { version = "3.1.1", features = ["file_locks"] }
