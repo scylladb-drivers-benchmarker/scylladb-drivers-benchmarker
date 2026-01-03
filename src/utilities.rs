@@ -2,7 +2,6 @@ use clap::Args;
 use clap::Subcommand;
 use clap::ValueEnum;
 use std::path::PathBuf;
-use std::str::FromStr;
 
 use plotters::coord::types::RangedCoordu64;
 

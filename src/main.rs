@@ -161,7 +161,7 @@ fn main() {
             from,
             format,
             output,
-        } =>{
+        } => {
             let parsed: Vec<RepoNameWithTags> = from.into_iter().map(Into::into).collect();
 
             let resolved = parsed
@@ -170,7 +170,7 @@ fn main() {
                 .collect::<Result<Vec<RepoPathWithCommits>, _>>()
                 .unwrap_or_else(print_error);
 
-              scylladb_drivers_benchmarker::plot_benchmarks(
+            scylladb_drivers_benchmarker::plot_benchmarks(
                 &database,
                 &benchmark_name,
                 &benchmark_config_path,
@@ -182,7 +182,7 @@ fn main() {
                 output.as_deref(),
             )
             .unwrap_or_else(print_error)
-    },
+        }
 
         AppSubcommand::Database { command } => {
             scylladb_drivers_benchmarker::access_database(&database, command)
