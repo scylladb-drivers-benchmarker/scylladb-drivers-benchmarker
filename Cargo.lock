@@ -1052,6 +1052,7 @@ dependencies = [
  "shell-words",
  "sqlite",
  "tempfile",
+ "thiserror",
  "wait-timeout",
 ]
 
