@@ -4,6 +4,8 @@ use sqlite::Connection;
 use sqlite::State;
 use sqlite::Statement;
 
+use justerror::Error;
+
 use crate::CommitHash;
 
 use crate::utilities::{BenchmarkFilters, BenchmarkParams, BenchmarkRecord};
@@ -15,6 +17,9 @@ pub struct Database {
 #[justerror::Error(desc = "internal database error")]
 pub enum DatabaseError {
     InternalError(#[from] sqlite::Error),
+
+    #[error(desc = "Multiple results for same params in database")]
+    MultpleResults,
 }
 
 impl Database {
@@ -30,7 +35,7 @@ impl Database {
     }
 
     /// Returns WHERE clause:
-    /// "WHERE commit_hash IN (...) AND benchmark_name IN (...)"
+    /// "WHERE commit_hash IN (...) AND benchmark_name IN (...) ..."
     /// or empty string if no filters.
     fn data_filtration(&self, filters: &BenchmarkFilters) -> String {
         // Helper function to build in cluase for one column.
@@ -177,7 +182,7 @@ impl Database {
         match results.len() {
             0 => Ok(None),
             1 => Ok(Some(results.into_iter().next().unwrap().1)),
-            _ => todo!("add diagnostic, maybe print params?"),
+            _ => Err(DatabaseError::MultpleResults)
         }
     }
 
