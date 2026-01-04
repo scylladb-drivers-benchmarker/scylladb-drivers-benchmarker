@@ -1,15 +1,14 @@
-mod tests;
 pub mod utilities;
+
+#[cfg(test)]
+mod tests;
 
 use std::path::Path;
 
-use sqlite::Connection;
-use sqlite::State;
-use sqlite::Statement;
+use sqlite::{Connection, State, Statement};
 
 use crate::CommitHash;
-
-use crate::database::utilities::{BenchmarkFilters, BenchmarkParams, BenchmarkRecord};
+use crate::database::utilities::*;
 
 pub struct Database {
     connection: Connection,
@@ -22,9 +21,11 @@ pub enum DatabaseError {
     JsonError(#[from] serde_json::Error),
 
     #[error(desc = "Multiple results for same params in database")]
-    MultpleResults,
+    MultipleResults,
 
-    #[error(desc = "Provided database contains table Benchmarks with wrong scheme.\nExpected: {0}.\nFound: {1}.")]
+    #[error(
+        desc = "Provided database contains table Benchmarks with wrong scheme.\nExpected: {0}.\nFound: {1}."
+    )]
     WrongTableExists(String, String),
 }
 
@@ -49,7 +50,10 @@ impl Database {
             found.push((name, ty.to_uppercase(), notnull == 1));
         }
         if found != expected {
-            return Err(DatabaseError::WrongTableExists(format!("{:?}", expected),format!("{:?}", found)));
+            return Err(DatabaseError::WrongTableExists(
+                format!("{:?}", expected),
+                format!("{:?}", found),
+            ));
         }
         Ok(())
     }
@@ -60,7 +64,7 @@ impl Database {
     ) -> Result<(), DatabaseError> {
         stmt.bind((1, params.commit_hash.as_str()))?;
         stmt.bind((2, params.benchmark_name.as_str()))?;
-        stmt.bind((3, params.benchmark_point.to_string().as_str()))?;
+        stmt.bind((3, params.benchmark_point as i64))?;
         stmt.bind((4, params.measurement_method.as_str()))?;
         Ok(())
     }
@@ -154,10 +158,10 @@ impl Database {
         )?;
 
         Database::bind_params(&mut stmt, params)?;
-
         stmt.bind::<(usize, &str)>((5, &serde_json::to_string(&result)?))?;
 
         stmt.next()?;
+
         Ok(())
     }
 
@@ -218,7 +222,7 @@ impl Database {
         match results.len() {
             0 => Ok(None),
             1 => Ok(Some(results.into_iter().next().unwrap().1)),
-            _ => Err(DatabaseError::MultpleResults),
+            _ => Err(DatabaseError::MultipleResults),
         }
     }
 

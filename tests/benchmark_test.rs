@@ -78,7 +78,7 @@ impl CppVsRust {
         setup_git("./tests/cpp_vs_rust_test/cpp/");
         setup_git("./tests/cpp_vs_rust_test/rust/");
 
-        let db = database::Database::new(&Path::new("./tests/cpp_vs_rust_test/test.db").to_owned())
+        let db = database::Database::new(Path::new("./tests/cpp_vs_rust_test/test.db"))
             .unwrap();
         db.drop_all_data().unwrap();
 
