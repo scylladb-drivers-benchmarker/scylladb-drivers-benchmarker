@@ -23,9 +23,37 @@ pub enum DatabaseError {
 
     #[error(desc = "Multiple results for same params in database")]
     MultpleResults,
+
+    #[error(desc = "Provided database contains table Benchmarks with wrong scheme.\nExpected: {0}.\nFound: {1}.")]
+    WrongTableExists(String, String),
 }
 
 impl Database {
+    fn validate_schema(&self) -> Result<(), DatabaseError> {
+        let mut stmt = self.connection.prepare("PRAGMA table_info(Benchmarks);")?;
+
+        let expected = vec![
+            ("commit_hash".to_owned(), "TEXT".to_owned(), true),
+            ("benchmark_name".to_owned(), "TEXT".to_owned(), true),
+            ("benchmark_point".to_owned(), "INTEGER".to_owned(), true),
+            ("measurement_method".to_owned(), "TEXT".to_owned(), true),
+            ("data_json".to_owned(), "TEXT".to_owned(), true),
+        ];
+
+        let mut found = Vec::new();
+
+        while let Ok(sqlite::State::Row) = stmt.next() {
+            let name: String = stmt.read("name")?;
+            let ty: String = stmt.read("type")?;
+            let notnull: i64 = stmt.read("notnull")?;
+            found.push((name, ty.to_uppercase(), notnull == 1));
+        }
+        if found != expected {
+            return Err(DatabaseError::WrongTableExists(format!("{:?}", expected),format!("{:?}", found)));
+        }
+        Ok(())
+    }
+
     fn bind_params<'stmt>(
         stmt: &mut Statement<'stmt>,
         params: BenchmarkParams,
@@ -101,6 +129,13 @@ impl Database {
             );
             ",
         )?;
+
+        // CREATE TABLE IF NOT EXISTS just checks if table "Benchmarks" exists.
+        // It may lead to strange errors, if table Benchmarks was already in database
+        // with diffrent column names/types or wrong constraint.
+        // Validation of constraints is hard and probably not worth it.
+        // Just check column names and types.
+        db.validate_schema()?;
 
         Ok(db)
     }

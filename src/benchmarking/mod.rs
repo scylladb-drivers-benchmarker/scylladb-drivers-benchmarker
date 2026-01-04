@@ -3,7 +3,7 @@ mod execution;
 use crate::benchmarking::execution::{CompileError, MeasurementError};
 use crate::command::CommandParsingError;
 use crate::commit_hash::CommitHash;
-use crate::database::utilities::{BenchmarkFilters};
+use crate::database::utilities::BenchmarkFilters;
 use crate::utilities::{BenchmarkMode, BenchmarkParamsBuilder, BenchmarkPoint};
 use execution::{Executor, build_source};
 
