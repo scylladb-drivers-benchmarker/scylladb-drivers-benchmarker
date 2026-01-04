@@ -50,6 +50,37 @@ impl From<InputDatabaseFilters> for BenchmarkFilters {
     }
 }
 
+/// Often BenchmarkParams params differ only by benchmarkPoint.
+/// This struct makes it easier to create them.
+pub struct BenchmarkParamsBuilder {
+    pub commit_hash: CommitHash,
+    pub benchmark_name: String,
+    pub measurement_method: String,
+}
+
+impl BenchmarkParamsBuilder {
+    pub fn new(
+        commit_hash: CommitHash,
+        benchmark_name: String,
+        measurement_method: String,
+    ) -> Self {
+        BenchmarkParamsBuilder {
+            commit_hash,
+            benchmark_name,
+            measurement_method,
+        }
+    }
+
+    pub fn finalize(&self, benchmark_point: BenchmarkPoint) -> BenchmarkParams {
+        BenchmarkParams::new(
+            self.commit_hash.clone(),
+            self.benchmark_name.clone(),
+            benchmark_point,
+            self.measurement_method.clone(),
+        )
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FlatBenchmarkRecord {
     Data(String),

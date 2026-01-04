@@ -133,6 +133,7 @@ fn sdb_command() -> std::process::Command {
 // We chose to serialize those two tests to avoid unpredictable test failures.
 
 #[test]
+// TODO explain
 #[file_serial]
 fn simple() {
     let mut command = sdb_command();

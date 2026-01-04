@@ -3,8 +3,8 @@ mod execution;
 use crate::benchmarking::execution::{CompileError, MeasurementError};
 use crate::command::CommandParsingError;
 use crate::commit_hash::CommitHash;
-use crate::database::utilities::{BenchmarkFilters, BenchmarkParams};
-use crate::utilities::{BenchmarkMode, BenchmarkPoint};
+use crate::database::utilities::{BenchmarkFilters};
+use crate::utilities::{BenchmarkMode, BenchmarkParamsBuilder, BenchmarkPoint};
 use execution::{Executor, build_source};
 
 use crate::config::{backend::BackendConfig, benchmark::BenchmarkConfig};
@@ -28,13 +28,13 @@ pub enum BenchmarkingError {
 fn filter_points(
     database: &Database,
     config_points: impl Iterator<Item = BenchmarkPoint>,
-    param_generator: impl Fn(BenchmarkPoint) -> BenchmarkParams,
+    param_generator: &BenchmarkParamsBuilder,
     benchmark_mode: BenchmarkMode,
 ) -> Result<Vec<BenchmarkPoint>, DatabaseError> {
     match benchmark_mode {
         BenchmarkMode::UseCached => config_points
             .filter_map(
-                |point| match database.result_exists(param_generator(point)) {
+                |point| match database.result_exists(param_generator.finalize(point)) {
                     Ok(true) => None,
                     Ok(false) => Some(Ok(point)),
                     Err(e) => Some(Err(e)),
@@ -43,9 +43,9 @@ fn filter_points(
             .collect::<Result<Vec<BenchmarkPoint>, DatabaseError>>(),
         BenchmarkMode::ForceRerun => config_points
             .map(|point| {
-                database.drop_data(&BenchmarkFilters::filter_exact_param(&param_generator(
-                    point,
-                )))?;
+                database.drop_data(&BenchmarkFilters::filter_exact_param(
+                    &param_generator.finalize(point),
+                ))?;
                 Ok(point)
             })
             .collect::<Result<Vec<BenchmarkPoint>, DatabaseError>>(),
@@ -65,19 +65,16 @@ pub fn benchmark(
         data: benchmark_data,
     } = benchmark_config;
 
-    let param_generator = |benchmark_point: BenchmarkPoint| {
-        BenchmarkParams::new(
-            commit_hash.clone(),
-            benchmark_name.clone(),
-            benchmark_point,
-            measurement_method.clone(),
-        )
-    };
+    let param_generator = BenchmarkParamsBuilder::new(
+        commit_hash.clone(),
+        benchmark_name.clone(),
+        measurement_method.clone(),
+    );
 
     let points = filter_points(
         database,
         benchmark_data.benchmark_points(),
-        param_generator,
+        &param_generator,
         benchmark_mode,
     )?;
 
@@ -102,7 +99,7 @@ pub fn benchmark(
 
     for point in points.into_iter() {
         let benchmark_result = execute(point)?;
-        database.insert_data(param_generator(point), benchmark_result)?;
+        database.insert_data(param_generator.finalize(point), benchmark_result)?;
     }
 
     Ok(())

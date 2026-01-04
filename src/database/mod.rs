@@ -1,5 +1,5 @@
-pub mod utilities;
 mod tests;
+pub mod utilities;
 
 use std::path::Path;
 
