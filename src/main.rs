@@ -3,7 +3,8 @@ mod repo_with_commits;
 use clap::Parser;
 
 use scylladb_drivers_benchmarker::{
-    OutputFormat, VisKind,
+    OutputFormat,
+    PlotKind,
     database::Database,
     measurement::MeasurementMethod,
     utilities::{BenchmarkMode, DatabaseCommand, RepoNameWithTags, RepoPathWithCommits},
@@ -28,19 +29,21 @@ enum AppSubcommand {
         #[arg(short, long, default_value = "./config.yml")]
         benchmark_config_path: PathBuf,
 
-        #[arg(short, long)]
-        visualization_kind: Option<VisKind>,
-
         /// The source of data for the plot
         #[arg(long, value_name = "REPOSITORY_PATH:TAG1,TAG2,...")]
         from: Vec<ParsableRepoNameWithTags>,
 
-        #[arg(long, value_enum, default_value_t = OutputFormat::Png)]
+        /// Output format of the plot
+        #[arg(short, long, value_enum, default_value_t = OutputFormat::Png)]
         format: OutputFormat,
 
         /// Path to save the plot image
         #[arg(short, long, value_name = "FILE_PATH")]
         output: Option<PathBuf>,
+
+        // Type of plot to generate
+        #[clap(subcommand)]
+        plot_kind: PlotKind,
     },
 
     /// Collect the results of benchmarks and store to the database.
@@ -158,10 +161,10 @@ fn main() {
             benchmark_name,
             measurement_method,
             benchmark_config_path,
-            visualization_kind,
             from,
             format,
             output,
+            plot_kind,
         } => {
             let parsed: Vec<RepoNameWithTags> = from.into_iter().map(Into::into).collect();
 
@@ -172,11 +175,11 @@ fn main() {
                 .unwrap_or_else(print_error);
 
             scylladb_drivers_benchmarker::plot_benchmarks(
+                plot_kind,
                 &database,
                 &benchmark_name,
                 &benchmark_config_path,
                 &measurement_method,
-                visualization_kind,
                 parsed,
                 resolved,
                 format,
@@ -199,7 +202,8 @@ mod test {
     use crate::{App, AppSubcommand, DatabaseCommand};
     use scylladb_drivers_benchmarker::{measurement, utilities::RepoNameWithTags};
 
-    use super::OutputFormat;
+    use super::{OutputFormat, PlotKind};
+    use scylladb_drivers_benchmarker::VisKind;
 
     #[test]
     fn basic_run() {
@@ -228,16 +232,17 @@ mod test {
             "--from",
             "repo2:commit",
             "--format=svg",
+            "series",
         ]);
 
         let AppSubcommand::Plot {
             benchmark_name,
             measurement_method,
             benchmark_config_path: _,
-            visualization_kind,
             from,
             output,
             format,
+            plot_kind,
         } = args.subcommand
         else {
             panic!("Not a plot");
@@ -247,7 +252,12 @@ mod test {
 
         assert_eq!(benchmark_name, "select");
         assert_eq!(measurement_method, measurement::Time {}.into());
-        assert_eq!(visualization_kind, None);
+
+        assert!(matches!(plot_kind, PlotKind::Series{..}));
+        match plot_kind {
+            PlotKind::Series { visualization_kind } => assert!(matches!(visualization_kind, VisKind::Linear)),
+            _ => panic!("Expected PlotKind::Series"),
+        }
 
         assert_eq!(
             from,

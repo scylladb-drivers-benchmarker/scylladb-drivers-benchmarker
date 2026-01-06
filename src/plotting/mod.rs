@@ -16,8 +16,15 @@ use plotters::backend::{BitMapBackend, SVGBackend};
 
 const IMAGE_SIZE: (u32, u32) = (1920, 1080);
 
+#[derive(Debug, clap::Subcommand)]
 pub enum PlotKind {
-    Series(VisKind),
+    /// Generate a series plot
+    Series {
+        #[arg(short, long, value_enum, default_value_t = VisKind::Linear)]
+        visualization_kind: VisKind,
+    },
+
+    /// Generate a flamegraph plot
     Flamegraph,
 }
 
@@ -68,7 +75,7 @@ pub fn plot(
     output: &str,
 ) -> Result<(), PlotError> {
     match plot_kind {
-        PlotKind::Series(vis_kind) => {
+        PlotKind::Series{visualization_kind} => {
             let plot = SeriesPlot::build(
                 database,
                 benchmark_name,
@@ -76,7 +83,7 @@ pub fn plot(
                 measurement_method,
                 commit_hashes,
                 names,
-                vis_kind,
+                visualization_kind,
             )?;
 
             render(plot, output, format)

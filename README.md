@@ -21,7 +21,7 @@ cargo run -- -d ../test.db run regex -b ../config.yml
 Then, later to graph the results execute (from `tests/cpp_vs_rust_test`):
 
 ```sh
-cargo run -- -d test.db plot regex -b config.yml --from=cpp/:HEAD --from=rust/:HEAD
+cargo run -- -d test.db plot regex -b config.yml --from=cpp/:HEAD --from=rust/:HEAD series
 ```
 
 Finally it is possible to print data to stdout:
@@ -104,12 +104,17 @@ Subcommand should be provided after database:
   * `-M`, `--benchmark-mode` — `used_cached`(default, uses data from database) or `force-rerun`(overrides database data).
 
 * `plot` — Visualizes and compares the results of previous `runs`, reading them from the database
-  After `plot` benchmark name should be passed.
-  * `-m`, `--measurement-method` — the command to measure the performance of the benchmark (e.g. time).
-  * `-b`, `--benchmark-config-path` — the path to the configuration file of the benchmark
-  * `-o`, `--output` — the path where plot should be saved
-  * `-v`, `--visualization-kind` — type of plot `linear` or `log`
-  * `--from <repository path:tag1,tag2,...>` — specifies which tags should be used in the comparison and to which repository they refer. Including this option multiple times adds more to the comparison. Here tags are used broadly, and include things like branches, tags, `HEAD`, with relative versions of thereof.
+  After `plot` benchmark name should be passed. Plot type (subcommand) and its possible flags should be provided after the common options.
+  * Common Options for `plot`
+    * `-m`, `--measurement-method` — the command to measure the performance of the benchmark (e.g. time).
+    * `-b`, `--benchmark-config-path` — the path to the configuration file of the benchmark
+    * `-o`, `--output` — the path where plot should be saved
+    * `--from <repository path:tag1,tag2,...>` — specifies which tags should be used in the comparison and to which repository they refer. Including this option multiple times adds more to the comparison. Here tags are used broadly, and include things like branches, tags, `HEAD`, with relative versions of thereof.
+    * `-f`, `--format` — Output format of the rendered plot. Currently supported formats: `png` and `svg`.The output file extension **must match** the selected format to comply with the [plotters](https://docs.rs/plotters/latest/plotters/) API.
+  * Options specific to a `series` plot
+    * `-v`, `--visualization-kind` — Controls the style of the plot line. Can be `linear` for a standard line plot or `log` for a logarithmic plot. This affects the visual representation but does not rescale the underlying data.
+  * Options specific to a `flamegraph` plot
+    * Currently no additional flags are required.
 
 * `database drop` or `database print` — prints or removes data from database.
   * `--commit-hash` Accepts list of accepted commit hashes divided by `:`, empty (or lack of argument) means it is not restricted.

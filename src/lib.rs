@@ -7,14 +7,13 @@ use crate::{
     config::{ConfigError, find_config},
     database::{Database, DatabaseError},
     measurement::MeasurementMethod,
-    plotting::{PlotKind, error::PlotError},
+    plotting::error::PlotError,
     utilities::{
         BenchmarkMode, DatabaseCommand, RepoNameWithTags, RepoPathWithCommits, format_entry,
     },
 };
 
-pub use plotting::OutputFormat;
-pub use plotting::VisKind;
+pub use plotting::{OutputFormat, VisKind, PlotKind};
 
 mod benchmarking;
 mod command;
@@ -68,11 +67,11 @@ pub fn run_benchmarks(
 }
 
 pub fn plot_benchmarks(
+    plot_kind: PlotKind,
     database: &Database,
     benchmark_name: &str,
     benchmark_config_path: &Path,
     measurement_method: &MeasurementMethod,
-    visualization_kind: Option<VisKind>,
     from: Vec<RepoNameWithTags>,
     resolved: Vec<RepoPathWithCommits>,
     format: OutputFormat,
@@ -90,27 +89,6 @@ pub fn plot_benchmarks(
         .collect::<Vec<String>>();
 
     let commit_hashes = resolved.into_iter().flat_map(|repo| repo.git_hashes);
-
-    let plot_kind = match measurement_method {
-        MeasurementMethod::Time(_) => {
-            // Default to linear if no vis kind provided
-            let vis_kind = visualization_kind.unwrap_or(VisKind::Linear);
-            PlotKind::Series(vis_kind)
-        }
-        MeasurementMethod::Flamegraph(_) => {
-            if visualization_kind.is_some() {
-                return Err(PlotBenchmarksError::Plotting(
-                    PlotError::UnexpectedVisualizationKind(),
-                ));
-            }
-            PlotKind::Flamegraph
-        }
-        other => {
-            return Err(PlotBenchmarksError::Plotting(
-                PlotError::UnknownMeasureKind(format!("{other:?}")),
-            ));
-        }
-    };
 
     plotting::plot(
         plot_kind,
