@@ -3,8 +3,7 @@ mod repo_with_commits;
 use clap::Parser;
 
 use scylladb_drivers_benchmarker::{
-    OutputFormat,
-    PlotKind,
+    OutputFormat, PlotKind,
     database::Database,
     measurement::MeasurementMethod,
     utilities::{BenchmarkMode, DatabaseCommand, RepoNameWithTags, RepoPathWithCommits},
@@ -253,9 +252,11 @@ mod test {
         assert_eq!(benchmark_name, "select");
         assert_eq!(measurement_method, measurement::Time {}.into());
 
-        assert!(matches!(plot_kind, PlotKind::Series{..}));
+        assert!(matches!(plot_kind, PlotKind::Series { .. }));
         match plot_kind {
-            PlotKind::Series { visualization_kind } => assert!(matches!(visualization_kind, VisKind::Linear)),
+            PlotKind::Series { visualization_kind } => {
+                assert!(matches!(visualization_kind, VisKind::Linear))
+            }
             _ => panic!("Expected PlotKind::Series"),
         }
 

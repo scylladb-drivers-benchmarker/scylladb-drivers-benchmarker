@@ -13,7 +13,7 @@ use crate::{
     },
 };
 
-pub use plotting::{OutputFormat, VisKind, PlotKind};
+pub use plotting::{OutputFormat, PlotKind, VisKind};
 
 mod benchmarking;
 mod command;

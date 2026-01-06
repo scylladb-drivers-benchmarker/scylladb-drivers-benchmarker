@@ -75,7 +75,7 @@ pub fn plot(
     output: &str,
 ) -> Result<(), PlotError> {
     match plot_kind {
-        PlotKind::Series{visualization_kind} => {
+        PlotKind::Series { visualization_kind } => {
             let plot = SeriesPlot::build(
                 database,
                 benchmark_name,
