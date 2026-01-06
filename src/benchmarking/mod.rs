@@ -4,8 +4,8 @@ use crate::benchmarking::execution::CompileError;
 use crate::command::CommandParsingError;
 use crate::commit_hash::CommitHash;
 use crate::database::utilities::BenchmarkFilters;
-use crate::utilities::{BenchmarkMode, BenchmarkParamsBuilder, BenchmarkPoint};
 use crate::measurement::{MeasurementError, MeasurementMethod};
+use crate::utilities::{BenchmarkMode, BenchmarkParamsBuilder, BenchmarkPoint};
 use execution::{Executor, build_source};
 
 use crate::config::{backend::BackendConfig, benchmark::BenchmarkConfig};
