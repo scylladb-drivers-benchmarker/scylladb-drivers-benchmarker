@@ -1,4 +1,4 @@
-use std::{path::Path, str::FromStr};
+use std::path::Path;
 
 use crate::{
     benchmarking::BenchmarkingError,
@@ -6,6 +6,7 @@ use crate::{
     commit_hash::{CommitHash, CommitHashError},
     config::{ConfigError, find_config},
     database::{Database, DatabaseError},
+    measurement::MeasurementMethod,
     plotting::{PlotKind, error::PlotError},
     utilities::{
         BenchmarkMode, DatabaseCommand, RepoNameWithTags, RepoPathWithCommits, format_entry,
@@ -20,6 +21,7 @@ mod command;
 pub mod commit_hash;
 mod config;
 pub mod database;
+pub mod measurement;
 mod plotting;
 pub mod utilities;
 
@@ -43,7 +45,7 @@ pub fn run_benchmarks(
     database: &Database,
     benchmark_name: &str,
     benchmark_config_path: &Path,
-    measurement_method: String,
+    measurement_method: MeasurementMethod,
     backend_config_path: &Path,
     benchmark_mode: BenchmarkMode,
 ) -> Result<(), RunBenchmarksError> {
@@ -69,7 +71,7 @@ pub fn plot_benchmarks(
     database: &Database,
     benchmark_name: &str,
     benchmark_config_path: &Path,
-    measurement_method: &str,
+    measurement_method: &MeasurementMethod,
     visualization_kind: Option<VisKind>,
     from: Vec<RepoNameWithTags>,
     resolved: Vec<RepoPathWithCommits>,
@@ -89,15 +91,13 @@ pub fn plot_benchmarks(
 
     let commit_hashes = resolved.into_iter().flat_map(|repo| repo.git_hashes);
 
-    let cmd = command::Command::from_str(measurement_method)?;
-
-    let plot_kind = match cmd.program() {
-        "time" => {
+    let plot_kind = match measurement_method {
+        MeasurementMethod::Time(_) => {
             // Default to linear if no vis kind provided
             let vis_kind = visualization_kind.unwrap_or(VisKind::Linear);
             PlotKind::Series(vis_kind)
         }
-        "flamegraph" => {
+        MeasurementMethod::Flamegraph(_) => {
             if visualization_kind.is_some() {
                 return Err(PlotBenchmarksError::Plotting(
                     PlotError::UnexpectedVisualizationKind(),
@@ -107,7 +107,7 @@ pub fn plot_benchmarks(
         }
         other => {
             return Err(PlotBenchmarksError::Plotting(
-                PlotError::UnknownMeasureKind(other.to_owned()),
+                PlotError::UnknownMeasureKind(format!("{other:?}")),
             ));
         }
     };

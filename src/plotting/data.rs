@@ -2,6 +2,7 @@ use crate::commit_hash::CommitHash;
 use crate::config::benchmark::BenchmarkConfig;
 use crate::database::Database;
 use crate::database::utilities::BenchmarkParams;
+use crate::measurement::MeasurementMethod;
 use crate::utilities::{BenchmarkPoint, FlatBenchmarkRecord};
 use serde::de::DeserializeOwned;
 use std::fmt::Debug;
@@ -32,7 +33,7 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         database: &Database,
         benchmark_config: &BenchmarkConfig,
         commit_hashes: impl Iterator<Item = CommitHash>,
-        measurement_method: &str,
+        measurement_method: &MeasurementMethod,
     ) -> Result<BenchmarkDataset<T>, PlotError> {
         let points = benchmark_config
             .data
@@ -57,7 +58,7 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         database: &Database,
         commit_hash: &CommitHash,
         benchmark_config: &BenchmarkConfig,
-        measurement_method: &str,
+        measurement_method: &MeasurementMethod,
     ) -> Result<Vec<Option<T>>, PlotError> {
         let BenchmarkConfig {
             name: benchmark_name,
@@ -91,14 +92,14 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
                 return Err(PlotError::MissingBenchmark {
                     commit_hash: commit_hash.as_str().to_owned(),
                     benchmark: benchmark_name.clone(),
-                    measurement_method: measurement_method.to_owned(),
+                    measurement_method: measurement_method.to_string(),
                 });
             } else {
                 return Err(PlotError::MissingRecords {
                     commit_hash: commit_hash.as_str().to_owned(),
                     benchmark: benchmark_name.clone(),
                     points: missing,
-                    measurement_method: measurement_method.to_owned(),
+                    measurement_method: measurement_method.to_string(),
                 });
             }
         }
@@ -125,7 +126,7 @@ mod tests {
         NamedTempFile,
         Vec<BenchmarkConfig>,
         Vec<CommitHash>,
-        String,
+        MeasurementMethod,
     ) {
         let (db, file) = get_db();
 
@@ -222,7 +223,7 @@ mod tests {
             file,
             vec![config1, config2],
             vec![commit_hash_1, commit_hash_2, commit_hash_3],
-            "time".to_owned(),
+            measurement::Time {}.into(),
         )
     }
 
@@ -261,7 +262,7 @@ mod tests {
             commit_hashes: vec![hashes[0].as_str().to_owned()],
             benchmark_names: vec![configs[0].name.clone()],
             benchmark_points: vec![3],
-            measurement_methods: vec![measure.clone()],
+            measurement_methods: vec![measure.to_string()],
         };
 
         db.drop_data(&params_to_remove).unwrap();
@@ -275,14 +276,14 @@ mod tests {
                 if commit_hash == hashes[0].as_str()
                 && benchmark == configs[0].name
                 && points == vec![3]
-                && measurement_method == measure
+                && measurement_method == measure.to_string()
         ));
 
         let params_to_remove = BenchmarkFilters {
             commit_hashes: vec![hashes[0].as_str().to_owned()],
             benchmark_names: vec![configs[0].name.clone()],
             benchmark_points: vec![2],
-            measurement_methods: vec![measure.clone()],
+            measurement_methods: vec![measure.to_string()],
         };
 
         db.drop_data(&params_to_remove).unwrap();
@@ -296,14 +297,14 @@ mod tests {
                 if commit_hash == hashes[0].as_str()
                 && benchmark == configs[0].name
                 && points == vec![2, 3]
-                && measurement_method == measure
+                && measurement_method == measure.to_string()
         ));
 
         let params_to_remove = BenchmarkFilters {
             commit_hashes: vec![hashes[0].as_str().to_owned()],
             benchmark_names: vec![configs[0].name.clone()],
             benchmark_points: vec![1],
-            measurement_methods: vec![measure.clone()],
+            measurement_methods: vec![measure.to_string()],
         };
 
         db.drop_data(&params_to_remove).unwrap();
@@ -316,7 +317,7 @@ mod tests {
             PlotError::MissingBenchmark { commit_hash, benchmark, measurement_method }
                 if commit_hash == hashes[0].as_str()
                 && benchmark == configs[0].name
-                && measurement_method == measure
+                && measurement_method == measure.to_string()
         ));
 
         // No idea how to force db to fail on read.

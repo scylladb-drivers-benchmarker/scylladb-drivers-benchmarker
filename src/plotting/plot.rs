@@ -7,6 +7,7 @@ use super::error::PlotError;
 use super::render::{Renderable, RenderableSeries};
 use super::series::{LinearSeries, LogSeries, SeriesValue, ValueTransformation, calc_min_max};
 use crate::Database;
+use crate::measurement::MeasurementMethod;
 
 use plotters::prelude::*;
 
@@ -75,7 +76,7 @@ impl SeriesPlot {
         database: &Database,
         benchmark_name: &str,
         benchmark_config: &BenchmarkConfig,
-        measurement_method: &str,
+        measurement_method: &MeasurementMethod,
         commit_hashes: impl Iterator<Item = CommitHash>,
         names: &[String],
         vis_kind: VisKind,

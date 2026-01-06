@@ -5,6 +5,7 @@ use clap::Parser;
 use scylladb_drivers_benchmarker::{
     OutputFormat, VisKind,
     database::Database,
+    measurement::MeasurementMethod,
     utilities::{BenchmarkMode, DatabaseCommand, RepoNameWithTags, RepoPathWithCommits},
 };
 use serde::{Deserialize, Serialize};
@@ -21,8 +22,8 @@ enum AppSubcommand {
         benchmark_name: String,
 
         #[arg(short, long)]
-        #[clap(default_value = "time -f \"%e\"")]
-        measurement_method: String,
+        #[clap(default_value = "time")]
+        measurement_method: MeasurementMethod,
 
         #[arg(short, long, default_value = "./config.yml")]
         benchmark_config_path: PathBuf,
@@ -47,8 +48,8 @@ enum AppSubcommand {
         benchmark_name: String,
 
         #[arg(short, long)]
-        #[clap(default_value = "time -f \"%e\"")]
-        measurement_method: String,
+        #[clap(default_value = "time")]
+        measurement_method: MeasurementMethod,
 
         #[arg(short = 'B', long, default_value = "./config.yml")]
         backend_config_path: PathBuf,
@@ -196,7 +197,7 @@ mod test {
     use clap::Parser;
 
     use crate::{App, AppSubcommand, DatabaseCommand};
-    use scylladb_drivers_benchmarker::utilities::RepoNameWithTags;
+    use scylladb_drivers_benchmarker::{measurement, utilities::RepoNameWithTags};
 
     use super::OutputFormat;
 
@@ -214,7 +215,7 @@ mod test {
         };
 
         assert_eq!(benchmark_name, "select");
-        assert_eq!(measurement_method, "time -f \"%e\"");
+        assert_eq!(measurement_method, measurement::Time {}.into());
     }
 
     #[test]
@@ -245,7 +246,7 @@ mod test {
         let from: Vec<RepoNameWithTags> = from.into_iter().map(From::from).collect();
 
         assert_eq!(benchmark_name, "select");
-        assert_eq!(measurement_method, "time -f \"%e\"");
+        assert_eq!(measurement_method, measurement::Time{}.into());
         assert_eq!(visualization_kind, None);
 
         assert_eq!(

@@ -4,7 +4,7 @@ use std::str::FromStr;
 use wait_timeout::ChildExt;
 
 /// Struct used for parsing command from configs
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Command {
     program: String,
     arguments: Vec<String>,
@@ -67,8 +67,22 @@ impl Command {
     }
 
     pub fn with_arg(mut self, argument: String) -> Self {
-        self.arguments.push(argument);
+        self.add_arg(argument);
         self
+    }
+
+    pub fn add_arg(&mut self, argument: String) {
+        self.arguments.push(argument);
+    }
+
+    pub fn with_args(mut self, arguments: impl Iterator<Item = String>) -> Self {
+        arguments.for_each(|arg| self.add_arg(arg));
+        self
+    }
+
+    pub fn with_cmd_arg(self, argument: Command) -> Self {
+        self.with_arg(argument.program)
+            .with_args(argument.arguments.into_iter())
     }
 
     pub fn program(&self) -> &str {

@@ -3,12 +3,11 @@
 //! commands eg. whether the run command they actually interacts with the
 //! output of the build command.
 
-use std::io;
-use std::process::Output;
 use std::str::FromStr;
 
 use crate::command::{Command, CommandParsingError};
 use crate::database::utilities::BenchmarkRecord;
+use crate::measurement::{MeasurementError, MeasurementMethod, MeasuringEquipment};
 use crate::utilities::BenchmarkPoint;
 
 /// This is a token proving that the code being executed was compiled earlier.
@@ -48,41 +47,23 @@ pub fn build_source(build_command: &str) -> Result<BuiltSource, CompileError> {
     }
 }
 
-#[justerror::Error(desc = "measuring failed")]
-pub enum MeasurementError {
-    #[error(fmt = debug)]
-    ExecutionFailed(Output),
-    // no documentation for how and when this error is thrown in Command.output
-    RustFailed(#[from] io::Error),
-    WrongOutputFormat(#[from] std::string::FromUtf8Error),
-}
-
 #[derive(Debug)]
 pub struct Executor {
-    command: Command,
+    measure: MeasurementMethod,
+    run_command: Command,
 }
 
 impl Executor {
-    pub fn new(_: BuiltSource, run_command: &str) -> Result<Executor, CommandParsingError> {
-        let command = Command::from_str(run_command)?;
-        Ok(Executor { command })
-    }
-
-    pub fn with_measure(self, measurement_method: &str) -> Result<Executor, CommandParsingError> {
-        let measurement_command = Command::from_str(measurement_method)?;
+    pub fn new(
+        _: BuiltSource,
+        run_command_str: &str,
+        measure: MeasurementMethod,
+    ) -> Result<Executor, CommandParsingError> {
+        let run_command = Command::from_str(run_command_str)?;
         Ok(Executor {
-            command: measurement_command.with_arg(self.command.to_string()),
+            measure,
+            run_command,
         })
-    }
-
-    fn handle_output(output: Output) -> Result<BenchmarkRecord, MeasurementError> {
-        if output.status.success() {
-            let str_stdout = String::from_utf8(output.stdout)?;
-            let str_stderr = String::from_utf8(output.stderr)?;
-            Ok(BenchmarkRecord::Data(str_stdout + &str_stderr))
-        } else {
-            Err(MeasurementError::ExecutionFailed(output))
-        }
     }
 
     pub fn execute_with_timeout(
@@ -90,39 +71,45 @@ impl Executor {
         param: BenchmarkPoint,
         timeout: std::time::Duration,
     ) -> Result<BenchmarkRecord, MeasurementError> {
-        let Some(output) = self
-            .command
-            .clone()
-            .with_arg(param.to_string())
-            .output_with_timeout(timeout)?
-        else {
-            return Ok(BenchmarkRecord::Timeout);
-        };
-        Self::handle_output(output)
+        let full_run_command = self.run_command.clone().with_arg(param.to_string());
+        self.measure.execute_with_timeout(full_run_command, timeout)
     }
 
     pub fn execute(&self, param: BenchmarkPoint) -> Result<BenchmarkRecord, MeasurementError> {
-        let output: Output = self.command.clone().with_arg(param.to_string()).output()?;
-        Self::handle_output(output)
+        let full_run_command = self.run_command.clone().with_arg(param.to_string());
+        self.measure.execute(full_run_command)
     }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::benchmarking::execution::BuiltSource;
+    use crate::{
+        benchmarking::execution::BuiltSource,
+        measurement::{self, MeasurementError},
+    };
 
-    use super::{Executor, MeasurementError};
+    use super::Executor;
 
     #[test]
     fn test_execution_error() {
-        let executor = Executor::new(BuiltSource::new_unchecked(), "git fail").unwrap();
+        let executor = Executor::new(
+            BuiltSource::new_unchecked(),
+            "git fail",
+            measurement::Time {}.into(),
+        )
+        .unwrap();
         let error = executor.execute(0).unwrap_err();
         assert!(matches!(error, MeasurementError::ExecutionFailed(_)));
     }
 
     #[test]
     fn test_execution_timeout() {
-        let executor = Executor::new(BuiltSource::new_unchecked(), "sleep").unwrap();
+        let executor = Executor::new(
+            BuiltSource::new_unchecked(),
+            "sleep",
+            measurement::Time {}.into(),
+        )
+        .unwrap();
         let output = executor
             .execute_with_timeout(2, std::time::Duration::from_secs(1))
             .unwrap();
@@ -130,7 +117,12 @@ mod test {
     }
     #[test]
     fn test_execution_in_time() {
-        let executor = Executor::new(BuiltSource::new_unchecked(), "sleep").unwrap();
+        let executor = Executor::new(
+            BuiltSource::new_unchecked(),
+            "sleep",
+            measurement::Time {}.into(),
+        )
+        .unwrap();
         let output = executor
             .execute_with_timeout(1, std::time::Duration::from_secs(2))
             .unwrap();

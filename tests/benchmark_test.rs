@@ -54,7 +54,7 @@ fn check_data(
             commit_hash.clone(),
             "regex".to_owned(),
             point,
-            "time -f \"%e\"".to_owned(),
+            "time".to_owned(),
         )
     };
 

@@ -1,10 +1,11 @@
 mod execution;
 
-use crate::benchmarking::execution::{CompileError, MeasurementError};
+use crate::benchmarking::execution::CompileError;
 use crate::command::CommandParsingError;
 use crate::commit_hash::CommitHash;
 use crate::database::utilities::BenchmarkFilters;
 use crate::utilities::{BenchmarkMode, BenchmarkParamsBuilder, BenchmarkPoint};
+use crate::measurement::{MeasurementError, MeasurementMethod};
 use execution::{Executor, build_source};
 
 use crate::config::{backend::BackendConfig, benchmark::BenchmarkConfig};
@@ -12,16 +13,10 @@ use crate::config::{backend::BackendConfig, benchmark::BenchmarkConfig};
 use super::database::*;
 
 #[justerror::Error]
-pub enum ExecutorBuildingError {
-    RunParsing(CommandParsingError),
-    MeasureParsing(CommandParsingError),
-}
-
-#[justerror::Error]
 pub enum BenchmarkingError {
     Compile(#[from] CompileError),
     Database(#[from] DatabaseError),
-    ExecutorBuilding(#[from] ExecutorBuildingError),
+    ParsingRun(#[from] CommandParsingError),
     Measurement(#[from] MeasurementError),
 }
 
@@ -57,7 +52,7 @@ pub fn benchmark(
     commit_hash: CommitHash,
     benchmark_config: BenchmarkConfig,
     backend_config: BackendConfig,
-    measurement_method: String,
+    measurement_method: MeasurementMethod,
     benchmark_mode: BenchmarkMode,
 ) -> Result<(), BenchmarkingError> {
     let BenchmarkConfig {
@@ -68,7 +63,7 @@ pub fn benchmark(
     let param_generator = BenchmarkParamsBuilder::new(
         commit_hash.clone(),
         benchmark_name.clone(),
-        measurement_method.clone(),
+        measurement_method.to_string(),
     );
 
     let points = filter_points(
@@ -84,10 +79,11 @@ pub fn benchmark(
 
     let built_source = build_source(&backend_config.build_command)?;
 
-    let executor = Executor::new(built_source, &backend_config.run_command)
-        .map_err(ExecutorBuildingError::RunParsing)?
-        .with_measure(&measurement_method)
-        .map_err(ExecutorBuildingError::MeasureParsing)?;
+    let executor = Executor::new(
+        built_source,
+        &backend_config.run_command,
+        measurement_method.clone(),
+    )?;
 
     let execute = |point| {
         if let Some(timeout) = benchmark_data.timeout {

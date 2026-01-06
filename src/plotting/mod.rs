@@ -4,9 +4,9 @@ mod plot;
 mod render;
 mod series;
 
-use crate::commit_hash::CommitHash;
 use crate::config::benchmark::BenchmarkConfig;
 use crate::database::Database;
+use crate::{commit_hash::CommitHash, measurement::MeasurementMethod};
 
 use error::PlotError;
 use plot::{Plot, SeriesPlot};
@@ -59,7 +59,7 @@ pub fn plot(
     database: &Database,
     benchmark_name: &str,
     benchmark_config: &BenchmarkConfig,
-    measurement_method: &str,
+    measurement_method: &MeasurementMethod,
     commit_hashes: impl Iterator<Item = CommitHash>,
     names: &[String],
     format: OutputFormat,
