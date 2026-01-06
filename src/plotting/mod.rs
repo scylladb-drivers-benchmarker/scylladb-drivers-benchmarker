@@ -28,11 +28,13 @@ pub enum OutputFormat {
 }
 
 fn render<P: Plot>(plot: P, output: &str, format: OutputFormat) -> Result<(), PlotError> {
+    let extension = output.rsplit('.').next().unwrap_or("").to_string();
+
     match format {
         OutputFormat::Png => {
-            if !output.ends_with(".png") {
+            if extension != "png" {
                 return Err(PlotError::IncompatibleFileExtension {
-                    extension: output.rsplit('.').next().unwrap_or("").to_string(),
+                    extension,
                     format: "png".to_string(),
                 });
             }
@@ -42,9 +44,9 @@ fn render<P: Plot>(plot: P, output: &str, format: OutputFormat) -> Result<(), Pl
         }
 
         OutputFormat::Svg => {
-            if !output.ends_with(".svg") {
+            if extension != "svg" {
                 return Err(PlotError::IncompatibleFileExtension {
-                    extension: output.rsplit('.').next().unwrap_or("").to_string(),
+                    extension,
                     format: "svg".to_string(),
                 });
             }
