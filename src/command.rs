@@ -142,7 +142,7 @@ impl OutputWithTimeout for process::Command {
 #[macro_export]
 macro_rules! cmd {
     ( $program:expr, $( $arg:expr ), *) => {
-        Command::new_args(String::from($program), vec!($(String::from($arg), )*).iter())
+        $crate::command::Command::new_args(String::from($program), vec!($(String::from($arg), )*).iter())
     };
 }
 

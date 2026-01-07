@@ -199,7 +199,9 @@ mod test {
     use clap::Parser;
 
     use crate::{App, AppSubcommand, DatabaseCommand};
-    use scylladb_drivers_benchmarker::{measurement, utilities::RepoNameWithTags};
+    use scylladb_drivers_benchmarker::{
+        measurement::MeasurementMethod, utilities::RepoNameWithTags,
+    };
 
     use super::{OutputFormat, PlotKind};
     use scylladb_drivers_benchmarker::VisKind;
@@ -218,7 +220,7 @@ mod test {
         };
 
         assert_eq!(benchmark_name, "select");
-        assert_eq!(measurement_method, measurement::Time {}.into());
+        assert_eq!(measurement_method, MeasurementMethod::Time);
     }
 
     #[test]
@@ -250,7 +252,7 @@ mod test {
         let from: Vec<RepoNameWithTags> = from.into_iter().map(From::from).collect();
 
         assert_eq!(benchmark_name, "select");
-        assert_eq!(measurement_method, measurement::Time {}.into());
+        assert_eq!(measurement_method, MeasurementMethod::Time);
 
         assert!(matches!(plot_kind, PlotKind::Series { .. }));
         match plot_kind {

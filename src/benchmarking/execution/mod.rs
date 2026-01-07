@@ -5,10 +5,13 @@
 
 use std::str::FromStr;
 
+use crate::benchmarking::execution::measurer::{MeasurementError, Measurer, MeasuringEquipment};
 use crate::command::{Command, CommandParsingError};
 use crate::database::utilities::BenchmarkRecord;
-use crate::measurement::{MeasurementError, MeasurementMethod, MeasuringEquipment};
+use crate::measurement::MeasurementMethod;
 use crate::utilities::BenchmarkPoint;
+
+pub mod measurer;
 
 /// This is a token proving that the code being executed was compiled earlier.
 /// Getting this from outside of this module happens only by invoking `build_source`.
@@ -49,8 +52,7 @@ pub fn build_source(build_command: &str) -> Result<BuiltSource, CompileError> {
 
 #[derive(Debug)]
 pub struct Executor {
-    measure: MeasurementMethod,
-    run_command: Command,
+    measurer: Measurer,
 }
 
 impl Executor {
@@ -61,31 +63,28 @@ impl Executor {
     ) -> Result<Executor, CommandParsingError> {
         let run_command = Command::from_str(run_command_str)?;
         Ok(Executor {
-            measure,
-            run_command,
+            measurer: Measurer::new(measure, run_command),
         })
     }
 
     pub fn execute_with_timeout(
         &self,
-        param: BenchmarkPoint,
+        point: BenchmarkPoint,
         timeout: std::time::Duration,
     ) -> Result<BenchmarkRecord, MeasurementError> {
-        let full_run_command = self.run_command.clone().with_arg(param.to_string());
-        self.measure.execute_with_timeout(full_run_command, timeout)
+        self.measurer.execute_with_timeout(point, timeout)
     }
 
-    pub fn execute(&self, param: BenchmarkPoint) -> Result<BenchmarkRecord, MeasurementError> {
-        let full_run_command = self.run_command.clone().with_arg(param.to_string());
-        self.measure.execute(full_run_command)
+    pub fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, MeasurementError> {
+        self.measurer.execute(point)
     }
 }
 
 #[cfg(test)]
 mod test {
     use crate::{
-        benchmarking::execution::BuiltSource,
-        measurement::{self, MeasurementError},
+        benchmarking::execution::{BuiltSource, measurer::MeasurementError},
+        measurement::MeasurementMethod,
     };
 
     use super::Executor;
@@ -95,7 +94,7 @@ mod test {
         let executor = Executor::new(
             BuiltSource::new_unchecked(),
             "git fail",
-            measurement::Time {}.into(),
+            MeasurementMethod::Time,
         )
         .unwrap();
         let error = executor.execute(0).unwrap_err();
@@ -107,7 +106,7 @@ mod test {
         let executor = Executor::new(
             BuiltSource::new_unchecked(),
             "sleep",
-            measurement::Time {}.into(),
+            MeasurementMethod::Time,
         )
         .unwrap();
         let output = executor
@@ -120,7 +119,7 @@ mod test {
         let executor = Executor::new(
             BuiltSource::new_unchecked(),
             "sleep",
-            measurement::Time {}.into(),
+            MeasurementMethod::Time,
         )
         .unwrap();
         let output = executor

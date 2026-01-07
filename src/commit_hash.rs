@@ -1,5 +1,4 @@
 use crate::cmd;
-use crate::command::Command;
 use std::env;
 use std::path::Path;
 

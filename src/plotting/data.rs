@@ -223,7 +223,7 @@ mod tests {
             file,
             vec![config1, config2],
             vec![commit_hash_1, commit_hash_2, commit_hash_3],
-            measurement::Time {}.into(),
+            MeasurementMethod::Time,
         )
     }
 

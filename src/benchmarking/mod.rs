@@ -1,10 +1,11 @@
 mod execution;
 
 use crate::benchmarking::execution::CompileError;
+use crate::benchmarking::execution::measurer::MeasurementError;
 use crate::command::CommandParsingError;
 use crate::commit_hash::CommitHash;
 use crate::database::utilities::BenchmarkFilters;
-use crate::measurement::{MeasurementError, MeasurementMethod};
+use crate::measurement::MeasurementMethod;
 use crate::utilities::{BenchmarkMode, BenchmarkParamsBuilder, BenchmarkPoint};
 use execution::{Executor, build_source};
 
@@ -60,11 +61,8 @@ pub fn benchmark(
         data: benchmark_data,
     } = benchmark_config;
 
-    let param_generator = BenchmarkParamsBuilder::new(
-        commit_hash.clone(),
-        benchmark_name.clone(),
-        measurement_method.to_string(),
-    );
+    let param_generator =
+        BenchmarkParamsBuilder::new(commit_hash, benchmark_name, measurement_method.to_string());
 
     let points = filter_points(
         database,
@@ -82,7 +80,7 @@ pub fn benchmark(
     let executor = Executor::new(
         built_source,
         &backend_config.run_command,
-        measurement_method.clone(),
+        measurement_method,
     )?;
 
     let execute = |point| {
