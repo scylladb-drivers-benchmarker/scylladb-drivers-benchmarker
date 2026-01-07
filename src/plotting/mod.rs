@@ -34,7 +34,7 @@ pub enum OutputFormat {
     Svg,
 }
 
-fn render<P: Plot>(plot: P, output: &str, format: OutputFormat) -> Result<(), PlotError> {
+fn plot_on_backend<P: Plot>(plot: P, output: &str, format: OutputFormat) -> Result<(), PlotError> {
     let extension = output.rsplit('.').next().unwrap_or("").to_string();
 
     match format {
@@ -86,7 +86,7 @@ pub fn plot(
                 visualization_kind,
             )?;
 
-            render(plot, output, format)
+            plot_on_backend(plot, output, format)
         }
 
         PlotKind::Flamegraph => {
@@ -100,7 +100,7 @@ pub fn plot(
             //     names,
             // )?;
 
-            // render(plot, output, format)
+            // plot_on_backend(plot, output, format)
         }
     }
 }
@@ -149,7 +149,7 @@ mod tests {
         let mut tmp_path = NamedTempFile::new().unwrap().path().to_path_buf();
         tmp_path.set_extension("png");
         let path_png = tmp_path.to_str().unwrap();
-        let result = render(plot, path_png, OutputFormat::Png);
+        let result = plot_on_backend(plot, path_png, OutputFormat::Png);
         assert!(result.is_ok());
     }
 
@@ -172,7 +172,7 @@ mod tests {
         )
         .unwrap();
 
-        let result = render(
+        let result = plot_on_backend(
             plot,
             "/this/path/should/not/exist/lmao.png",
             OutputFormat::Png,
@@ -212,7 +212,7 @@ mod tests {
         )
         .unwrap();
 
-        let result = render(plot, "no_write.png", OutputFormat::Png);
+        let result = plot_on_backend(plot, "no_write.png", OutputFormat::Png);
 
         assert!(matches!(result.unwrap_err(), PlotError::Plotters(msg)
         if msg == "backend error: Drawing backend error: ImageError(IoError(Os { code: 13, kind: PermissionDenied, message: \"Permission denied\" }))"));
@@ -245,7 +245,7 @@ mod tests {
         let mut tmp_path = NamedTempFile::new().unwrap().path().to_path_buf();
         tmp_path.set_extension("svg");
         let path_png = tmp_path.to_str().unwrap();
-        let result = render(plot, path_png, OutputFormat::Png);
+        let result = plot_on_backend(plot, path_png, OutputFormat::Png);
 
         assert!(
             matches!(result.unwrap_err(), PlotError::IncompatibleFileExtension { extension, format} 
