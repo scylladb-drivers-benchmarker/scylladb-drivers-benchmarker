@@ -1,13 +1,14 @@
-mod execution;
+mod executor;
 
-use crate::benchmarking::execution::CompileError;
-use crate::benchmarking::execution::measurer::MeasurementError;
-use crate::command::CommandParsingError;
+use std::str::FromStr;
+
+use crate::benchmarking::executor::{CompileError, Executor, MeasurementError, MeasuringEquipment};
+use crate::command::{Command, CommandParsingError};
 use crate::commit_hash::CommitHash;
 use crate::database::utilities::BenchmarkFilters;
 use crate::measurement::MeasurementMethod;
 use crate::utilities::{BenchmarkMode, BenchmarkParamsBuilder, BenchmarkPoint};
-use execution::{Executor, build_source};
+use executor::build_source;
 
 use crate::config::{backend::BackendConfig, benchmark::BenchmarkConfig};
 
@@ -79,9 +80,9 @@ pub fn benchmark(
 
     let executor = Executor::new(
         built_source,
-        &backend_config.run_command,
         measurement_method,
-    )?;
+        Command::from_str(&backend_config.run_command)?,
+    );
 
     let execute = |point| {
         if let Some(timeout) = benchmark_data.timeout {
