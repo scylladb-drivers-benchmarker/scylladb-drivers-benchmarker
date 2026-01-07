@@ -6,12 +6,6 @@ use std::error::Error;
 pub enum PlotError {
     Database(#[from] DatabaseError),
 
-    #[error(desc = "visualization kinds do not apply to flamegraph")]
-    UnexpectedVisualizationKind(),
-
-    #[error(desc = "unknown measurement method")]
-    UnknownMeasureKind(String),
-
     SerdeJson(#[from] serde_json::Error),
 
     #[error(desc = "Plotters error")]
