@@ -73,7 +73,7 @@ impl Database {
     /// "WHERE commit_hash IN (...) AND benchmark_name IN (...) ..."
     /// or empty string if no filters.
     fn data_filtration(&self, filters: &BenchmarkFilters) -> String {
-        // Helper function to build in cluase for one column.
+        // Helper function to build in clause for one column.
         fn build_in_clause<T: ToString>(column_name: &str, values: &[T]) -> Option<String> {
             if values.is_empty() {
                 return None;
