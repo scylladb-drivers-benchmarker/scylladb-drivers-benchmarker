@@ -1,0 +1,28 @@
+use std::process::Output;
+
+use assert_cmd::cargo;
+
+pub fn sdb_command() -> std::process::Command {
+    std::process::Command::new(cargo::cargo_bin!("scylladb-drivers-benchmarker"))
+}
+
+pub fn run(cmd: &mut std::process::Command) -> Output {
+    run_safe(cmd, |output: &Output| output.status.success())
+}
+
+pub fn run_safe(cmd: &mut std::process::Command, werifier: impl Fn(&Output) -> bool) -> Output {
+    let wrong_output = format!(
+        "Command: {:?} {:?} failed",
+        cmd.get_program(),
+        cmd.get_args()
+    );
+
+    let output = cmd.output().expect(&wrong_output);
+    if !werifier(&output) {
+        println!("{}", wrong_output);
+        println!("stdout:\n{}", String::from_utf8_lossy(&output.stdout));
+        println!("stderr:\n{}", String::from_utf8_lossy(&output.stderr));
+        panic!("failed");
+    }
+    output
+}

@@ -1,6 +1,5 @@
-use std::{env, fs::File, io::Write, path::Path};
+use std::{fs::File, io::Write, path::Path};
 
-use assert_cmd::cargo;
 use scylladb_drivers_benchmarker::{
     commit_hash::CommitHash,
     database::utilities::{BenchmarkParams, BenchmarkRecord},
@@ -8,41 +7,27 @@ use scylladb_drivers_benchmarker::{
 };
 use serial_test::file_serial;
 
+use crate::common::{run, run_safe, sdb_command};
+
+mod common;
+
 fn setup_git(repo: &str) {
     if Path::new(&(repo.to_owned() + "/.git/")).is_dir() {
         return;
     }
 
-    assert!(
-        std::process::Command::new("git")
-            .current_dir(repo)
-            .arg("init")
-            .output()
-            .unwrap()
-            .status
-            .success()
-    );
-    assert!(
-        std::process::Command::new("git")
-            .current_dir(repo)
-            .arg("add")
-            .arg("-A")
-            .output()
-            .unwrap()
-            .status
-            .success()
-    );
-    assert!(
-        std::process::Command::new("git")
-            .current_dir(repo)
-            .arg("commit")
-            .arg("-m")
-            .arg("\"initial\"")
-            .output()
-            .unwrap()
-            .status
-            .success()
-    );
+    run(std::process::Command::new("git")
+        .current_dir(repo)
+        .arg("init"));
+    run(std::process::Command::new("git")
+        .current_dir(repo)
+        .arg("add")
+        .arg("-A"));
+    run(std::process::Command::new("git")
+        .current_dir(repo)
+        .arg("commit")
+        .arg("-m")
+        .arg("\"initial\""));
 }
 
 fn check_data(
@@ -85,21 +70,10 @@ impl CppVsRust {
     }
 
     fn gather_data(&self, path: &str, command: &mut std::process::Command) -> CommitHash {
-        let output = command.current_dir(path).output().unwrap();
-        if !output.status.success() || !output.stdout.is_empty() || !output.stderr.is_empty() {
-            println!(
-                "my_stdout: {}",
-                String::from_utf8_lossy(output.stdout.as_slice())
-            );
-            println!(
-                "my_stderr: {}",
-                String::from_utf8_lossy(output.stderr.as_slice())
-            );
-            println!("{}", path);
-            assert!(output.status.success());
-            assert!(output.stdout.is_empty());
-            assert!(output.stderr.is_empty());
-        }
+        run_safe(command.current_dir(path), |output| {
+            output.status.success() && output.stdout.is_empty() && output.stderr.is_empty()
+        });
+
         CommitHash::new(Path::new(path), "HEAD".to_owned()).unwrap()
     }
 
@@ -122,10 +96,6 @@ impl CppVsRust {
             .map(Clone::clone);
         check_data(&hash_rust, data_rust);
     }
-}
-
-fn sdb_command() -> std::process::Command {
-    std::process::Command::new(cargo::cargo_bin!("scylladb-drivers-benchmarker"))
 }
 
 // Compiling rust by two tests in parallel sometimes fails.

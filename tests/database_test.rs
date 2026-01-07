@@ -1,4 +1,3 @@
-use assert_cmd::cargo;
 use scylladb_drivers_benchmarker::{
     commit_hash::CommitHash,
     database::utilities::{BenchmarkParams, BenchmarkRecord},
@@ -9,19 +8,13 @@ use std::io::Write;
 use std::path::Path;
 use tempfile::NamedTempFile;
 
+use crate::common::{run, sdb_command};
+
+mod common;
+
+// TODO: eliminate this
 fn run_bin(args: &[&str]) -> String {
-    let bin = cargo::cargo_bin!("scylladb-drivers-benchmarker");
-    let output = std::process::Command::new(bin)
-        .args(args)
-        .output()
-        .expect("Failed to run binary");
-
-    if !output.status.success() {
-        println!("stdout:\n{}", String::from_utf8_lossy(&output.stdout));
-        println!("stderr:\n{}", String::from_utf8_lossy(&output.stderr));
-        panic!("Binary failed");
-    }
-
+    let output = run(sdb_command().args(args));
     String::from_utf8_lossy(&output.stdout).to_string()
 }
 
