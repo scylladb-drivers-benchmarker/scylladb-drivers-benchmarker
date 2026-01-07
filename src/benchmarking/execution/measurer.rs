@@ -16,11 +16,13 @@ use crate::{
 pub enum MeasurementError {
     #[error(fmt = debug)]
     ExecutionFailed(Output),
-    // no documentation for how and when this error is thrown in Command.output
+    /// I named it such as no documentation is provided for how and when
+    /// this error is thrown by Command.output.
     RustFailed(#[from] io::Error),
     WrongOutputFormat(#[from] std::string::FromUtf8Error),
 }
 
+/// The measurer collects data according to its internals (time, perf, ...)
 #[enum_dispatch(Measurer)]
 pub trait MeasuringEquipment {
     fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, MeasurementError>;
@@ -31,6 +33,8 @@ pub trait MeasuringEquipment {
     ) -> Result<BenchmarkRecord, MeasurementError>;
 }
 
+/// Currently command is the only measurer, once a more complicated one 
+/// is needed (eg. for Flamegraph) it should be added here
 #[enum_dispatch]
 #[derive(Debug)]
 pub(crate) enum Measurer {
