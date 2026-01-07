@@ -7,7 +7,7 @@ use std::time::Duration;
 use enum_dispatch::enum_dispatch;
 
 use crate::cmd;
-use crate::command::{Command, CommandParsingError};
+use crate::command::{Command, CommandParsingError, OutputWithTimeout};
 use crate::database::utilities::BenchmarkRecord;
 
 #[justerror::Error(desc = "measuring failed")]
@@ -45,7 +45,7 @@ fn handle_output(output: Output) -> Result<BenchmarkRecord, MeasurementError> {
 
 impl<T: MeasuringCommand + Debug + Clone + Display + Eq> MeasuringEquipment for T {
     fn execute(&self, cmd: Command) -> Result<BenchmarkRecord, MeasurementError> {
-        handle_output(self.to_command().with_cmd_arg(cmd).output()?)
+        handle_output(self.to_command().with_cmd_arg(cmd).process().output()?)
     }
 
     fn execute_with_timeout(
@@ -55,6 +55,7 @@ impl<T: MeasuringCommand + Debug + Clone + Display + Eq> MeasuringEquipment for 
     ) -> Result<BenchmarkRecord, MeasurementError> {
         self.to_command()
             .with_cmd_arg(cmd)
+            .process()
             .output_with_timeout(timeout)?
             .map(handle_output)
             .unwrap_or(Ok(BenchmarkRecord::Timeout))

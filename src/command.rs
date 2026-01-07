@@ -1,5 +1,6 @@
 use core::fmt;
 use std::io::{BufReader, Read};
+use std::process;
 use std::str::FromStr;
 use wait_timeout::ChildExt;
 
@@ -99,13 +100,21 @@ impl Command {
         command.args(self.arguments);
         command
     }
+}
 
-    pub fn output_with_timeout(
-        self,
+pub trait OutputWithTimeout {
+    fn output_with_timeout(
+        &mut self,
+        timeout: std::time::Duration,
+    ) -> Result<Option<std::process::Output>, std::io::Error>;
+}
+
+impl OutputWithTimeout for process::Command {
+    fn output_with_timeout(
+        &mut self,
         timeout: std::time::Duration,
     ) -> Result<Option<std::process::Output>, std::io::Error> {
         let mut child: std::process::Child = self
-            .process()
             .stdin(std::process::Stdio::null())
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
@@ -126,10 +135,6 @@ impl Command {
             stdout,
             stderr,
         }))
-    }
-
-    pub fn output(self) -> Result<std::process::Output, std::io::Error> {
-        self.process().output()
     }
 }
 
