@@ -43,7 +43,7 @@ impl CommitHash {
         })
     }
 
-    // Helper function, which takes command returning directly commit hash.
+    // Helper function, returns the source of the error without the context.
     fn from_git_inner(command: &mut process::Command) -> Result<CommitHash, ErrorSource> {
         let output = command.output()?;
 
