@@ -53,6 +53,25 @@ impl PerfStatData {
     }
 }
 
+
+// Check if in PerfStatData expr is detected with given value and unit.
+#[cfg(test)]
+macro_rules! assert_perf {
+    ($data:expr, $event:expr, $expected_val:expr, $expected_unit:expr) => {
+        let metric = $data.filter_value($event)
+            .expect(&format!("Event '{}' not found", $event));
+        assert!(
+            (metric.value - $expected_val).abs() < 1e-6,
+            "Event '{}' value mismatch: expected {}, got {}", 
+            $event, $expected_val, metric.value
+        );
+        assert_eq!(
+            metric.unit, $expected_unit, 
+            "Event '{}' unit mismatch", $event
+        );
+    };
+}
+
 #[test]
 fn test_perfstat_filter() {
     let data = r#"
@@ -61,26 +80,10 @@ fn test_perfstat_filter() {
 {"counter-value":"<not counted>","unit":"","event":"cpu_atom/cycles/","event-runtime":0,"pcnt-running":0.00,"metric-value":"0,000000","metric-unit":""}
 {"counter-value":"1461835,000000","unit":"","event":"cpu_core/cycles/","event-runtime":374411,"pcnt-running":100.00,"metric-value":"3,904359","metric-unit":"GHz"}
 "#;
-    // TODO macro
     let perf_data: PerfStatData = data.parse().unwrap();
 
-    // task-clock
-    let task_clock = perf_data.filter_value("task-clock").unwrap();
-    assert!((task_clock.value - 0.000374).abs() < 1e-6);
-    assert_eq!(task_clock.unit, "CPUs utilized");
-
-    // context-switches
-    let context_switch = perf_data.filter_value("context-switches").unwrap();
-    assert!((context_switch.value - 2.670862).abs() < 1e-6);
-    assert_eq!(context_switch.unit, "K/sec");
-
-    // cpu_atom/cycles/
-    let cpu_atom = perf_data.filter_value("cpu_atom/cycles/").unwrap();
-    assert!((cpu_atom.value - 0.0).abs() < 1e-6);
-    assert_eq!(cpu_atom.unit, "");
-
-    // cpu_core/cycles/
-    let cpu_core = perf_data.filter_value("cpu_core/cycles/").unwrap();
-    assert!((cpu_core.value - 3.904359).abs() < 1e-6);
-    assert_eq!(cpu_core.unit, "GHz");
+    assert_perf!(perf_data, "task-clock", 0.000374, "CPUs utilized");
+    assert_perf!(perf_data, "context-switches", 2.670862, "K/sec");
+    assert_perf!(perf_data, "cpu_atom/cycles/", 0.0, "");
+    assert_perf!(perf_data, "cpu_core/cycles/", 3.904359, "GHz");
 }
