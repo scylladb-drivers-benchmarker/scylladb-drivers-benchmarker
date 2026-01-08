@@ -70,7 +70,7 @@ impl CommitHash {
     }
 
     pub fn from_current_repository() -> Result<CommitHash, CommitHashError> {
-        Self::from_git_command(&mut cmd!("git", "rev-parse", "--verify").process())
+        Self::from_git_command(&mut cmd!("git", "rev-parse", "--verify", "HEAD").process())
     }
 
     pub fn from_git_command(command: &mut process::Command) -> Result<CommitHash, CommitHashError> {
