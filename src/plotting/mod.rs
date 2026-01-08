@@ -111,11 +111,9 @@ pub fn plot(
         }
 
         PlotKind::PerfStat { events } => {
-            events
-                .into_iter()
-                .try_for_each(|event| -> Result<(), PlotError> {
-                    todo!() // plot for event
-                })
+            events.into_iter().try_for_each(|_event| -> Result<(), PlotError> {
+                todo!()  // plot for event
+            })
         }
     }
 }

@@ -1,24 +1,17 @@
 use crate::cmd;
+use crate::command::PrintableOutput;
 use std::env;
-use std::path::Path;
+use std::fmt::Display;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CommitHash {
     value: String,
 }
 
-impl From<CommitHash> for String {
-    /// Converts a commit hash to a string
-    /// ```
-    /// # use scylladb_drivers_benchmarker::commit_hash::CommitHash;
-    /// # use std::convert::From;
-    /// let commit_hash = CommitHash::from_current_repository().unwrap();
-    /// let stringified: String = String::from(commit_hash);
-    ///
-    /// println!("{}", stringified);
-    /// ```
-    fn from(value: CommitHash) -> Self {
-        value.value
+impl Display for CommitHash {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.value.fmt(f)
     }
 }
 
@@ -28,15 +21,18 @@ pub enum CommitHashError {
         #[from]
         source: std::io::Error,
     },
-    GitCommandFailure(String),
+    GitCommandFailure {
+        command: &'static str,
+        commit: String,
+        output: PrintableOutput,
+        path: PathBuf
+    },
     InvalidUtf8 {
         #[from]
         source: std::string::FromUtf8Error,
     },
     #[error(desc = "Git returned an invalid commit hash")]
-    InvalidHash {
-        hash: String,
-    },
+    InvalidHash { hash: String },
 }
 
 impl CommitHash {
@@ -55,11 +51,12 @@ impl CommitHash {
             .output()?;
 
         if !output.status.success() {
-            return Err(CommitHashError::GitCommandFailure(format!(
-                "git rev-parse failed for '{}': {}",
+            return Err(CommitHashError::GitCommandFailure {
+                command: "rev-parse",
                 commit,
-                String::from_utf8_lossy(&output.stderr)
-            )));
+                output: output.into(),
+                path: path.to_owned()
+            });
         }
 
         let mut value = String::from_utf8(output.stdout)?;
@@ -105,7 +102,7 @@ mod test {
         )
         .unwrap_err();
 
-        let CommitHashError::GitCommandFailure(_) = error else {
+        let CommitHashError::GitCommandFailure{..} = error else {
             panic!("git should have failed on invalid commit/branch/.. name");
         };
     }

@@ -125,7 +125,7 @@ pub fn format_entry(params: &BenchmarkParams, record: &BenchmarkRecord) -> Strin
     out.push_str("--- Benchmark Entry ---\n");
     out.push_str(&format!(
         "Commit Hash:         {}\n",
-        String::from(params.commit_hash.clone())
+        params.commit_hash.to_string()
     ));
     out.push_str(&format!("Benchmark Name:      {}\n", params.benchmark_name));
     out.push_str(&format!(
