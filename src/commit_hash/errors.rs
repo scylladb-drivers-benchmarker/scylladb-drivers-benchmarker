@@ -9,7 +9,7 @@ impl Display for RepoPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.0 {
             Some(path) => path.display().fmt(f),
-            None => Ok(()),
+            None => write!(f, "unspecified(current)"),
         }
     }
 }
@@ -17,7 +17,7 @@ impl Display for RepoPath {
 #[justerror::Error(desc = "Failed to retrieve commit hash")]
 pub struct Error {
     pub command: command::Command,
-    pub repo: RepoPath,
+    pub repo_path: RepoPath,
     #[source]
     pub source: ErrorSource,
 }
