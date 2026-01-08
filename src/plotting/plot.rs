@@ -17,8 +17,10 @@ const X_LABEL_AREA_SIZE: u32 = 30;
 const Y_LABEL_AREA_SIZE: u32 = 40;
 
 const FONT_FAMILY: &str = "sans-serif";
-const FONT_SIZE: u32 = 40;
-const FONT: (&str, u32) = (FONT_FAMILY, FONT_SIZE);
+const TITLE_FONT_SIZE: u32 = 40;
+const TITLE_FONT: (&str, u32) = (FONT_FAMILY, TITLE_FONT_SIZE);
+const CAPTION_FONT_SIZE: u32 = 24;
+const CAPTION_FONT: (&str, u32) = (FONT_FAMILY, CAPTION_FONT_SIZE);
 
 const BACKGROUND_COLOR: RGBColor = WHITE;
 const LEGEND_BORDER_COLOR: RGBColor = BLACK;
@@ -121,8 +123,12 @@ impl Plot for SeriesPlot {
         let (y_min, y_max) =
             calc_min_max(self.results.iter().filter_map(|r| r.range())).unwrap_or((0.0, 1.0));
 
-        let mut chart = ChartBuilder::on(&root)
-            .caption(format!("Benchmark {} Results", &self.benchmark_name), FONT)
+        let plot_area = root.titled(
+            &format!("Benchmark {} Results", &self.benchmark_name),
+            TITLE_FONT,
+        )?;
+
+        let mut chart = ChartBuilder::on(&plot_area)
             .margin(MARGIN_SIZE)
             .x_label_area_size(X_LABEL_AREA_SIZE)
             .y_label_area_size(Y_LABEL_AREA_SIZE)
@@ -227,7 +233,17 @@ impl Plot for PerfStatPlot {
         let root = DrawingArea::from(backend);
         root.fill(&BACKGROUND_COLOR)?;
 
-        let subareas = root.split_evenly((self.events.len(), 1));
+        let (title_legend_area, plot_area) = root.split_vertically(20);
+
+        let legend_area = title_legend_area.titled(
+            &format!("Benchmark {} Results", &self.benchmark_name),
+            TITLE_FONT,
+        )?;
+
+        // Somehow plot legend_area; has to be done experimentally, currently no way to do it properly.
+        // For now each subplot has its own legend.
+
+        let subareas = plot_area.split_evenly((self.events.len(), 1));
 
         let mut charts: Vec<_> = subareas
             .into_iter()
@@ -246,12 +262,12 @@ impl Plot for PerfStatPlot {
                 let (y_min, y_max) = self
                     .results
                     .iter()
-                    .filter_map(|r| r.ranges()[id].map(|(min, max)| (min, max)))
+                    .filter_map(|r| r.ranges()[id])
                     .reduce(|acc, r| (acc.0.min(r.0), acc.1.max(r.1)))
                     .unwrap_or((0.0, 1.0));
 
                 ChartBuilder::on(&area)
-                    .caption(self.events[id].clone(), FONT)
+                    .caption(self.events[id].clone(), CAPTION_FONT)
                     .margin(MARGIN_SIZE)
                     .x_label_area_size(X_LABEL_AREA_SIZE)
                     .y_label_area_size(Y_LABEL_AREA_SIZE)
