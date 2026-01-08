@@ -60,7 +60,7 @@ impl BenchmarkFilters {
 
     pub fn filter_exact_param(params: &BenchmarkParams) -> Self {
         BenchmarkFilters {
-            commit_hashes: vec![String::from(params.commit_hash.clone())],
+            commit_hashes: vec![params.commit_hash.clone().to_string()],
             benchmark_names: vec![params.benchmark_name.clone()],
             benchmark_points: vec![params.benchmark_point],
             measurement_methods: vec![params.measurement_method.clone()],

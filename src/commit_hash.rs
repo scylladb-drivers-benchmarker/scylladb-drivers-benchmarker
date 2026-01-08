@@ -7,18 +7,9 @@ pub struct CommitHash {
     value: String,
 }
 
-impl From<CommitHash> for String {
-    /// Converts a commit hash to a string
-    /// ```
-    /// # use scylladb_drivers_benchmarker::commit_hash::CommitHash;
-    /// # use std::convert::From;
-    /// let commit_hash = CommitHash::from_current_repository().unwrap();
-    /// let stringified: String = String::from(commit_hash);
-    ///
-    /// println!("{}", stringified);
-    /// ```
-    fn from(value: CommitHash) -> Self {
-        value.value
+impl Display for CommitHash {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.value.fmt(f)
     }
 }
 
