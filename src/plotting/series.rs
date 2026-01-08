@@ -96,9 +96,9 @@ pub fn calc_min_max(iter: impl Iterator<Item = (f64, f64)>) -> Option<(f64, f64)
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde::Deserialize;
+    use std::str::FromStr;
 
-    #[derive(Clone, Debug, PartialOrd, Deserialize)]
+    #[derive(Clone, Debug, PartialOrd)]
     struct Dummy(f64);
 
     impl From<Dummy> for f64 {
@@ -110,6 +110,16 @@ mod tests {
     impl PartialEq for Dummy {
         fn eq(&self, other: &Self) -> bool {
             self.0 == other.0
+        }
+    }
+
+    impl FromStr for Dummy {
+        type Err = ();
+
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            s.parse::<f64>()
+                .map(Dummy)
+                .map_err(|_| ())
         }
     }
 

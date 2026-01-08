@@ -6,7 +6,7 @@ use std::error::Error;
 pub enum PlotError {
     Database(#[from] DatabaseError),
 
-    SerdeJson(#[from] serde_json::Error),
+    InvalidData(String),
 
     #[error(desc = "Plotters error")]
     Plotters(String),

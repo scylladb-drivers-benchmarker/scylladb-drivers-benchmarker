@@ -124,10 +124,10 @@ pub fn plot(
 mod tests {
     use super::*;
     use data::BenchmarkDataset;
-    use serde::Deserialize;
+    use std::str::FromStr;
     use tempfile::NamedTempFile;
 
-    #[derive(Clone, Debug, PartialOrd, Deserialize)]
+    #[derive(Clone, Debug, PartialOrd)]
     struct Dummy(f64);
 
     impl From<Dummy> for f64 {
@@ -139,6 +139,16 @@ mod tests {
     impl PartialEq for Dummy {
         fn eq(&self, other: &Self) -> bool {
             self.0 == other.0
+        }
+    }
+
+    impl FromStr for Dummy {
+        type Err = ();
+
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            s.parse::<f64>()
+                .map(Dummy)
+                .map_err(|_| ())
         }
     }
 

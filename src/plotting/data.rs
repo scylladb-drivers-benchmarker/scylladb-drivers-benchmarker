@@ -4,23 +4,17 @@ use crate::database::Database;
 use crate::database::utilities::BenchmarkParams;
 use crate::measurement::MeasurementMethod;
 use crate::utilities::{BenchmarkPoint, FlatBenchmarkRecord};
-use serde::de::DeserializeOwned;
+use std::str::FromStr;
 use std::fmt::Debug;
 
 use super::error::PlotError;
 
-pub(crate) trait PlottableValue: Sized + Debug + Clone {
-    fn from_json(s: &str) -> Option<Self>;
-}
+pub(crate) trait PlottableValue: Sized + Debug + Clone + FromStr {}
 
 impl<T> PlottableValue for T
 where
-    T: DeserializeOwned + Sized + Debug + Clone,
-{
-    fn from_json(s: &str) -> Option<Self> {
-        serde_json::from_str(s).ok()
-    }
-}
+    T: FromStr + Sized + Debug + Clone
+{}
 
 #[derive(Debug)]
 pub(crate) struct BenchmarkDataset<T: PlottableValue> {
@@ -81,7 +75,11 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
             let params = benchmark_params(point);
 
             match database.get_result(params)?.map(|r| r.flatten()) {
-                Some(FlatBenchmarkRecord::Data(text)) => results.push(T::from_json(&text)),
+                Some(FlatBenchmarkRecord::Data(text)) => {
+                    let value = T::from_str(&text)
+                        .map_err(|_| PlotError::InvalidData(text.clone()))?;
+                    results.push(Some(value));
+                },
                 Some(FlatBenchmarkRecord::Timeout) => results.push(None),
                 None => missing.push(point), // This invalidates the result, but for better errors, we continue
             }

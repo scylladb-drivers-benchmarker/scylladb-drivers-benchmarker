@@ -4,10 +4,11 @@ use super::BenchmarkConfig;
 use super::CommitHash;
 use super::data::BenchmarkDataset;
 use super::error::PlotError;
-use super::render::{Renderable, RenderableSeries};
+use super::render::{Renderable, RenderableSeries, RenderablePerfStat};
 use super::series::{LinearSeries, LogSeries, SeriesValue, ValueTransformation, calc_min_max};
 use crate::Database;
 use crate::measurement::MeasurementMethod;
+use crate::perf_stat::PerfStatData;
 
 use plotters::prelude::*;
 
@@ -33,8 +34,14 @@ pub(crate) struct SeriesPlot {
     pub results: Vec<RenderableSeries>,
 }
 
+pub(crate) struct PerfStatPlot {
+    pub benchmark_name: String,
+    pub events: Vec<String>,
+    pub results: Vec<RenderablePerfStat>,
+}
+
 impl SeriesPlot {
-    pub(crate) fn new(benchmark_name: String, results: Vec<RenderableSeries>) -> Self {
+    fn new(benchmark_name: String, results: Vec<RenderableSeries>) -> Self {
         SeriesPlot {
             benchmark_name,
             results,
@@ -72,7 +79,8 @@ impl SeriesPlot {
 
         Ok(SeriesPlot::new(benchmark_name, results))
     }
-    pub fn build(
+
+    pub(crate) fn build(
         database: &Database,
         benchmark_name: &str,
         benchmark_config: &BenchmarkConfig,
@@ -122,10 +130,6 @@ impl Plot for SeriesPlot {
 
         chart.configure_mesh().draw()?;
 
-        for series in &self.results {
-            series.add_to_plot(&mut chart)?;
-        }
-
         chart
             .configure_series_labels()
             .position(SeriesLabelPosition::MiddleRight)
@@ -133,8 +137,123 @@ impl Plot for SeriesPlot {
             .background_style(BACKGROUND_COLOR)
             .draw()?;
 
+        let mut charts: [ChartContext<_, _>; 1] = [chart];
+        for series in &self.results {
+            series.add_to_plot(&mut charts)?;
+        }
+
         root.present()?;
 
+        Ok(())
+    }
+}
+
+impl PerfStatPlot {
+    fn new(
+        benchmark_name: String,
+        events: Vec<String>,
+        results: Vec<RenderablePerfStat>,
+    ) -> Self {
+        PerfStatPlot {
+            benchmark_name,
+            events,
+            results,
+        }
+    }
+
+    pub(crate) fn from_dataset(
+        dataset: BenchmarkDataset<PerfStatData>,
+        benchmark_name: String,
+        names: &[String],
+        events: Vec<String>,
+    ) -> Result<Self, PlotError> {
+        let mut results = Vec::new();
+    
+        for (id, (name, values)) in names.iter().zip(dataset.results.into_iter()).enumerate()
+        {
+            let values_per_event: Vec<Vec<Option<f64>>> = events
+                .iter()
+                .map(|event_name| {
+                    values
+                        .iter()
+                        .map(|data| {
+                            data.as_ref().and_then(|perfstat| {
+                                perfstat.filter_value(event_name).map(|e| e.value)
+                            })
+                        })
+                        .collect::<Vec<Option<f64>>>()
+                })
+                .collect();
+
+            let color = Palette99::pick(id);
+
+            let ranges = values_per_event
+                .iter()
+                .map(|vals| calc_min_max(vals.iter().filter_map(|&v| v.map(|val| (val, val)))))
+                .collect();
+
+            results.push(RenderablePerfStat::new(
+                name.clone(),
+                dataset.points.clone(),
+                values_per_event,
+                color,
+                ranges
+            ));
+        }
+
+        Ok(PerfStatPlot::new(benchmark_name, events, results))
+    }
+}
+
+impl Plot for PerfStatPlot {
+    fn plot<DB: DrawingBackend>(&self, backend: DB) -> Result<(), PlotError>
+    where
+        DB::ErrorType: 'static,
+    {
+        let root = DrawingArea::from(backend);
+        root.fill(&BACKGROUND_COLOR)?;
+
+        let subareas = root.split_evenly((self.events.len(), 1));
+
+        let mut charts: Vec<_> = subareas
+            .into_iter()
+            .enumerate()
+            .map(|(id, area)| {
+                let x_start = *self
+                    .results
+                    .first()
+                    .and_then(|r| r.points.first())
+                    .unwrap_or(&0);
+                let x_end = *self
+                    .results
+                    .first()
+                    .and_then(|r| r.points.last())
+                    .unwrap_or(&1);
+                let (y_min, y_max) = self
+                    .results
+                    .iter()
+                    .filter_map(|r| r.ranges()[id].map(|(min, max)| (min, max)))
+                    .reduce(|acc, r| (acc.0.min(r.0), acc.1.max(r.1)))
+                    .unwrap_or((0.0, 1.0));
+
+                ChartBuilder::on(&area)
+                    .caption(self.events[id].clone(), FONT)
+                    .margin(MARGIN_SIZE)
+                    .x_label_area_size(X_LABEL_AREA_SIZE)
+                    .y_label_area_size(Y_LABEL_AREA_SIZE)
+                    .build_cartesian_2d(
+                        x_start..x_end,
+                        y_min..y_max,
+                    )
+                    .map_err(|e| PlotError::Plotters(e.to_string()))
+            })
+            .collect::<Result<Vec<_>, PlotError>>()?;
+
+        for r in &self.results {
+            r.add_to_plot(&mut charts)?;
+        }
+
+        root.present()?;
         Ok(())
     }
 }

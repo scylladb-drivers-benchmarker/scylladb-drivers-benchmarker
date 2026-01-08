@@ -25,7 +25,8 @@ pub struct PerfEvent {
     #[serde(rename = "metric-unit")]
     pub unit: String,
 }
-#[derive(Debug)]
+
+#[derive(Debug, Clone)]
 pub struct PerfStatData {
     pub events: Vec<PerfEvent>,
 }
