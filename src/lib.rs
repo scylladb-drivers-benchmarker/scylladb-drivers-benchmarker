@@ -23,6 +23,7 @@ pub mod database;
 pub mod measurement;
 mod plotting;
 pub mod utilities;
+mod perf_stat;
 
 #[justerror::Error]
 pub enum RunBenchmarksError {
