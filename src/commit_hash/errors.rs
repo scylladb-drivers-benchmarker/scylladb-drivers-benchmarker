@@ -2,16 +2,9 @@ use std::{fmt::Display, path::PathBuf};
 
 use crate::command::PrintableOutput;
 
-#[justerror::Error(desc = "Failed to retrieve commit hash")]
-pub struct Error {
-    pub command: String,
-    pub repo: RepoPath,
-    #[source]
-    pub source: ErrorSource,
-}
-
 #[derive(Debug)]
 pub struct RepoPath(pub Option<PathBuf>);
+
 impl Display for RepoPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.0 {
@@ -19,6 +12,14 @@ impl Display for RepoPath {
             None => Ok(()),
         }
     }
+}
+
+#[justerror::Error(desc = "Failed to retrieve commit hash")]
+pub struct Error {
+    pub command: String,
+    pub repo: RepoPath,
+    #[source]
+    pub source: ErrorSource,
 }
 
 #[justerror::Error]

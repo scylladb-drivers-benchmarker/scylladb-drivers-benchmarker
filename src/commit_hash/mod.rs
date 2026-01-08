@@ -1,9 +1,8 @@
 use crate::cmd;
-use crate::command::PrintableOutput;
-use std::ffi::{OsStr, OsString};
-use std::fmt::{Debug, Display, write};
-use std::path::{Path, PathBuf};
-use std::{env, process};
+use std::ffi::OsStr;
+use std::fmt::{Debug, Display};
+use std::path::Path;
+use std::process;
 
 pub mod errors;
 pub use errors::*;
@@ -20,10 +19,6 @@ impl Display for CommitHash {
 }
 
 impl CommitHash {
-    fn validate(value: &str) -> bool {
-        value.chars().all(|c| c.is_ascii_hexdigit()) && (value.len() == 40 || value.len() == 64)
-    }
-
     pub fn new_unchecked(value: String) -> Self {
         CommitHash { value }
     }
@@ -35,6 +30,10 @@ impl CommitHash {
 
     pub fn from_current_repository() -> Result<CommitHash, Error> {
         Self::from_git_command(&mut cmd!("git", "rev-parse", "--verify", "HEAD").process())
+    }
+
+    fn validate(value: &str) -> bool {
+        value.chars().all(|c| c.is_ascii_hexdigit()) && (value.len() == 40 || value.len() == 64)
     }
 
     fn from_git_command(command: &mut process::Command) -> Result<CommitHash, Error> {
@@ -51,6 +50,8 @@ impl CommitHash {
             source,
         })
     }
+
+    // Helper function, which takes command returning directly commit hash.
     fn from_git_inner(command: &mut process::Command) -> Result<CommitHash, ErrorSource> {
         let output = command.output()?;
 
