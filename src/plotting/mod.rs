@@ -32,7 +32,7 @@ pub enum PlotKind {
         #[arg(short, long)]
         #[clap(value_delimiter=',', num_args(1..))]
         events: Vec<String>,
-    }
+    },
 }
 
 #[derive(Debug, Clone, Copy, clap::ValueEnum)]
@@ -111,9 +111,11 @@ pub fn plot(
         }
 
         PlotKind::PerfStat { events } => {
-            events.into_iter().try_for_each(|event| -> Result<(), PlotError> {
-                todo!()  // plot for event
-            })
+            events
+                .into_iter()
+                .try_for_each(|event| -> Result<(), PlotError> {
+                    todo!() // plot for event
+                })
         }
     }
 }

@@ -21,9 +21,9 @@ pub mod commit_hash;
 mod config;
 pub mod database;
 pub mod measurement;
+mod perf_stat;
 mod plotting;
 pub mod utilities;
-mod perf_stat;
 
 #[justerror::Error]
 pub enum RunBenchmarksError {
