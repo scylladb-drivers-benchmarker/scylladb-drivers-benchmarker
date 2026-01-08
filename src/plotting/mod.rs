@@ -26,6 +26,13 @@ pub enum PlotKind {
 
     /// Generate a flamegraph plot
     Flamegraph,
+
+    /// Generate a perf-stat plot
+    PerfStat {
+        #[arg(short, long)]
+        #[clap(value_delimiter=',', num_args(1..))]
+        events: Vec<String>,
+    }
 }
 
 #[derive(Debug, Clone, Copy, clap::ValueEnum)]
@@ -101,6 +108,12 @@ pub fn plot(
             // )?;
 
             // plot_on_backend(plot, output, format)
+        }
+
+        PlotKind::PerfStat { events } => {
+            events.into_iter().try_for_each(|event| -> Result<(), PlotError> {
+                todo!()  // plot for event
+            })
         }
     }
 }
