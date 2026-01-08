@@ -19,7 +19,6 @@ impl Display for CommitHash {
     }
 }
 
-
 impl CommitHash {
     fn validate(value: &str) -> bool {
         value.chars().all(|c| c.is_ascii_hexdigit()) && (value.len() == 40 || value.len() == 64)
@@ -38,7 +37,7 @@ impl CommitHash {
         Self::from_git_command(&mut cmd!("git", "rev-parse", "--verify", "HEAD").process())
     }
 
-    pub fn from_git_command(command: &mut process::Command) -> Result<CommitHash, Error> {
+    fn from_git_command(command: &mut process::Command) -> Result<CommitHash, Error> {
         Self::from_git_inner(command).map_err(|source| Error {
             command: format!(
                 "{} {}",
