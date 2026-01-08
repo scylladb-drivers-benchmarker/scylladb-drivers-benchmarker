@@ -276,7 +276,7 @@ mod tests {
         let result = plot_on_backend(plot, path_png, OutputFormat::Png);
 
         assert!(
-            matches!(result.unwrap_err(), PlotError::IncompatibleFileExtension { extension, format} 
+            matches!(result.unwrap_err(), PlotError::IncompatibleFileExtension { extension, format}
             if extension == "svg" && format == "png")
         );
     }

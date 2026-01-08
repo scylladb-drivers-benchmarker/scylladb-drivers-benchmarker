@@ -1,14 +1,14 @@
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
 use scylladb_drivers_benchmarker::{
-    commit_hash::{CommitHash, CommitHashError},
+    commit_hash::{self, CommitHash},
     utilities::{RepoNameWithTags, RepoPathWithCommits},
 };
 
 #[justerror::Error]
 pub enum RepoNameWithCommitsParsingError {
     PathNotSupplied,
-    HashResolutionFailed(#[from] CommitHashError),
+    HashResolutionFailed(#[from] commit_hash::FailedToRetrieveCommitHash),
     Infallible(#[from] std::convert::Infallible),
 }
 
@@ -53,7 +53,7 @@ pub fn resolve_repo_tags(
         .tags
         .into_iter()
         .map(|commit| CommitHash::new(&repo_path, commit))
-        .collect::<Result<Vec<CommitHash>, CommitHashError>>()?;
+        .collect::<Result<Vec<CommitHash>, commit_hash::FailedToRetrieveCommitHash>>()?;
 
     Ok(RepoPathWithCommits {
         repo_path,

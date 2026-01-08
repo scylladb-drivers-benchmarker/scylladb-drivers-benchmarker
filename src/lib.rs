@@ -3,7 +3,7 @@ use std::path::Path;
 use crate::{
     benchmarking::BenchmarkingError,
     command::CommandParsingError,
-    commit_hash::{CommitHash, CommitHashError},
+    commit_hash::CommitHash,
     config::{ConfigError, find_config},
     database::{Database, DatabaseError},
     measurement::MeasurementMethod,
@@ -30,14 +30,14 @@ pub enum RunBenchmarksError {
     Benchmarking(#[from] BenchmarkingError),
     BenchmarkConfig(#[source] ConfigError),
     BackendConfig(#[source] ConfigError),
-    CommitHash(#[from] CommitHashError),
+    CommitHash(#[from] commit_hash::FailedToRetrieveCommitHash),
 }
 
 #[justerror::Error]
 pub enum PlotBenchmarksError {
     Plotting(#[from] PlotError),
     BenchmarkConfig(#[from] ConfigError),
-    CommitHash(#[from] CommitHashError),
+    CommitHash(#[from] commit_hash::FailedToRetrieveCommitHash),
     CommandParsingError(#[from] CommandParsingError),
 }
 

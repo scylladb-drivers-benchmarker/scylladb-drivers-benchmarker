@@ -1,6 +1,7 @@
 use core::fmt;
+use std::ffi::OsStr;
 use std::fmt::Display;
-use std::io::{BufReader, Read};
+use std::io::{self, BufReader, Read};
 use std::process;
 use std::str::FromStr;
 use wait_timeout::ChildExt;
@@ -55,6 +56,17 @@ impl Command {
         Command {
             program,
             arguments: Vec::new(),
+        }
+    }
+
+    pub fn from_command_lossy(command: &process::Command) -> Self {
+        Command {
+            program: command.get_program().to_string_lossy().to_string(),
+            arguments: command
+                .get_args()
+                .map(OsStr::to_string_lossy)
+                .map(String::from)
+                .collect(),
         }
     }
 
