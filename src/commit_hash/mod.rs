@@ -22,12 +22,12 @@ impl CommitHash {
         CommitHash { value }
     }
 
-    pub fn new(path: &Path, commit: String) -> Result<CommitHash, Error> {
+    pub fn new(path: &Path, commit: String) -> Result<CommitHash, FailedToRetrieveCommitHash> {
         let mut command = cmd!("git", "rev-parse", "--verify", commit).process();
         Self::from_git_command(command.current_dir(path))
     }
 
-    pub fn from_current_repository() -> Result<CommitHash, Error> {
+    pub fn from_current_repository() -> Result<CommitHash, FailedToRetrieveCommitHash> {
         Self::from_git_command(&mut cmd!("git", "rev-parse", "--verify", "HEAD").process())
     }
 
@@ -35,8 +35,8 @@ impl CommitHash {
         value.chars().all(|c| c.is_ascii_hexdigit()) && (value.len() == 40 || value.len() == 64)
     }
 
-    fn from_git_command(command: &mut process::Command) -> Result<CommitHash, Error> {
-        Self::from_git_inner(command).map_err(|source| Error {
+    fn from_git_command(command: &mut process::Command) -> Result<CommitHash, FailedToRetrieveCommitHash> {
+        Self::from_git_inner(command).map_err(|source| FailedToRetrieveCommitHash {
             command: command::Command::from_command_lossy(&command),
             repo_path: errors::RepoPath(command.get_current_dir().map(Path::to_owned)),
             source,

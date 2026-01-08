@@ -2,6 +2,14 @@ use std::{fmt::Display, path::PathBuf};
 
 use crate::command::{self, PrintableOutput};
 
+#[justerror::Error(desc = "Failed to retrieve commit hash")]
+pub struct FailedToRetrieveCommitHash {
+    pub command: command::Command,
+    pub repo_path: RepoPath,
+    #[source]
+    pub source: ErrorSource,
+}
+
 #[derive(Debug)]
 pub struct RepoPath(pub Option<PathBuf>);
 
@@ -14,20 +22,14 @@ impl Display for RepoPath {
     }
 }
 
-#[justerror::Error(desc = "Failed to retrieve commit hash")]
-pub struct Error {
-    pub command: command::Command,
-    pub repo_path: RepoPath,
-    #[source]
-    pub source: ErrorSource,
-}
-
 #[justerror::Error]
 pub enum ErrorSource {
-    IO {
+    #[error(desc = "Failed constructing the git command")]
+    GitCommandConstructionFailure {
         #[from]
         source: std::io::Error,
     },
+    #[error(desc = "Failed running the git command")]
     GitCommandFailure {
         output: PrintableOutput,
     },
