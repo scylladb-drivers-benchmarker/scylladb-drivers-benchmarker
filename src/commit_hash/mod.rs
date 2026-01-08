@@ -1,9 +1,7 @@
-use crate::command::PrintableOutput;
 use crate::{cmd, command};
-use std::ffi::{OsStr, OsString};
-use std::fmt::{Debug, Display, write};
-use std::path::{Path, PathBuf};
-use std::{env, process};
+use std::fmt::{Debug, Display};
+use std::path::{Path};
+use std::{process};
 
 pub mod errors;
 pub use errors::*;
