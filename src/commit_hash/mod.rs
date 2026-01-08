@@ -35,6 +35,7 @@ impl CommitHash {
         value.chars().all(|c| c.is_ascii_hexdigit()) && (value.len() == 40 || value.len() == 64)
     }
 
+    // Attempts to get commit hash, returns error with context.
     fn from_git_command(
         command: &mut process::Command,
     ) -> Result<CommitHash, FailedToRetrieveCommitHash> {
@@ -45,7 +46,8 @@ impl CommitHash {
         })
     }
 
-    // Helper function, returns the source of the error without the context.
+    // Helper function, which attempts to get commit hash, returns lowest level error information.
+    // Do not use directly, use from_git_command instead.
     fn from_git_inner(command: &mut process::Command) -> Result<CommitHash, ErrorSource> {
         let output = command.output()?;
 
