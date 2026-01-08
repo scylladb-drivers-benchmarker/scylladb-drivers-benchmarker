@@ -9,7 +9,7 @@ use crate::database::Database;
 use crate::{commit_hash::CommitHash, measurement::MeasurementMethod};
 
 use error::PlotError;
-use plot::{Plot, SeriesPlot};
+use plot::{PerfStatPlot, Plot, SeriesPlot};
 pub use series::VisKind;
 
 use plotters::backend::{BitMapBackend, SVGBackend};
@@ -111,11 +111,16 @@ pub fn plot(
         }
 
         PlotKind::PerfStat { events } => {
-            events
-                .into_iter()
-                .try_for_each(|_event| -> Result<(), PlotError> {
-                    todo!() // plot for event
-                })
+            let plot = PerfStatPlot::build(
+                database,
+                benchmark_name,
+                benchmark_config,
+                measurement_method,
+                commit_hashes,
+                names,
+                events,
+            )?;
+            plot_on_backend(plot, output, format)
         }
     }
 }
@@ -146,9 +151,7 @@ mod tests {
         type Err = ();
 
         fn from_str(s: &str) -> Result<Self, Self::Err> {
-            s.parse::<f64>()
-                .map(Dummy)
-                .map_err(|_| ())
+            s.parse::<f64>().map(Dummy).map_err(|_| ())
         }
     }
 

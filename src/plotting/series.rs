@@ -117,9 +117,7 @@ mod tests {
         type Err = ();
 
         fn from_str(s: &str) -> Result<Self, Self::Err> {
-            s.parse::<f64>()
-                .map(Dummy)
-                .map_err(|_| ())
+            s.parse::<f64>().map(Dummy).map_err(|_| ())
         }
     }
 

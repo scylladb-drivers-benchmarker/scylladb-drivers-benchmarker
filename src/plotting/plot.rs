@@ -4,7 +4,7 @@ use super::BenchmarkConfig;
 use super::CommitHash;
 use super::data::BenchmarkDataset;
 use super::error::PlotError;
-use super::render::{Renderable, RenderableSeries, RenderablePerfStat};
+use super::render::{Renderable, RenderablePerfStat, RenderableSeries};
 use super::series::{LinearSeries, LogSeries, SeriesValue, ValueTransformation, calc_min_max};
 use crate::Database;
 use crate::measurement::MeasurementMethod;
@@ -149,11 +149,7 @@ impl Plot for SeriesPlot {
 }
 
 impl PerfStatPlot {
-    fn new(
-        benchmark_name: String,
-        events: Vec<String>,
-        results: Vec<RenderablePerfStat>,
-    ) -> Self {
+    fn new(benchmark_name: String, events: Vec<String>, results: Vec<RenderablePerfStat>) -> Self {
         PerfStatPlot {
             benchmark_name,
             events,
@@ -168,9 +164,8 @@ impl PerfStatPlot {
         events: Vec<String>,
     ) -> Result<Self, PlotError> {
         let mut results = Vec::new();
-    
-        for (id, (name, values)) in names.iter().zip(dataset.results.into_iter()).enumerate()
-        {
+
+        for (id, (name, values)) in names.iter().zip(dataset.results.into_iter()).enumerate() {
             let values_per_event: Vec<Vec<Option<f64>>> = events
                 .iter()
                 .map(|event_name| {
@@ -197,11 +192,30 @@ impl PerfStatPlot {
                 dataset.points.clone(),
                 values_per_event,
                 color,
-                ranges
+                ranges,
             ));
         }
 
         Ok(PerfStatPlot::new(benchmark_name, events, results))
+    }
+
+    pub(crate) fn build(
+        database: &Database,
+        benchmark_name: &str,
+        benchmark_config: &BenchmarkConfig,
+        measurement_method: &MeasurementMethod,
+        commit_hashes: impl Iterator<Item = CommitHash>,
+        names: &[String],
+        events: Vec<String>,
+    ) -> Result<Self, PlotError> {
+        let dataset: BenchmarkDataset<PerfStatData> = BenchmarkDataset::new(
+            database,
+            benchmark_config,
+            commit_hashes,
+            measurement_method,
+        )?;
+
+        PerfStatPlot::from_dataset(dataset, benchmark_name.to_string(), names, events)
     }
 }
 
@@ -241,10 +255,7 @@ impl Plot for PerfStatPlot {
                     .margin(MARGIN_SIZE)
                     .x_label_area_size(X_LABEL_AREA_SIZE)
                     .y_label_area_size(Y_LABEL_AREA_SIZE)
-                    .build_cartesian_2d(
-                        x_start..x_end,
-                        y_min..y_max,
-                    )
+                    .build_cartesian_2d(x_start..x_end, y_min..y_max)
                     .map_err(|e| PlotError::Plotters(e.to_string()))
             })
             .collect::<Result<Vec<_>, PlotError>>()?;

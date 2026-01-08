@@ -18,7 +18,11 @@ where
     /// Panics if `charts` is empty.
     fn add_to_plot(
         &self,
-        charts: &mut [ChartContext<'a, DB, Cartesian2d<RangedCoordBenchmarkPoint, RangedCoordf64>>],
+        charts: &mut [ChartContext<
+            'a,
+            DB,
+            Cartesian2d<RangedCoordBenchmarkPoint, RangedCoordf64>,
+        >],
     ) -> Result<(), PlotError>;
 }
 
@@ -67,9 +71,16 @@ where
 {
     fn add_to_plot(
         &self,
-        charts: &mut [ChartContext<'a, DB, Cartesian2d<RangedCoordBenchmarkPoint, RangedCoordf64>>],
+        charts: &mut [ChartContext<
+            'a,
+            DB,
+            Cartesian2d<RangedCoordBenchmarkPoint, RangedCoordf64>,
+        >],
     ) -> Result<(), PlotError> {
-        assert!(!charts.is_empty(), "Expected at least one chart to render onto");
+        assert!(
+            !charts.is_empty(),
+            "Expected at least one chart to render onto"
+        );
         let chart = &mut charts[0];
 
         let color = self.color.to_rgba();
@@ -132,10 +143,21 @@ where
 {
     fn add_to_plot(
         &self,
-        charts: &mut [ChartContext<'a, DB, Cartesian2d<RangedCoordBenchmarkPoint, RangedCoordf64>>],
+        charts: &mut [ChartContext<
+            'a,
+            DB,
+            Cartesian2d<RangedCoordBenchmarkPoint, RangedCoordf64>,
+        >],
     ) -> Result<(), PlotError> {
-        assert!(!charts.is_empty(), "Expected at least one chart to render onto");
-        assert_eq!(charts.len(), self.values.len(), "Number of charts must match number of metrics");
+        assert!(
+            !charts.is_empty(),
+            "Expected at least one chart to render onto"
+        );
+        assert_eq!(
+            charts.len(),
+            self.values.len(),
+            "Number of charts must match number of metrics"
+        );
 
         let color = self.color.to_rgba();
 
