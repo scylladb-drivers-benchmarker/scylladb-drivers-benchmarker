@@ -3,7 +3,7 @@ use std::path::Path;
 use crate::{
     benchmarking::BenchmarkingError,
     command::CommandParsingError,
-    commit_hash::{CommitHash},
+    commit_hash::CommitHash,
     config::{ConfigError, find_config},
     database::{Database, DatabaseError},
     measurement::MeasurementMethod,

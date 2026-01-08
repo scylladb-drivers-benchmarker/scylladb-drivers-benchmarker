@@ -1,6 +1,6 @@
 use serde::Deserialize;
 use serde::Deserializer;
-use std::{str::FromStr};
+use std::str::FromStr;
 
 // Valid json numbers contain dot, but perf-stat returns numbers with coma.
 fn deserialize_coma_numbers<'de, D>(deserializer: D) -> Result<f64, D::Error>
@@ -34,7 +34,7 @@ impl FromStr for PerfStatData {
 
     fn from_str(s: &str) -> Result<Self, serde_json::Error> {
         let mut events = Vec::new();
-        let deserializer= serde_json::Deserializer::from_str(s).into_iter::<PerfEvent>();
+        let deserializer = serde_json::Deserializer::from_str(s).into_iter::<PerfEvent>();
         for event in deserializer {
             events.push(event?);
         }

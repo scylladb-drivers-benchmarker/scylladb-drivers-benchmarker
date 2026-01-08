@@ -111,9 +111,11 @@ pub fn plot(
         }
 
         PlotKind::PerfStat { events } => {
-            events.into_iter().try_for_each(|_event| -> Result<(), PlotError> {
-                todo!()  // plot for event
-            })
+            events
+                .into_iter()
+                .try_for_each(|_event| -> Result<(), PlotError> {
+                    todo!() // plot for event
+                })
         }
     }
 }
@@ -261,7 +263,7 @@ mod tests {
         let result = plot_on_backend(plot, path_png, OutputFormat::Png);
 
         assert!(
-            matches!(result.unwrap_err(), PlotError::IncompatibleFileExtension { extension, format} 
+            matches!(result.unwrap_err(), PlotError::IncompatibleFileExtension { extension, format}
             if extension == "svg" && format == "png")
         );
     }
