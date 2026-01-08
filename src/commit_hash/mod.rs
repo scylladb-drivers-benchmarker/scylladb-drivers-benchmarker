@@ -5,6 +5,9 @@ use std::fmt::{Debug, Display, write};
 use std::path::{Path, PathBuf};
 use std::{env, process};
 
+pub mod errors;
+use errors::*;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CommitHash {
     value: String,
@@ -16,44 +19,6 @@ impl Display for CommitHash {
     }
 }
 
-#[justerror::Error(desc = "Failed to retrieve commit hash")]
-pub struct CommitHashError {
-    command: String,
-    repo: CommitHashErrorRepoPath,
-    #[source]
-    source: CommitHashErrorSource,
-}
-
-#[derive(Debug)]
-pub struct CommitHashErrorRepoPath(Option<PathBuf>);
-impl Display for CommitHashErrorRepoPath {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match &self.0 {
-            Some(path) => path.fmt(f),
-            None => Ok(()),
-        }
-    }
-}
-
-#[justerror::Error]
-pub enum CommitHashErrorSource {
-    IO {
-        #[from]
-        source: std::io::Error,
-    },
-    GitCommandFailure {
-        output: PrintableOutput,
-    },
-    #[error(desc = "Git returned an invalid commit hash")]
-    InvalidUtf8 {
-        #[from]
-        source: std::string::FromUtf8Error,
-    },
-    #[error(desc = "Git returned an invalid commit hash")]
-    InvalidHash {
-        hash: String,
-    },
-}
 
 impl CommitHash {
     fn validate(value: &str) -> bool {
@@ -64,17 +29,17 @@ impl CommitHash {
         CommitHash { value }
     }
 
-    pub fn new(path: &Path, commit: String) -> Result<CommitHash, CommitHashError> {
+    pub fn new(path: &Path, commit: String) -> Result<CommitHash, errors::Error> {
         let mut command = cmd!("git", "rev-parse", "--verify", commit).process();
         Self::from_git_command(command.current_dir(path))
     }
 
-    pub fn from_current_repository() -> Result<CommitHash, CommitHashError> {
+    pub fn from_current_repository() -> Result<CommitHash, errors::Error> {
         Self::from_git_command(&mut cmd!("git", "rev-parse", "--verify", "HEAD").process())
     }
 
-    pub fn from_git_command(command: &mut process::Command) -> Result<CommitHash, CommitHashError> {
-        Self::from_git_inner(command).map_err(|source| CommitHashError {
+    pub fn from_git_command(command: &mut process::Command) -> Result<CommitHash, errors::Error> {
+        Self::from_git_inner(command).map_err(|source| errors::Error {
             command: format!(
                 "{} {}",
                 command.get_program().to_string_lossy(),
@@ -83,15 +48,15 @@ impl CommitHash {
                     .map(OsStr::to_string_lossy)
                     .collect::<String>()
             ),
-            repo: CommitHashErrorRepoPath(command.get_current_dir().map(Path::to_owned)),
+            repo: errors::RepoPath(command.get_current_dir().map(Path::to_owned)),
             source,
         })
     }
-    fn from_git_inner(command: &mut process::Command) -> Result<CommitHash, CommitHashErrorSource> {
+    fn from_git_inner(command: &mut process::Command) -> Result<CommitHash, errors::ErrorSource> {
         let output = command.output()?;
 
         if !output.status.success() {
-            return Err(CommitHashErrorSource::GitCommandFailure {
+            return Err(errors::ErrorSource::GitCommandFailure {
                 output: output.into(),
             });
         }
@@ -101,7 +66,7 @@ impl CommitHash {
 
         // basic validation
         if !Self::validate(&value) {
-            return Err(CommitHashErrorSource::InvalidHash { hash: value });
+            return Err(errors::ErrorSource::InvalidHash { hash: value });
         }
 
         Ok(CommitHash { value })
@@ -114,11 +79,7 @@ impl CommitHash {
 
 #[cfg(test)]
 mod test {
-    use std::path::Path;
-
-    use crate::commit_hash::{CommitHashError, CommitHashErrorSource};
-
-    use super::CommitHash;
+    use super::*;
 
     #[test]
     fn coherent_commit_hashes() {
@@ -137,7 +98,7 @@ mod test {
 
         assert!(matches!(
             error.source,
-            CommitHashErrorSource::GitCommandFailure { .. }
+            errors::ErrorSource::GitCommandFailure { .. }
         ))
     }
 }
