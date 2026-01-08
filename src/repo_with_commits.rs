@@ -13,13 +13,11 @@ pub enum RepoNameWithCommitsParsingError {
 }
 
 #[derive(Debug, Clone)]
-pub struct ParsableRepoNameWithTags {
-    value: RepoNameWithTags,
-}
+pub struct ParsableRepoNameWithTags(RepoNameWithTags);
 
 impl From<ParsableRepoNameWithTags> for RepoNameWithTags {
     fn from(value: ParsableRepoNameWithTags) -> Self {
-        value.value
+        value.0
     }
 }
 
@@ -31,12 +29,10 @@ impl FromStr for ParsableRepoNameWithTags {
             .split_once(':')
             .ok_or(RepoNameWithCommitsParsingError::PathNotSupplied)?;
 
-        Ok(ParsableRepoNameWithTags {
-            value: RepoNameWithTags {
-                name: repo_names_str.to_owned(),
-                tags: tags_str.split(',').map(str::to_owned).collect(),
-            },
-        })
+        Ok(ParsableRepoNameWithTags(RepoNameWithTags {
+            name: repo_names_str.to_owned(),
+            tags: tags_str.split(',').map(str::to_owned).collect(),
+        }))
     }
 }
 

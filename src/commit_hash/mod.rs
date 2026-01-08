@@ -7,19 +7,17 @@ pub mod errors;
 pub use errors::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CommitHash {
-    value: String,
-}
+pub struct CommitHash(String);
 
 impl Display for CommitHash {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Display::fmt(&self.value, f)
+        Display::fmt(&self.0, f)
     }
 }
 
 impl CommitHash {
     pub fn new_unchecked(value: String) -> Self {
-        CommitHash { value }
+        CommitHash(value)
     }
 
     pub fn new(path: &Path, commit: String) -> Result<CommitHash, FailedToRetrieveCommitHash> {
@@ -64,12 +62,12 @@ impl CommitHash {
             // basic validation
             Err(ErrorSource::InvalidHash { hash: value })
         } else {
-            Ok(CommitHash { value })
+            Ok(CommitHash(value))
         }
     }
 
     pub fn as_str(&self) -> &str {
-        self.value.as_str()
+        self.0.as_str()
     }
 }
 

@@ -19,13 +19,11 @@ use crate::{cmd, command};
 /// This is a token proving that the code being executed was compiled earlier.
 /// Getting this from outside of this module happens only by invoking `build_source`.
 #[must_use]
-pub struct BuiltSource {
-    _private: (),
-}
+pub struct BuiltSource(());
 
 impl BuiltSource {
     fn new_unchecked() -> Self {
-        BuiltSource { _private: () }
+        BuiltSource(())
     }
 }
 
