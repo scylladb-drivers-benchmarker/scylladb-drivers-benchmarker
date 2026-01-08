@@ -25,7 +25,7 @@ pub enum CommitHashError {
         command: &'static str,
         commit: String,
         output: PrintableOutput,
-        path: PathBuf
+        path: PathBuf,
     },
     InvalidUtf8 {
         #[from]
@@ -55,7 +55,7 @@ impl CommitHash {
                 command: "rev-parse",
                 commit,
                 output: output.into(),
-                path: path.to_owned()
+                path: path.to_owned(),
             });
         }
 
@@ -102,7 +102,7 @@ mod test {
         )
         .unwrap_err();
 
-        let CommitHashError::GitCommandFailure{..} = error else {
+        let CommitHashError::GitCommandFailure { .. } = error else {
             panic!("git should have failed on invalid commit/branch/.. name");
         };
     }
