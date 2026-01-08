@@ -1,38 +1,47 @@
 use crate::cmd;
 use crate::command::PrintableOutput;
-use std::env;
 use std::fmt::Display;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::process;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CommitHash {
-    value: String,
-}
+pub struct CommitHash(String);
 
 impl Display for CommitHash {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.value.fmt(f)
+        self.0.fmt(f)
     }
 }
 
-#[justerror::Error(desc = "Failed to retrieve commit hash")]
+#[derive(Debug)]
+pub struct GitCommand(process::Command);
+
+impl Display for GitCommand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
+#[justerror::Error()]
 pub enum CommitHashError {
-    IO {
-        #[from]
+    GitCommandConstructionFailed {
         source: std::io::Error,
+        git_command: GitCommand,
     },
     GitCommandFailure {
-        command: &'static str,
-        commit: String,
         output: PrintableOutput,
-        path: PathBuf
-    },
-    InvalidUtf8 {
-        #[from]
-        source: std::string::FromUtf8Error,
+        git_command: GitCommand,
     },
     #[error(desc = "Git returned an invalid commit hash")]
-    InvalidHash { hash: String },
+    InvalidUtf8 {
+        source: std::string::FromUtf8Error,
+        git_command: GitCommand,
+    },
+    #[error(desc = "Git returned an invalid commit hash")]
+    InvalidHash {
+        hash: String,
+        git_command: GitCommand,
+    },
 }
 
 impl CommitHash {
@@ -41,41 +50,65 @@ impl CommitHash {
     }
 
     pub fn new_unchecked(value: String) -> Self {
-        CommitHash { value }
+        CommitHash(value)
     }
 
     pub fn new(path: &Path, commit: String) -> Result<CommitHash, CommitHashError> {
-        let output = cmd!("git", "rev-parse", "--verify", &commit)
-            .process()
-            .current_dir(path)
-            .output()?;
+        Self::new_impl(Some(path), commit)
+    }
+
+    pub fn from_current_repository() -> Result<CommitHash, CommitHashError> {
+        Self::new_impl(None, "HEAD".to_owned())
+    }
+
+    fn new_impl(path: Option<&Path>, commit: String) -> Result<CommitHash, CommitHashError> {
+        let mut command = cmd!("git", "rev-parse", "--verify", commit).process();
+        if let Some(path) = path {
+            command.current_dir(path);
+        }
+
+        let mut git_command = GitCommand(command);
+        let output = match git_command.0.output() {
+            Ok(output) => output,
+            Err(error) => {
+                return Err(CommitHashError::GitCommandConstructionFailed {
+                    source: error,
+                    git_command,
+                });
+            }
+        };
 
         if !output.status.success() {
             return Err(CommitHashError::GitCommandFailure {
-                command: "rev-parse",
-                commit,
                 output: output.into(),
-                path: path.to_owned()
+                git_command,
             });
         }
 
-        let mut value = String::from_utf8(output.stdout)?;
+        let mut value = match String::from_utf8(output.stdout) {
+            Ok(string) => string,
+            Err(error) => {
+                return Err(CommitHashError::InvalidUtf8 {
+                    source: error,
+                    git_command,
+                });
+            }
+        };
         value.truncate(value.trim_end().len()); // Remove endl
 
         // basic validation
         if !Self::validate(&value) {
-            return Err(CommitHashError::InvalidHash { hash: value });
+            return Err(CommitHashError::InvalidHash {
+                hash: value,
+                git_command,
+            });
         }
 
-        Ok(CommitHash { value })
-    }
-
-    pub fn from_current_repository() -> Result<CommitHash, CommitHashError> {
-        CommitHash::new(&env::current_dir()?, "HEAD".to_string())
+        Ok(CommitHash(value))
     }
 
     pub fn as_str(&self) -> &str {
-        self.value.as_str()
+        self.0.as_str()
     }
 }
 
@@ -102,7 +135,7 @@ mod test {
         )
         .unwrap_err();
 
-        let CommitHashError::GitCommandFailure{..} = error else {
+        let CommitHashError::GitCommandFailure { .. } = error else {
             panic!("git should have failed on invalid commit/branch/.. name");
         };
     }
