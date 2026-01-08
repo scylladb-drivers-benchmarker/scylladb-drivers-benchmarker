@@ -30,16 +30,12 @@ pub enum ErrorSource {
         source: std::io::Error,
     },
     #[error(desc = "Failed running the git command")]
-    GitCommandFailure {
-        output: PrintableOutput,
-    },
+    GitCommandFailure { output: PrintableOutput },
     #[error(desc = "Git returned an invalid commit hash")]
     InvalidUtf8 {
         #[from]
         source: std::string::FromUtf8Error,
     },
     #[error(desc = "Git returned an invalid commit hash")]
-    InvalidHash {
-        hash: String,
-    },
+    InvalidHash { hash: String },
 }

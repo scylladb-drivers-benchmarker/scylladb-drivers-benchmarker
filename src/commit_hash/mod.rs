@@ -1,7 +1,7 @@
 use crate::{cmd, command};
 use std::fmt::{Debug, Display};
-use std::path::{Path};
-use std::{process};
+use std::path::Path;
+use std::process;
 
 pub mod errors;
 pub use errors::*;
@@ -35,7 +35,9 @@ impl CommitHash {
         value.chars().all(|c| c.is_ascii_hexdigit()) && (value.len() == 40 || value.len() == 64)
     }
 
-    fn from_git_command(command: &mut process::Command) -> Result<CommitHash, FailedToRetrieveCommitHash> {
+    fn from_git_command(
+        command: &mut process::Command,
+    ) -> Result<CommitHash, FailedToRetrieveCommitHash> {
         Self::from_git_inner(command).map_err(|source| FailedToRetrieveCommitHash {
             command: command::Command::from_command_lossy(&command),
             repo_path: errors::RepoPath(command.get_current_dir().map(Path::to_owned)),
@@ -54,14 +56,14 @@ impl CommitHash {
         }
 
         let mut value = String::from_utf8(output.stdout)?;
-        value.truncate(value.trim_end().len()); // Remove endl
+        value.pop(); // Remove endl
 
-        // basic validation
         if !Self::validate(&value) {
-            return Err(ErrorSource::InvalidHash { hash: value });
+            // basic validation
+            Err(ErrorSource::InvalidHash { hash: value })
+        } else {
+            Ok(CommitHash { value })
         }
-
-        Ok(CommitHash { value })
     }
 
     pub fn as_str(&self) -> &str {
