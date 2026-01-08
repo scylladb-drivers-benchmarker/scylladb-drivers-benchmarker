@@ -8,7 +8,7 @@ use scylladb_drivers_benchmarker::{
 #[justerror::Error]
 pub enum RepoNameWithCommitsParsingError {
     PathNotSupplied,
-    HashResolutionFailed(#[from] commit_hash::errors::Error),
+    HashResolutionFailed(#[from] commit_hash::Error),
     Infallible(#[from] std::convert::Infallible),
 }
 
@@ -53,7 +53,7 @@ pub fn resolve_repo_tags(
         .tags
         .into_iter()
         .map(|commit| CommitHash::new(&repo_path, commit))
-        .collect::<Result<Vec<CommitHash>, commit_hash::errors::Error>>()?;
+        .collect::<Result<Vec<CommitHash>, commit_hash::Error>>()?;
 
     Ok(RepoPathWithCommits {
         repo_path,

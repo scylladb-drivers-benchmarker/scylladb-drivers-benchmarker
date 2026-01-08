@@ -30,14 +30,14 @@ pub enum RunBenchmarksError {
     Benchmarking(#[from] BenchmarkingError),
     BenchmarkConfig(#[source] ConfigError),
     BackendConfig(#[source] ConfigError),
-    CommitHash(#[from] commit_hash::errors::Error),
+    CommitHash(#[from] commit_hash::Error),
 }
 
 #[justerror::Error]
 pub enum PlotBenchmarksError {
     Plotting(#[from] PlotError),
     BenchmarkConfig(#[from] ConfigError),
-    CommitHash(#[from] commit_hash::errors::Error),
+    CommitHash(#[from] commit_hash::Error),
     CommandParsingError(#[from] CommandParsingError),
 }
 

@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::{env, process};
 
 pub mod errors;
-use errors::*;
+pub use errors::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CommitHash {
@@ -29,17 +29,17 @@ impl CommitHash {
         CommitHash { value }
     }
 
-    pub fn new(path: &Path, commit: String) -> Result<CommitHash, errors::Error> {
+    pub fn new(path: &Path, commit: String) -> Result<CommitHash, Error> {
         let mut command = cmd!("git", "rev-parse", "--verify", commit).process();
         Self::from_git_command(command.current_dir(path))
     }
 
-    pub fn from_current_repository() -> Result<CommitHash, errors::Error> {
+    pub fn from_current_repository() -> Result<CommitHash, Error> {
         Self::from_git_command(&mut cmd!("git", "rev-parse", "--verify", "HEAD").process())
     }
 
-    pub fn from_git_command(command: &mut process::Command) -> Result<CommitHash, errors::Error> {
-        Self::from_git_inner(command).map_err(|source| errors::Error {
+    pub fn from_git_command(command: &mut process::Command) -> Result<CommitHash, Error> {
+        Self::from_git_inner(command).map_err(|source| Error {
             command: format!(
                 "{} {}",
                 command.get_program().to_string_lossy(),
@@ -52,11 +52,11 @@ impl CommitHash {
             source,
         })
     }
-    fn from_git_inner(command: &mut process::Command) -> Result<CommitHash, errors::ErrorSource> {
+    fn from_git_inner(command: &mut process::Command) -> Result<CommitHash, ErrorSource> {
         let output = command.output()?;
 
         if !output.status.success() {
-            return Err(errors::ErrorSource::GitCommandFailure {
+            return Err(ErrorSource::GitCommandFailure {
                 output: output.into(),
             });
         }
@@ -66,7 +66,7 @@ impl CommitHash {
 
         // basic validation
         if !Self::validate(&value) {
-            return Err(errors::ErrorSource::InvalidHash { hash: value });
+            return Err(ErrorSource::InvalidHash { hash: value });
         }
 
         Ok(CommitHash { value })
@@ -98,7 +98,7 @@ mod test {
 
         assert!(matches!(
             error.source,
-            errors::ErrorSource::GitCommandFailure { .. }
+            ErrorSource::GitCommandFailure { .. }
         ))
     }
 }
