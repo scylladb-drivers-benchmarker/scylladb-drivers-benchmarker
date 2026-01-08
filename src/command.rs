@@ -1,6 +1,6 @@
 use core::fmt;
 use std::fmt::Display;
-use std::io::{BufReader, Read};
+use std::io::{self, BufReader, Read};
 use std::process;
 use std::str::FromStr;
 use wait_timeout::ChildExt;
