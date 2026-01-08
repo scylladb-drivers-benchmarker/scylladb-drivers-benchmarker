@@ -1,4 +1,5 @@
 use core::fmt;
+use std::fmt::Display;
 use std::io::{BufReader, Read};
 use std::process;
 use std::str::FromStr;
@@ -144,6 +145,25 @@ macro_rules! cmd {
     ( $program:expr, $( $arg:expr ), *) => {
         $crate::command::Command::new_args(String::from($program), vec!($(String::from($arg), )*).iter())
     };
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PrintableOutput {
+    value: process::Output
+}
+
+impl Into<PrintableOutput> for process::Output {
+    fn into(self) -> PrintableOutput {
+        PrintableOutput { value: self }
+    }
+}
+
+impl Display for PrintableOutput {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "status: {}\n", self.value.status)?;
+        write!(f, "stdout: \n\"\n{}\"\n", String::from_utf8_lossy(&self.value.stdout))?;
+        write!(f, "stderr: \n\"\n{}\"\n", String::from_utf8_lossy(&self.value.stderr))
+    }
 }
 
 #[cfg(test)]

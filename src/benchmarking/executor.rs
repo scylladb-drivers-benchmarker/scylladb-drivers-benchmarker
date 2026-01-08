@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use enum_dispatch::enum_dispatch;
 
-use crate::command::{Command, CommandParsingError, OutputWithTimeout};
+use crate::command::{Command, CommandParsingError, OutputWithTimeout, PrintableOutput};
 use crate::database::utilities::BenchmarkRecord;
 use crate::measurement::MeasurementMethod;
 use crate::utilities::BenchmarkPoint;
@@ -33,10 +33,7 @@ impl BuiltSource {
 pub enum CompileError {
     CommandParsing(#[from] CommandParsingError),
     CompilationStarting(#[from] std::io::Error),
-    #[error(fmt=debug)]
-    CompilationRunning {
-        output: std::process::Output,
-    },
+    CompilationRunning(PrintableOutput),
 }
 
 /// Builds the source code, using the provided command.
@@ -49,7 +46,7 @@ pub fn build_source(build_command: &str) -> Result<BuiltSource, CompileError> {
     if output.status.success() {
         Ok(BuiltSource::new_unchecked())
     } else {
-        Err(CompileError::CompilationRunning { output })
+        Err(CompileError::CompilationRunning(output.into()))
     }
 }
 
