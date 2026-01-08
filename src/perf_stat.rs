@@ -2,14 +2,15 @@ use serde::Deserialize;
 use serde::Deserializer;
 use std::str::FromStr;
 
-// Valid json numbers contain dot, but perf-stat returns numbers with coma.
-fn deserialize_coma_numbers<'de, D>(deserializer: D) -> Result<f64, D::Error>
+// Numbers returned by perf-stat can use dot or coma as decimal point, depending on system.
+// This function parses to number, replacing comas with dots.
+fn deserialize_perf_numbers<'de, D>(deserializer: D) -> Result<f64, D::Error>
 where
     D: Deserializer<'de>,
 {
     let s: String = Deserialize::deserialize(deserializer)?;
     s.replace(',', ".")
-        .parse::<f64>()
+        .parse()
         .map_err(serde::de::Error::custom)
 }
 
@@ -18,7 +19,7 @@ pub struct PerfEvent {
     #[serde(default)]
     pub event: String,
 
-    #[serde(rename = "metric-value", deserialize_with = "deserialize_coma_numbers")]
+    #[serde(rename = "metric-value", deserialize_with = "deserialize_perf_numbers")]
     pub value: f64,
 
     #[serde(rename = "metric-unit")]
@@ -32,55 +33,86 @@ pub struct PerfStatData {
 impl FromStr for PerfStatData {
     type Err = serde_json::Error;
 
-    fn from_str(s: &str) -> Result<Self, serde_json::Error> {
-        let mut events = Vec::new();
-        let deserializer = serde_json::Deserializer::from_str(s).into_iter::<PerfEvent>();
-        for event in deserializer {
-            events.push(event?);
-        }
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let events = serde_json::Deserializer::from_str(s)
+            .into_iter::<PerfEvent>()
+            .collect::<Result<Vec<_>, _>>()?;
+
         Ok(PerfStatData { events })
     }
 }
 
 impl PerfStatData {
-    pub fn filter_value(&self, event_name: &str) -> Option<PerfEvent> {
-        for e in &self.events {
-            if e.event == event_name {
-                return Some(e.clone());
-            }
-        }
-        None
+    pub fn filter_value(&self, event_name: &str) -> Option<&PerfEvent> {
+        self.events.iter().find(|e| e.event == event_name)
     }
 }
 
+// Check if in PerfStatData expr is detected with given value and unit.
+#[cfg(test)]
+macro_rules! assert_perf {
+    ($data:expr, $event:expr, $expected_val:expr, $expected_unit:expr) => {
+        let metric = $data
+            .filter_value($event)
+            .expect(&format!("Event '{}' not found", $event));
+        assert!(
+            (metric.value - $expected_val).abs() < 1e-6,
+            "Event '{}' value mismatch: expected {}, got {}",
+            $event,
+            $expected_val,
+            metric.value
+        );
+        assert_eq!(
+            metric.unit, $expected_unit,
+            "Event '{}' unit mismatch",
+            $event
+        );
+    };
+}
+
 #[test]
-fn test_perfstat_filter() {
+fn test_perfstat_filter_coma() {
     let data = r#"
 {"counter-value":"0,374411","unit":"msec","event":"task-clock","event-runtime":374411,"pcnt-running":100.00,"metric-value":"0,000374","metric-unit":"CPUs utilized"}{"counter-value":"1,000000","unit":"","event":"context-switches","event-runtime":374411,"pcnt-running":100.00,"metric-value":"2,670862","metric-unit":"K/sec"}{"counter-value":"0,000000","unit":"","event":"cpu-migrations","event-runtime":374411,"pcnt-running":100.00,"metric-value":"0,000000","metric-unit":"/sec"}
 {"counter-value":"75,000000","unit":"","event":"page-faults","event-runtime":374411,"pcnt-running":100.00,"metric-value":"200,314628","metric-unit":"K/sec"}
 {"counter-value":"<not counted>","unit":"","event":"cpu_atom/cycles/","event-runtime":0,"pcnt-running":0.00,"metric-value":"0,000000","metric-unit":""}
 {"counter-value":"1461835,000000","unit":"","event":"cpu_core/cycles/","event-runtime":374411,"pcnt-running":100.00,"metric-value":"3,904359","metric-unit":"GHz"}
 "#;
-    // TODO macro
     let perf_data: PerfStatData = data.parse().unwrap();
 
-    // task-clock
-    let task_clock = perf_data.filter_value("task-clock").unwrap();
-    assert!((task_clock.value - 0.000374).abs() < 1e-6);
-    assert_eq!(task_clock.unit, "CPUs utilized");
+    assert_perf!(perf_data, "task-clock", 0.000374, "CPUs utilized");
+    assert_perf!(perf_data, "context-switches", 2.670862, "K/sec");
+    assert_perf!(perf_data, "cpu-migrations", 0.0, "/sec");
+    assert_perf!(perf_data, "page-faults", 200.314628, "K/sec");
+    assert_perf!(perf_data, "cpu_atom/cycles/", 0.0, "");
+    assert_perf!(perf_data, "cpu_core/cycles/", 3.904359, "GHz");
+}
 
-    // context-switches
-    let context_switch = perf_data.filter_value("context-switches").unwrap();
-    assert!((context_switch.value - 2.670862).abs() < 1e-6);
-    assert_eq!(context_switch.unit, "K/sec");
+#[test]
+fn test_perfstat_filter_dot() {
+    let data = r#"
+{"counter-value" : "0.598269", "unit" : "msec", "event" : "task-clock", "event-runtime" : 598269, "pcnt-running" : 100.00, "metric-value" : "0.422474", "metric-unit" : "CPUs utilized"}{"counter-value" : "2.000000", "unit" : "", "event" : "context-switches", "event-runtime" : 598269, "pcnt-running" : 100.00, "metric-value" : "3.342978", "metric-unit" : "K/sec"}
+{"counter-value" : "1.000000", "unit" : "", "event" : "cpu-migrations", "event-runtime" : 598269, "pcnt-running" : 100.00, "metric-value" : "1.671489", "metric-unit" : "K/sec"}{"counter-value" : "72.000000", "unit" : "", "event" : "page-faults", "event-runtime" : 598269, "pcnt-running" : 100.00, "metric-value" : "120.347202", "metric-unit" : "K/sec"}
+{"counter-value" : "1245859.000000", "unit" : "", "event" : "instructions", "event-runtime" : 598269, "pcnt-running" : 100.00, "metric-value" : "0.729721", "metric-unit" : "insn per cycle"}
+{"metric-value" : "0.515773", "metric-unit" : "stalled cycles per insn"}
+{"counter-value" : "1707308.000000", "unit" : "", "event" : 
+"cycles", "event-runtime" : 598269, "pcnt-running" : 100.00, "metric-value" : "2.853746", "metric-unit" : "GHz"}
+{"counter-value" : "642581.000000", "unit" : "", "event" : "stalled-cycles-frontend", "event-runtime" : 598269, "pcnt-running" : 100.00, "metric-value" : "37.637087", "metric-unit" : "frontend cycles idle", "metric-threshold" : "nearly bad"}
+{"counter-value" : "262792.000000", "unit" : "", "event" : "branches", "event-runtime" : 598269, "pcnt-running" : 100.00, "metric-value" : "439.253914", "metric-unit" : "M/sec"}{"counter-value" : "31359.000000", "unit" : "", "event" : "branch-misses", "event-runtime" : 598269, "pcnt-running" : 100.00, "metric-value" : "11.933012", "metric-unit" : "of all branches", "metric-threshold" : "nearly bad"}"#;
+    let perf_data: PerfStatData = data.parse().unwrap();
 
-    // cpu_atom/cycles/
-    let cpu_atom = perf_data.filter_value("cpu_atom/cycles/").unwrap();
-    assert!((cpu_atom.value - 0.0).abs() < 1e-6);
-    assert_eq!(cpu_atom.unit, "");
-
-    // cpu_core/cycles/
-    let cpu_core = perf_data.filter_value("cpu_core/cycles/").unwrap();
-    assert!((cpu_core.value - 3.904359).abs() < 1e-6);
-    assert_eq!(cpu_core.unit, "GHz");
+    assert_perf!(perf_data, "task-clock", 0.422474, "CPUs utilized");
+    assert_perf!(perf_data, "context-switches", 3.342978, "K/sec");
+    assert_perf!(perf_data, "cpu-migrations", 1.671489, "K/sec");
+    assert_perf!(perf_data, "page-faults", 120.347202, "K/sec");
+    assert_perf!(perf_data, "instructions", 0.729721, "insn per cycle");
+    assert_perf!(perf_data, "cycles", 2.853746, "GHz");
+    assert_perf!(
+        perf_data,
+        "stalled-cycles-frontend",
+        37.637087,
+        "frontend cycles idle"
+    );
+    assert_perf!(perf_data, "branches", 439.253914, "M/sec");
+    assert_perf!(perf_data, "branch-misses", 11.933012, "of all branches");
 }
