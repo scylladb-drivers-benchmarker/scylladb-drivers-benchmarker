@@ -1,8 +1,9 @@
-use crate::cmd;
-use std::ffi::OsStr;
-use std::fmt::{Debug, Display};
-use std::path::Path;
-use std::process;
+use crate::command::PrintableOutput;
+use crate::{cmd, command};
+use std::ffi::{OsStr, OsString};
+use std::fmt::{Debug, Display, write};
+use std::path::{Path, PathBuf};
+use std::{env, process};
 
 pub mod errors;
 pub use errors::*;
@@ -38,14 +39,7 @@ impl CommitHash {
 
     fn from_git_command(command: &mut process::Command) -> Result<CommitHash, Error> {
         Self::from_git_inner(command).map_err(|source| Error {
-            command: format!(
-                "{} {}",
-                command.get_program().to_string_lossy(),
-                command
-                    .get_args()
-                    .map(OsStr::to_string_lossy)
-                    .collect::<String>()
-            ),
+            command: command::Command::from_command_lossy(&command),
             repo: errors::RepoPath(command.get_current_dir().map(Path::to_owned)),
             source,
         })

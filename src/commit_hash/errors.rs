@@ -1,6 +1,6 @@
 use std::{fmt::Display, path::PathBuf};
 
-use crate::command::PrintableOutput;
+use crate::command::{self, PrintableOutput};
 
 #[derive(Debug)]
 pub struct RepoPath(pub Option<PathBuf>);
@@ -16,7 +16,7 @@ impl Display for RepoPath {
 
 #[justerror::Error(desc = "Failed to retrieve commit hash")]
 pub struct Error {
-    pub command: String,
+    pub command: command::Command,
     pub repo: RepoPath,
     #[source]
     pub source: ErrorSource,
