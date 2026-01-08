@@ -1,6 +1,8 @@
 use crate::cmd;
+use crate::command::PrintableOutput;
 use std::env;
-use std::path::Path;
+use std::fmt::Display;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CommitHash {
@@ -19,15 +21,18 @@ pub enum CommitHashError {
         #[from]
         source: std::io::Error,
     },
-    GitCommandFailure(String),
+    GitCommandFailure {
+        command: &'static str,
+        commit: String,
+        output: PrintableOutput,
+        path: PathBuf
+    },
     InvalidUtf8 {
         #[from]
         source: std::string::FromUtf8Error,
     },
     #[error(desc = "Git returned an invalid commit hash")]
-    InvalidHash {
-        hash: String,
-    },
+    InvalidHash { hash: String },
 }
 
 impl CommitHash {
@@ -46,11 +51,12 @@ impl CommitHash {
             .output()?;
 
         if !output.status.success() {
-            return Err(CommitHashError::GitCommandFailure(format!(
-                "git rev-parse failed for '{}': {}",
+            return Err(CommitHashError::GitCommandFailure {
+                command: "rev-parse",
                 commit,
-                String::from_utf8_lossy(&output.stderr)
-            )));
+                output: output.into(),
+                path: path.to_owned()
+            });
         }
 
         let mut value = String::from_utf8(output.stdout)?;
