@@ -16,7 +16,7 @@ impl FromStr for PerfStatData {
 }
 
 impl PerfStatData {
-    fn filter(events: &str) -> BenchmarkPoint {
+    fn filter(_events: &str) -> BenchmarkPoint {
         todo!() // metric value
     }
 }

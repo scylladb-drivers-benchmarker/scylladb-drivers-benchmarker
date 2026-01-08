@@ -102,7 +102,7 @@ mod test {
         )
         .unwrap_err();
 
-        let CommitHashError::GitCommandFailure(_) = error else {
+        let CommitHashError::GitCommandFailure{..} = error else {
             panic!("git should have failed on invalid commit/branch/.. name");
         };
     }
