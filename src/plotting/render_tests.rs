@@ -203,7 +203,8 @@ fn renderable_perfstat_panics_on_mismatch() {
         vec![Some((1.0, 2.0))],
     );
 
-    let backend = BitMapBackend::new("dummy.png", (100, 100)).into_drawing_area();
+    let file = NamedTempFile::new().unwrap();
+    let backend = BitMapBackend::new(file.path(), (100, 100)).into_drawing_area();
 
     let areas = backend.split_evenly((1, 3));
 
