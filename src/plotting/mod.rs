@@ -1,10 +1,13 @@
 mod data;
-#[cfg(test)]
-mod data_tests;
 pub mod error;
 mod plot;
 mod render;
 mod series;
+
+#[cfg(test)]
+mod data_tests;
+#[cfg(test)]
+mod plot_tests;
 
 use crate::config::benchmark::BenchmarkConfig;
 use crate::database::Database;
@@ -124,162 +127,5 @@ pub fn plot(
             )?;
             plot_on_backend(plot, output, format)
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use data::BenchmarkDataset;
-    use std::str::FromStr;
-    use tempfile::NamedTempFile;
-
-    #[derive(Clone, Debug, PartialOrd)]
-    struct Dummy(f64);
-
-    impl From<Dummy> for f64 {
-        fn from(val: Dummy) -> Self {
-            val.0
-        }
-    }
-
-    impl PartialEq for Dummy {
-        fn eq(&self, other: &Self) -> bool {
-            self.0 == other.0
-        }
-    }
-
-    impl FromStr for Dummy {
-        type Err = ();
-
-        fn from_str(s: &str) -> Result<Self, Self::Err> {
-            s.parse::<f64>().map(Dummy).map_err(|_| ())
-        }
-    }
-
-    #[test]
-    fn series_plot_runs() {
-        let dataset = BenchmarkDataset {
-            points: vec![1, 2, 3],
-            results: vec![
-                vec![Some(Dummy(10.0)), Some(Dummy(20.0)), None],
-                vec![Some(Dummy(5.0)), Some(Dummy(15.0)), Some(Dummy(20.0))],
-            ],
-        };
-
-        let names = vec!["first".to_string(), "second".to_string()];
-        let plot = SeriesPlot::from_dataset(
-            dataset,
-            "TestBenchmark".to_string(),
-            &names,
-            VisKind::Linear,
-        )
-        .unwrap();
-
-        let mut tmp_path = NamedTempFile::new().unwrap().path().to_path_buf();
-        tmp_path.set_extension("png");
-        let path_png = tmp_path.to_str().unwrap();
-        let result = plot_on_backend(plot, path_png, OutputFormat::Png);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn series_plot_fails_file_not_found() {
-        let dataset = BenchmarkDataset {
-            points: vec![1, 2, 3],
-            results: vec![
-                vec![Some(Dummy(10.0)), Some(Dummy(20.0)), None],
-                vec![Some(Dummy(5.0)), Some(Dummy(15.0)), Some(Dummy(20.0))],
-            ],
-        };
-
-        let names = vec!["first".to_string(), "second".to_string()];
-        let plot = SeriesPlot::from_dataset(
-            dataset,
-            "TestBenchmark".to_string(),
-            &names,
-            VisKind::Linear,
-        )
-        .unwrap();
-
-        let result = plot_on_backend(
-            plot,
-            "/this/path/should/not/exist/lmao.png",
-            OutputFormat::Png,
-        );
-
-        assert!(matches!(result.unwrap_err(), PlotError::Plotters(problem)
-        if problem == "backend error: Drawing backend error: ImageError(IoError(Os { code: 2, kind: NotFound, message: \"No such file or directory\" }))"));
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn series_plot_fails_on_permission_denied() {
-        use std::fs::{self, File};
-        use std::os::unix::fs::PermissionsExt;
-        use std::path::Path;
-
-        let path = Path::new("no_write.png");
-        File::create(path).unwrap();
-        let mut perms = fs::metadata(path).unwrap().permissions();
-        perms.set_mode(0o444);
-        fs::set_permissions(path, perms).unwrap();
-
-        let dataset = BenchmarkDataset {
-            points: vec![1, 2, 3],
-            results: vec![
-                vec![Some(Dummy(10.0)), Some(Dummy(20.0)), None],
-                vec![Some(Dummy(5.0)), Some(Dummy(15.0)), Some(Dummy(20.0))],
-            ],
-        };
-
-        let names = vec!["first".to_string(), "second".to_string()];
-        let plot = SeriesPlot::from_dataset(
-            dataset,
-            "TestBenchmark".to_string(),
-            &names,
-            VisKind::Linear,
-        )
-        .unwrap();
-
-        let result = plot_on_backend(plot, "no_write.png", OutputFormat::Png);
-
-        assert!(matches!(result.unwrap_err(), PlotError::Plotters(msg)
-        if msg == "backend error: Drawing backend error: ImageError(IoError(Os { code: 13, kind: PermissionDenied, message: \"Permission denied\" }))"));
-
-        let mut perms = fs::metadata(path).unwrap().permissions();
-        perms.set_mode(0o644);
-        fs::set_permissions(path, perms).unwrap();
-        fs::remove_file(path).unwrap();
-    }
-
-    #[test]
-    fn series_plot_fails_incompatible_file_extension() {
-        let dataset = BenchmarkDataset {
-            points: vec![1, 2, 3],
-            results: vec![
-                vec![Some(Dummy(10.0)), Some(Dummy(20.0)), None],
-                vec![Some(Dummy(5.0)), Some(Dummy(15.0)), Some(Dummy(20.0))],
-            ],
-        };
-
-        let names = vec!["first".to_string(), "second".to_string()];
-        let plot = SeriesPlot::from_dataset(
-            dataset,
-            "TestBenchmark".to_string(),
-            &names,
-            VisKind::Linear,
-        )
-        .unwrap();
-
-        let mut tmp_path = NamedTempFile::new().unwrap().path().to_path_buf();
-        tmp_path.set_extension("svg");
-        let path_png = tmp_path.to_str().unwrap();
-        let result = plot_on_backend(plot, path_png, OutputFormat::Png);
-
-        assert!(
-            matches!(result.unwrap_err(), PlotError::IncompatibleFileExtension { extension, format}
-            if extension == "svg" && format == "png")
-        );
     }
 }
