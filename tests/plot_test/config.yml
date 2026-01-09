@@ -1,0 +1,7 @@
+benchmarks:
+  - name: test-bench
+    starting-step: 1
+    no-steps: 100
+    step-progress: 1
+    progress-type: additive
+    timeout: "50ms"
