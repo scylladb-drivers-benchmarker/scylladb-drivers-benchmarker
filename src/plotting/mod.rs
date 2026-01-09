@@ -1,4 +1,6 @@
 mod data;
+#[cfg(test)]
+mod data_tests;
 pub mod error;
 mod plot;
 mod render;
