@@ -53,6 +53,19 @@ cargo run -- -d test.db database drop --benchmark-point=400000:6400000
 3. measurement method — the wrapper method, which invokes the backend. The backend run command with all of it's arguments will be passed as separate arguments to the measuring command, without quoting.
 4. command — a program name with specified arguments.
 
+## Supported workflows
+
+### Measurement methods
+
+In general any command printing a single numbers can be passed as a measuring method and plotted on a graph. Both `stdout` and `stderr` are collected together, so the resulting number can be in any of them. This is done to support the unusual behavior of the `time` command. 
+There are two special measuring methods that get treated differently:
+* `time` - measures the elapsed real time
+* `perf` - captures events given by `perf-stat` (architecture dependant)
+
+### Plotting options
+
+Single value outputs (from custom or `time` measuring) are plotted on a linear graph, while `perf` is plotted over multiple graphs, one for each requested event.
+
 ## Configuration files
 
 The benchmark and backend must be specified in the configuration files, in the YAML format. Each file can store a list of configurations.
