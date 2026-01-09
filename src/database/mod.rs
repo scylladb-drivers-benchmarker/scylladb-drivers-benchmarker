@@ -219,11 +219,17 @@ impl Database {
 
         let results = self.get_data(&filters)?;
 
-        match results.len() {
-            0 => Ok(None),
-            1 => Ok(Some(results.into_iter().next().unwrap().1)),
-            _ => Err(DatabaseError::MultipleResults),
+        let mut iter = results.into_iter();
+        let Some(result) = iter.next() else {
+            return Ok(None);
+        };
+
+        if iter.next().is_none() {
+            Ok(Some(result.1))
+        } else {
+            Err(DatabaseError::MultipleResults)
         }
+
     }
 
     pub fn result_exists(&self, params: BenchmarkParams) -> Result<bool, DatabaseError> {

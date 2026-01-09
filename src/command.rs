@@ -137,10 +137,10 @@ impl OutputWithTimeout for process::Command {
             return Ok(None);
         };
 
-        let buffer = BufReader::new(child.stdout.unwrap());
+        let buffer = BufReader::new(child.stdout.expect("stdout was requested"));
         let stdout = buffer.bytes().collect::<Result<Vec<u8>, _>>()?;
 
-        let buffer = BufReader::new(child.stderr.unwrap());
+        let buffer = BufReader::new(child.stderr.expect("stderr was requested"));
         let stderr = buffer.bytes().collect::<Result<Vec<u8>, _>>()?;
 
         Ok(Some(std::process::Output {
