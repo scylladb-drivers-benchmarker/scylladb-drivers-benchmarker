@@ -51,6 +51,7 @@ impl PerfStatData {
 
 // Check if in PerfStatData expr is detected with given value and unit.
 #[cfg(test)]
+#[macro_export]
 macro_rules! assert_perf {
     ($data:expr, $event:expr, $expected_val:expr, $expected_unit:expr) => {
         let metric = $data
