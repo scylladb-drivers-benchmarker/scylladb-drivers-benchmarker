@@ -73,8 +73,10 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
 
             match database.get_result(params)?.map(|r| r.flatten()) {
                 Some(FlatBenchmarkRecord::Data(text)) => {
+                    // TODO this will be in a diff place
+                    let cleaned = text.trim_end_matches('\n').to_string();
                     let value =
-                        T::from_str(&text).map_err(|_| PlotError::InvalidData(text.clone()))?;
+                        T::from_str(&cleaned).map_err(|_| PlotError::InvalidData(cleaned.clone()))?;
                     results.push(Some(value));
                 }
                 Some(FlatBenchmarkRecord::Timeout) => results.push(None),

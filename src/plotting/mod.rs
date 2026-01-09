@@ -125,6 +125,7 @@ pub fn plot(
                 names,
                 events,
             )?;
+
             plot_on_backend(plot, output, format)
         }
     }

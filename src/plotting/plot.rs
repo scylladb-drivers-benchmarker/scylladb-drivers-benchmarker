@@ -136,17 +136,17 @@ impl Plot for SeriesPlot {
 
         chart.configure_mesh().draw()?;
 
-        chart
+        let mut charts: [ChartContext<_, _>; 1] = [chart];
+        for series in &self.results {
+            series.add_to_plot(&mut charts)?;
+        }
+
+        charts[0]
             .configure_series_labels()
             .position(SeriesLabelPosition::MiddleRight)
             .border_style(LEGEND_BORDER_COLOR)
             .background_style(BACKGROUND_COLOR)
             .draw()?;
-
-        let mut charts: [ChartContext<_, _>; 1] = [chart];
-        for series in &self.results {
-            series.add_to_plot(&mut charts)?;
-        }
 
         root.present()?;
 
@@ -259,25 +259,37 @@ impl Plot for PerfStatPlot {
                     .first()
                     .and_then(|r| r.points.last())
                     .unwrap_or(&1);
-                let (y_min, y_max) = self
-                    .results
-                    .iter()
-                    .filter_map(|r| r.ranges()[id])
-                    .reduce(|acc, r| (acc.0.min(r.0), acc.1.max(r.1)))
-                    .unwrap_or((0.0, 1.0));
+                let(y_min, y_max) = calc_min_max(
+                    self.results
+                        .iter()
+                        .filter_map(|r| r.ranges()[id])
+                ).unwrap_or((0.0, 1.0));
 
-                ChartBuilder::on(&area)
+                let mut chart = ChartBuilder::on(&area)
                     .caption(self.events[id].clone(), CAPTION_FONT)
                     .margin(MARGIN_SIZE)
                     .x_label_area_size(X_LABEL_AREA_SIZE)
                     .y_label_area_size(Y_LABEL_AREA_SIZE)
                     .build_cartesian_2d(x_start..x_end, y_min..y_max)
-                    .map_err(|e| PlotError::Plotters(e.to_string()))
+                    .map_err(|e| PlotError::Plotters(e.to_string()))?;
+
+                chart.configure_mesh().draw()?;
+
+                Ok(chart)
             })
             .collect::<Result<Vec<_>, PlotError>>()?;
 
         for r in &self.results {
             r.add_to_plot(&mut charts)?;
+        }
+
+        for chart in &mut charts {
+            chart
+                .configure_series_labels()
+                .position(SeriesLabelPosition::MiddleRight)
+                .border_style(LEGEND_BORDER_COLOR)
+                .background_style(BACKGROUND_COLOR)
+                .draw()?;
         }
 
         root.present()?;

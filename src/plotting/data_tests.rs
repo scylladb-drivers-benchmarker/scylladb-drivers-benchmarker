@@ -184,3 +184,85 @@ fn extract_failure() {
         BenchmarkDataset::new(&db, &configs[1], [hashes[2].clone()].into_iter(), &measure);
     assert!(matches!(dataset.unwrap_err(), PlotError::Database(_)));
 }
+
+#[test]
+fn extract_perfstat_dataset() {
+    use crate::perf_stat;
+    use crate::assert_perf;
+
+    let (db, _file) = {
+        let file = NamedTempFile::new().unwrap();
+        let path = file.path().to_path_buf();
+        (Database::new(&path).unwrap(), file)
+    };
+
+    let config = BenchmarkConfig {
+        name: "benchmark_perf".to_string(),
+        data: config::benchmark::BenchmarkData {
+            starting_step: 1,
+            no_steps: 2,
+            step_progress: 1,
+            progress_type: config::benchmark::ProgressType::Additive,
+            timeout: None,
+        },
+    };
+
+    let commit = CommitHash::new_unchecked("abc".to_string());
+
+    let perf_json_1 = r#"
+{"counter-value":"0,374411","unit":"msec","event":"task-clock","event-runtime":374411,"pcnt-running":100.00,"metric-value":"0,000374","metric-unit":"CPUs utilized"}
+{"counter-value":"1,000000","unit":"","event":"context-switches","event-runtime":374411,"pcnt-running":100.00,"metric-value":"2,670862","metric-unit":"K/sec"}
+{"counter-value":"0,000000","unit":"","event":"cpu-migrations","event-runtime":374411,"pcnt-running":100.00,"metric-value":"0,000000","metric-unit":"/sec"}
+{"counter-value":"75,000000","unit":"","event":"page-faults","event-runtime":374411,"pcnt-running":100.00,"metric-value":"200,314628","metric-unit":"K/sec"}
+{"counter-value":"<not counted>","unit":"","event":"cpu_atom/cycles/","event-runtime":0,"pcnt-running":0.00,"metric-value":"0,000000","metric-unit":""}
+{"counter-value":"1461835,000000","unit":"","event":"cpu_core/cycles/","event-runtime":374411,"pcnt-running":100.00,"metric-value":"3,904359","metric-unit":"GHz"}
+"#;
+    let perf_json_2 = r#"
+{"counter-value":"0,374411","unit":"msec","event":"task-clock","event-runtime":374411,"pcnt-running":100.00,"metric-value":"0,000474","metric-unit":"CPUs utilized"}
+{"counter-value":"1,000000","unit":"","event":"context-switches","event-runtime":374411,"pcnt-running":100.00,"metric-value":"3,670862","metric-unit":"K/sec"}
+{"counter-value":"0,000000","unit":"","event":"cpu-migrations","event-runtime":374411,"pcnt-running":100.00,"metric-value":"0,100000","metric-unit":"/sec"}
+{"counter-value":"75,000000","unit":"","event":"page-faults","event-runtime":374411,"pcnt-running":100.00,"metric-value":"250,314628","metric-unit":"K/sec"}
+{"counter-value":"<not counted>","unit":"","event":"cpu_atom/cycles/","event-runtime":0,"pcnt-running":0.00,"metric-value":"0,100000","metric-unit":""}
+{"counter-value":"1461835,000000","unit":"","event":"cpu_core/cycles/","event-runtime":374411,"pcnt-running":100.00,"metric-value":"3,954359","metric-unit":"GHz"}
+"#;
+
+    db.insert_data(
+        BenchmarkParams::new(commit.clone(), config.name.clone(), 1, "perf".to_string()),
+        BenchmarkRecord::Data(perf_json_1.to_string()),
+    ).unwrap();
+
+    db.insert_data(
+        BenchmarkParams::new(commit.clone(), config.name.clone(), 2, "perf".to_string()),
+        BenchmarkRecord::Data(perf_json_2.to_string()),
+    ).unwrap();
+
+    let dataset: BenchmarkDataset<perf_stat::PerfStatData> = BenchmarkDataset::new(
+        &db,
+        &config,
+        [commit.clone()].into_iter(),
+        &MeasurementMethod::Perf,
+    ).unwrap();
+
+    assert_eq!(dataset.points, vec![1, 2]);
+    assert_eq!(dataset.results.len(), 1);
+    assert!(dataset.results[0][0].is_some());
+    assert!(dataset.results[0][1].is_some());
+
+    let perf_data1 = dataset.results[0][0].as_ref().unwrap();
+    let perf_data2 = dataset.results[0][1].as_ref().unwrap();
+
+    assert_perf!(perf_data1, "task-clock", 0.000374, "CPUs utilized");
+    assert_perf!(perf_data1, "context-switches", 2.670862, "K/sec");
+    assert_perf!(perf_data1, "cpu-migrations", 0.0, "/sec");
+    assert_perf!(perf_data1, "page-faults", 200.314628, "K/sec");
+    assert_perf!(perf_data1, "cpu_atom/cycles/", 0.0, "");
+    assert_perf!(perf_data1, "cpu_core/cycles/", 3.904359, "GHz");
+
+    assert_perf!(perf_data2, "task-clock", 0.000474, "CPUs utilized");
+    assert_perf!(perf_data2, "context-switches", 3.670862, "K/sec");
+    assert_perf!(perf_data2, "cpu-migrations", 0.1, "/sec");
+    assert_perf!(perf_data2, "page-faults", 250.314628, "K/sec");
+    assert_perf!(perf_data2, "cpu_atom/cycles/", 0.1, "");
+    assert_perf!(perf_data2, "cpu_core/cycles/", 3.954359, "GHz");
+
+}
