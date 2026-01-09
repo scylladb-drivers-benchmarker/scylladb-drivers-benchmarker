@@ -21,8 +21,7 @@ enum AppSubcommand {
     Plot {
         benchmark_name: String,
 
-        #[arg(short, long)]
-        #[clap(default_value = "time")]
+        #[arg(short, long, default_value_t = MeasurementMethod::Time)]
         measurement_method: MeasurementMethod,
 
         #[arg(short, long, default_value = "./config.yml")]
@@ -49,8 +48,7 @@ enum AppSubcommand {
     Run {
         benchmark_name: String,
 
-        #[arg(short, long)]
-        #[clap(default_value = "time")]
+        #[arg(short, long, default_value_t = MeasurementMethod::Time)]
         measurement_method: MeasurementMethod,
 
         #[arg(short = 'B', long, default_value = "./config.yml")]
