@@ -172,7 +172,7 @@ impl Into<PrintableOutput> for process::Output {
 
 impl Display for PrintableOutput {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "status: {}\n", self.value.status)?;
+        writeln!(f, "status: {}", self.value.status)?;
         write!(
             f,
             "stdout: \n\"\n{}\"\n",

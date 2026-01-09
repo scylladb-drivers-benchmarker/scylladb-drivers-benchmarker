@@ -38,7 +38,7 @@ impl CommitHash {
         command: &mut process::Command,
     ) -> Result<CommitHash, FailedToRetrieveCommitHash> {
         Self::from_git_inner(command).map_err(|source| FailedToRetrieveCommitHash {
-            command: command::Command::from_command_lossy(&command),
+            command: command::Command::from_command_lossy(command),
             repo_path: errors::RepoPath(command.get_current_dir().map(Path::to_owned)),
             source,
         })
