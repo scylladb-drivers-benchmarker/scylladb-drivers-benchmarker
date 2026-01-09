@@ -1,10 +1,15 @@
 use std::fs::OpenOptions;
 
+use crate::CommitHash;
+use crate::Database;
+use crate::MeasurementMethod;
+use crate::PlotError;
+use crate::config;
 use crate::database::utilities::BenchmarkParams;
 use crate::database::utilities::{BenchmarkFilters, BenchmarkRecord};
-use crate::plotting::data::BenchmarkDataset;
 use crate::plotting::BenchmarkConfig;
-use crate::*;
+use crate::plotting::data::BenchmarkDataset;
+use crate::utilities::BenchmarkPoint;
 use tempfile::NamedTempFile;
 
 fn get_db() -> (Database, NamedTempFile, std::path::PathBuf) {
@@ -15,78 +20,92 @@ fn get_db() -> (Database, NamedTempFile, std::path::PathBuf) {
 
 // Insert record to database, with provided commit_hash, config, point and result
 // Measurement method is always "time".
-macro_rules! insert_bench {
-    ($db:expr, $hash:expr, $conf:expr, $step:expr, $val:expr) => {
-        $db.insert_data(
-            BenchmarkParams::new($hash.clone(), $conf.name.clone(), $step, "time".to_string()),
-            BenchmarkRecord::Data($val.to_string()),
-        )
-        .unwrap();
-    };
+fn insert_bench(
+    db: &Database,
+    hash: &CommitHash,
+    conf: &BenchmarkConfig,
+    step: BenchmarkPoint,
+    val: &str,
+) {
+    db.insert_data(
+        BenchmarkParams::new(hash.clone(), conf.name.clone(), step, String::from("time")),
+        BenchmarkRecord::Data(val.to_owned()),
+    )
+    .unwrap();
 }
 
-
+struct TestSetup {
+    db: Database,
+    file: NamedTempFile,
+    path: std::path::PathBuf,
+    configs: Vec<BenchmarkConfig>,
+    hashes: Vec<CommitHash>,
+    measure: MeasurementMethod,
+}
 
 // Creates mock data and initialises structs with it.
-fn init_db() -> (
-    Database,
-    NamedTempFile,
-    std::path::PathBuf,
-    Vec<BenchmarkConfig>,
-    Vec<CommitHash>,
-    MeasurementMethod,
-) {
+fn init_db() -> TestSetup {
     let (db, file, path) = get_db();
 
-    let config1 = BenchmarkConfig {
-        name: "benchmark1".to_string(),
-        data: config::benchmark::BenchmarkData {
-            starting_step: 1,
-            no_steps: 3,
-            step_progress: 1,
-            progress_type: config::benchmark::ProgressType::Additive,
-            timeout: None,
+    let configs = vec![
+        BenchmarkConfig {
+            name: "benchmark1".to_string(),
+            data: config::benchmark::BenchmarkData {
+                starting_step: 1,
+                no_steps: 3,
+                step_progress: 1,
+                progress_type: config::benchmark::ProgressType::Additive,
+                timeout: None,
+            },
         },
-    };
-
-    let config2 = BenchmarkConfig {
-        name: "benchmark2".to_string(),
-        data: config::benchmark::BenchmarkData {
-            starting_step: 10,
-            no_steps: 1,
-            step_progress: 1,
-            progress_type: config::benchmark::ProgressType::Additive,
-            timeout: None,
+        BenchmarkConfig {
+            name: "benchmark2".to_string(),
+            data: config::benchmark::BenchmarkData {
+                starting_step: 10,
+                no_steps: 1,
+                step_progress: 1,
+                progress_type: config::benchmark::ProgressType::Additive,
+                timeout: None,
+            },
         },
-    };
+    ];
 
-    let commit_hash_1 = CommitHash::new_unchecked("1".to_string());
-    let commit_hash_2 = CommitHash::new_unchecked("2".to_string());
-    let commit_hash_3 = CommitHash::new_unchecked("3".to_string());
+    let hashes = vec![
+        CommitHash::new_unchecked("1".to_string()),
+        CommitHash::new_unchecked("2".to_string()),
+        CommitHash::new_unchecked("3".to_string()),
+    ];
 
-    insert_bench!(db, commit_hash_1, config1, 1, "1.5");
-    insert_bench!(db, commit_hash_1, config1, 2, "2.5");
-    insert_bench!(db, commit_hash_1, config1, 3, "4.5");
+    insert_bench(&db, &hashes[0], &configs[0], 1, "1.5");
+    insert_bench(&db, &hashes[0], &configs[0], 2, "2.5");
+    insert_bench(&db, &hashes[0], &configs[0], 3, "4.5");
 
-    insert_bench!(db, commit_hash_2, config1, 1, "2");
-    insert_bench!(db, commit_hash_2, config1, 2, "3.5");
-    insert_bench!(db, commit_hash_2, config1, 3, "5.5");
+    insert_bench(&db, &hashes[1], &configs[0], 1, "2");
+    insert_bench(&db, &hashes[1], &configs[0], 2, "3.5");
+    insert_bench(&db, &hashes[1], &configs[0], 3, "5.5");
 
-    insert_bench!(db, commit_hash_3, config2, 10, "3.5");
+    insert_bench(&db, &hashes[2], &configs[1], 10, "3.5");
 
-    (
+    TestSetup {
         db,
         file,
         path,
-        vec![config1, config2],
-        vec![commit_hash_1, commit_hash_2, commit_hash_3],
-        MeasurementMethod::Time,
-    )
+        configs,
+        hashes,
+        measure: MeasurementMethod::Time,
+    }
 }
 
 #[test]
 fn extract() {
-    let (db, _file, _path, configs, hashes, measure) = init_db();
+    let TestSetup {
+        db,
+        file: _file,
+        path: _path,
+        configs,
+        hashes,
+        measure,
+    } = init_db();
 
     let dataset: BenchmarkDataset<f64> = BenchmarkDataset::new(
         &db,
@@ -126,7 +145,14 @@ macro_rules! drop_and_expect_failure {
 
 #[test]
 fn extract_failure() {
-    let (db, _file, path, configs, hashes, measure) = init_db();
+    let TestSetup {
+        db,
+        file: _file,
+        path,
+        configs,
+        hashes,
+        measure,
+    } = init_db();
 
     drop_and_expect_failure!(db, &configs[0], &hashes[0], measure, vec![3],
         PlotError::MissingRecords { commit_hash, benchmark, points, measurement_method }
