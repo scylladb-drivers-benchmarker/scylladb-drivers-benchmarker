@@ -12,12 +12,6 @@ use crate::plotting::data::BenchmarkDataset;
 use crate::utilities::BenchmarkPoint;
 use tempfile::NamedTempFile;
 
-fn get_db() -> (Database, NamedTempFile, std::path::PathBuf) {
-    let file = NamedTempFile::new().unwrap();
-    let path = file.path().to_path_buf();
-    (Database::new(&path).unwrap(), file, path)
-}
-
 // Insert record to database, with provided commit_hash, config, point and result
 // Measurement method is always "time".
 fn insert_bench(
@@ -45,7 +39,9 @@ struct TestSetup {
 
 // Creates mock data and initialises structs with it.
 fn init_db() -> TestSetup {
-    let (db, file, path) = get_db();
+    let file = NamedTempFile::new().unwrap();
+    let path = file.path().to_path_buf();
+    let db = Database::new(&path).unwrap();
 
     let configs = vec![
         BenchmarkConfig {
