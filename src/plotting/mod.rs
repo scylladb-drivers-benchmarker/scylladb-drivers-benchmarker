@@ -80,8 +80,7 @@ fn plot_on_backend<P: Plot>(plot: P, output: &str, format: OutputFormat) -> Resu
 pub fn plot(
     plot_kind: PlotKind,
     database: &Database,
-    benchmark_name: &str,
-    benchmark_config: &BenchmarkConfig,
+    benchmark_config: BenchmarkConfig,
     measurement_method: &MeasurementMethod,
     commit_hashes: impl Iterator<Item = CommitHash>,
     names: &[String],
@@ -92,7 +91,6 @@ pub fn plot(
         PlotKind::Series { visualization_kind } => {
             let plot = SeriesPlot::build(
                 database,
-                benchmark_name,
                 benchmark_config,
                 measurement_method,
                 commit_hashes,
@@ -120,7 +118,6 @@ pub fn plot(
         PlotKind::PerfStat { events } => {
             let plot = PerfStatPlot::build(
                 database,
-                benchmark_name,
                 benchmark_config,
                 measurement_method,
                 commit_hashes,

@@ -94,8 +94,7 @@ pub fn plot_benchmarks(
     plotting::plot(
         plot_kind,
         database,
-        benchmark_name,
-        &benchmark_config,
+        benchmark_config,
         measurement_method,
         commit_hashes,
         &names,

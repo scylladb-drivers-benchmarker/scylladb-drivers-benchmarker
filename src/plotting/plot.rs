@@ -84,8 +84,7 @@ impl SeriesPlot {
 
     pub(crate) fn build(
         database: &Database,
-        benchmark_name: &str,
-        benchmark_config: &BenchmarkConfig,
+        benchmark_config: BenchmarkConfig,
         measurement_method: &MeasurementMethod,
         commit_hashes: impl Iterator<Item = CommitHash>,
         names: &[String],
@@ -93,12 +92,12 @@ impl SeriesPlot {
     ) -> Result<Self, PlotError> {
         let dataset: BenchmarkDataset<f64> = BenchmarkDataset::new(
             database,
-            benchmark_config,
+            &benchmark_config,
             commit_hashes,
             measurement_method,
         )?;
 
-        SeriesPlot::from_dataset(dataset, benchmark_name.to_string(), names, vis_kind)
+        SeriesPlot::from_dataset(dataset, benchmark_config.name, names, vis_kind)
     }
 }
 
@@ -207,8 +206,7 @@ impl PerfStatPlot {
 
     pub(crate) fn build(
         database: &Database,
-        benchmark_name: &str,
-        benchmark_config: &BenchmarkConfig,
+        benchmark_config: BenchmarkConfig,
         measurement_method: &MeasurementMethod,
         commit_hashes: impl Iterator<Item = CommitHash>,
         names: &[String],
@@ -216,12 +214,12 @@ impl PerfStatPlot {
     ) -> Result<Self, PlotError> {
         let dataset: BenchmarkDataset<PerfStatData> = BenchmarkDataset::new(
             database,
-            benchmark_config,
+            &benchmark_config,
             commit_hashes,
             measurement_method,
         )?;
 
-        PerfStatPlot::from_dataset(dataset, benchmark_name.to_string(), names, events)
+        PerfStatPlot::from_dataset(dataset, benchmark_config.name, names, events)
     }
 }
 
