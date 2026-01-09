@@ -114,7 +114,9 @@ impl CommandExecutor {
         if output.status.success() {
             let str_stdout = String::from_utf8(output.stdout)?;
             let str_stderr = String::from_utf8(output.stderr)?;
-            Ok(BenchmarkRecord::Data((str_stdout + &str_stderr).trim_end().to_string()))
+            Ok(BenchmarkRecord::Data(
+                (str_stdout + &str_stderr).trim_end().to_string(),
+            ))
         } else {
             Err(MeasurementError::ExecutionFailed(output))
         }

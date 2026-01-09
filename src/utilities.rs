@@ -123,10 +123,7 @@ pub fn format_entry(params: &BenchmarkParams, record: &BenchmarkRecord) -> Strin
     let mut out = String::new();
 
     out.push_str("--- Benchmark Entry ---\n");
-    out.push_str(&format!(
-        "Commit Hash:         {}\n",
-        params.commit_hash
-    ));
+    out.push_str(&format!("Commit Hash:         {}\n", params.commit_hash));
     out.push_str(&format!("Benchmark Name:      {}\n", params.benchmark_name));
     out.push_str(&format!(
         "Benchmark Point:     {}\n",

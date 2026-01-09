@@ -259,11 +259,9 @@ impl Plot for PerfStatPlot {
                     .first()
                     .and_then(|r| r.points.last())
                     .unwrap_or(&1);
-                let(y_min, y_max) = calc_min_max(
-                    self.results
-                        .iter()
-                        .filter_map(|r| r.ranges()[id])
-                ).unwrap_or((0.0, 1.0));
+                let (y_min, y_max) =
+                    calc_min_max(self.results.iter().filter_map(|r| r.ranges()[id]))
+                        .unwrap_or((0.0, 1.0));
 
                 let mut chart = ChartBuilder::on(&area)
                     .caption(self.events[id].clone(), CAPTION_FONT)

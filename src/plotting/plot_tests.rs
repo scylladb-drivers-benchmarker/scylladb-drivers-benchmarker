@@ -103,25 +103,37 @@ fn perf_stat_plot_runs() {
     use crate::perf_stat::PerfStatData;
     let points = vec![1, 2];
 
-    let prog1_step1 = PerfStatData::from_str(r#"
+    let prog1_step1 = PerfStatData::from_str(
+        r#"
         {"event":"task-clock","metric-value":"0,000374","metric-unit":"CPUs utilized"}
         {"event":"context-switches","metric-value":"2,670862","metric-unit":"K/sec"}
-    "#).unwrap();
+    "#,
+    )
+    .unwrap();
 
-    let prog1_step2 = PerfStatData::from_str(r#"
+    let prog1_step2 = PerfStatData::from_str(
+        r#"
         {"event":"task-clock","metric-value":"0,000474","metric-unit":"CPUs utilized"}
         {"event":"context-switches","metric-value":"3,670862","metric-unit":"K/sec"}
-    "#).unwrap();
+    "#,
+    )
+    .unwrap();
 
-    let prog2_step1 = PerfStatData::from_str(r#"
+    let prog2_step1 = PerfStatData::from_str(
+        r#"
         {"event":"task-clock","metric-value":"0,000500","metric-unit":"CPUs utilized"}
         {"event":"context-switches","metric-value":"2,000000","metric-unit":"K/sec"}
-    "#).unwrap();
+    "#,
+    )
+    .unwrap();
 
-    let prog2_step2 = PerfStatData::from_str(r#"
+    let prog2_step2 = PerfStatData::from_str(
+        r#"
         {"event":"task-clock","metric-value":"0,000600","metric-unit":"CPUs utilized"}
         {"event":"context-switches","metric-value":"3,000000","metric-unit":"K/sec"}
-    "#).unwrap();
+    "#,
+    )
+    .unwrap();
 
     let dataset: BenchmarkDataset<PerfStatData> = BenchmarkDataset {
         points: points.clone(),

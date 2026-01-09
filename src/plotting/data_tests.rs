@@ -187,8 +187,8 @@ fn extract_failure() {
 
 #[test]
 fn extract_perfstat_dataset() {
-    use crate::perf_stat;
     use crate::assert_perf;
+    use crate::perf_stat;
 
     let (db, _file) = {
         let file = NamedTempFile::new().unwrap();
@@ -229,19 +229,22 @@ fn extract_perfstat_dataset() {
     db.insert_data(
         BenchmarkParams::new(commit.clone(), config.name.clone(), 1, "perf".to_string()),
         BenchmarkRecord::Data(perf_json_1.to_string()),
-    ).unwrap();
+    )
+    .unwrap();
 
     db.insert_data(
         BenchmarkParams::new(commit.clone(), config.name.clone(), 2, "perf".to_string()),
         BenchmarkRecord::Data(perf_json_2.to_string()),
-    ).unwrap();
+    )
+    .unwrap();
 
     let dataset: BenchmarkDataset<perf_stat::PerfStatData> = BenchmarkDataset::new(
         &db,
         &config,
         [commit.clone()].into_iter(),
         &MeasurementMethod::Perf,
-    ).unwrap();
+    )
+    .unwrap();
 
     assert_eq!(dataset.points, vec![1, 2]);
     assert_eq!(dataset.results.len(), 1);
@@ -264,5 +267,4 @@ fn extract_perfstat_dataset() {
     assert_perf!(perf_data2, "page-faults", 250.314628, "K/sec");
     assert_perf!(perf_data2, "cpu_atom/cycles/", 0.1, "");
     assert_perf!(perf_data2, "cpu_core/cycles/", 3.954359, "GHz");
-
 }

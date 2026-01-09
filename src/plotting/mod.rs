@@ -8,6 +8,8 @@ mod series;
 mod data_tests;
 #[cfg(test)]
 mod plot_tests;
+#[cfg(test)]
+mod render_tests;
 
 use crate::config::benchmark::BenchmarkConfig;
 use crate::database::Database;
