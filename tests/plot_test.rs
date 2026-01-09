@@ -268,7 +268,7 @@ fn plot_series() {
 #[file_serial]
 fn plot_perf() {
     // To see the results of the test, set this to false.
-    let delete_results = true;
+    let delete_results = false;
 
     let output_base = "./tests/plot_test/perf";
 

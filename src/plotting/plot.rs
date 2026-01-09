@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use super::VisKind;
 
 use super::BenchmarkConfig;
@@ -39,6 +41,7 @@ pub(crate) struct SeriesPlot {
 pub(crate) struct PerfStatPlot {
     pub benchmark_name: String,
     pub events: Vec<String>,
+    pub units: Vec<String>,
     pub results: Vec<RenderablePerfStat>,
 }
 
@@ -154,10 +157,16 @@ impl Plot for SeriesPlot {
 }
 
 impl PerfStatPlot {
-    fn new(benchmark_name: String, events: Vec<String>, results: Vec<RenderablePerfStat>) -> Self {
+    fn new(
+        benchmark_name: String,
+        events: Vec<String>,
+        units: Vec<String>,
+        results: Vec<RenderablePerfStat>,
+    ) -> Self {
         PerfStatPlot {
             benchmark_name,
             events,
+            units,
             results,
         }
     }
@@ -170,6 +179,8 @@ impl PerfStatPlot {
     ) -> Result<Self, PlotError> {
         let mut results = Vec::new();
 
+        let mut unit: HashMap<String, Result<String, ()>> = HashMap::new();
+
         for (id, (name, values)) in names.iter().zip(dataset.results.into_iter()).enumerate() {
             let values_per_event: Vec<Vec<Option<f64>>> = events
                 .iter()
@@ -178,7 +189,19 @@ impl PerfStatPlot {
                         .iter()
                         .map(|data| {
                             data.as_ref().and_then(|perfstat| {
-                                perfstat.filter_value(event_name).map(|e| e.value)
+                                perfstat.filter_value(event_name).map(|e| {
+                                    unit.entry(event_name.clone())
+                                        .and_modify(|existing| {
+                                            if let Ok(existing_unit) = existing
+                                                && existing_unit != &e.unit
+                                            {
+                                                *existing = Err(());
+                                            }
+                                        })
+                                        .or_insert_with(|| Ok(e.unit.clone()));
+
+                                    e.value
+                                })
                             })
                         })
                         .collect::<Vec<Option<f64>>>()
@@ -201,7 +224,29 @@ impl PerfStatPlot {
             ));
         }
 
-        Ok(PerfStatPlot::new(benchmark_name, events, results))
+        let mut units_per_event = Vec::new();
+
+        for event in &events {
+            match unit.get(event) {
+                Some(Ok(u)) => units_per_event.push(u.clone()),
+                Some(Err(_)) => {
+                    return Err(PlotError::InvalidData(format!(
+                        "different units for event {}",
+                        event
+                    )));
+                }
+                None => {
+                    units_per_event.push(String::new());
+                }
+            }
+        }
+
+        Ok(PerfStatPlot::new(
+            benchmark_name,
+            events,
+            units_per_event,
+            results,
+        ))
     }
 
     pub(crate) fn build(
@@ -233,10 +278,10 @@ impl Plot for PerfStatPlot {
 
         let (title_legend_area, plot_area) = root.split_vertically(20);
 
-        let legend_area = title_legend_area.titled(
+        let _legend_area = title_legend_area.titled(
             &format!("Benchmark {} Results", &self.benchmark_name),
             TITLE_FONT,
-        )?;
+        )?; // TODO make single legend area.
 
         // Somehow plot legend_area; has to be done experimentally, currently no way to do it properly.
         // For now each subplot has its own legend.
@@ -262,7 +307,10 @@ impl Plot for PerfStatPlot {
                         .unwrap_or((0.0, 1.0));
 
                 let mut chart = ChartBuilder::on(&area)
-                    .caption(self.events[id].clone(), CAPTION_FONT)
+                    .caption(
+                        self.events[id].clone() + ", unit: " + &self.units[id].clone(),
+                        CAPTION_FONT,
+                    )
                     .margin(MARGIN_SIZE)
                     .x_label_area_size(X_LABEL_AREA_SIZE)
                     .y_label_area_size(Y_LABEL_AREA_SIZE)
