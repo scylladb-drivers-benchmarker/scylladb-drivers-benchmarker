@@ -23,6 +23,11 @@ fn setup_git(repo: &str) {
         .current_dir(repo)
         .arg("add")
         .arg("-A"));
+    run(std::process::Command::new("git")
+        .current_dir(repo)
+        .arg("commit")
+        .arg("-m")
+        .arg("\"initial\""));
 }
 
 fn check_data(
