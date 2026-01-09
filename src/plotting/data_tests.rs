@@ -1,9 +1,9 @@
 use std::fs::OpenOptions;
 
-use super::*;
 use crate::database::utilities::BenchmarkParams;
 use crate::database::utilities::{BenchmarkFilters, BenchmarkRecord};
 use crate::plotting::data::BenchmarkDataset;
+use crate::plotting::BenchmarkConfig;
 use crate::*;
 use tempfile::NamedTempFile;
 
@@ -24,6 +24,8 @@ macro_rules! insert_bench {
         .unwrap();
     };
 }
+
+
 
 // Creates mock data and initialises structs with it.
 fn init_db() -> (
@@ -108,7 +110,7 @@ fn extract() {
     assert_eq!(dataset.results, vec![vec![Some(3.5)]]);
 }
 
-macro_rules! drop_and_expect_missing {
+macro_rules! drop_and_expect_failure {
     ($db:expr, $conf:expr, $hash:expr, $measure:expr, $drop:expr, $err_pat:pat $(if $guard:expr)?) => {
         $db.drop_data(&BenchmarkFilters {
             commit_hashes: vec![$hash.as_str().to_owned()],
@@ -126,7 +128,7 @@ macro_rules! drop_and_expect_missing {
 fn extract_failure() {
     let (db, _file, path, configs, hashes, measure) = init_db();
 
-    drop_and_expect_missing!(db, &configs[0], &hashes[0], measure, vec![3],
+    drop_and_expect_failure!(db, &configs[0], &hashes[0], measure, vec![3],
         PlotError::MissingRecords { commit_hash, benchmark, points, measurement_method }
             if commit_hash == hashes[0].as_str()
             && benchmark == configs[0].name
@@ -134,7 +136,7 @@ fn extract_failure() {
             && measurement_method == measure.to_string()
     );
 
-    drop_and_expect_missing!(db, &configs[0], &hashes[0], measure, vec![2],
+    drop_and_expect_failure!(db, &configs[0], &hashes[0], measure, vec![2],
         PlotError::MissingRecords { commit_hash, benchmark, points, measurement_method }
             if commit_hash == hashes[0].as_str()
             && benchmark == configs[0].name
@@ -142,7 +144,7 @@ fn extract_failure() {
             && measurement_method == measure.to_string()
     );
 
-    drop_and_expect_missing!(db, &configs[0], &hashes[0], measure, vec![1],
+    drop_and_expect_failure!(db, &configs[0], &hashes[0], measure, vec![1],
         PlotError::MissingBenchmark { commit_hash, benchmark, measurement_method }
             if commit_hash == hashes[0].as_str()
             && benchmark == configs[0].name
