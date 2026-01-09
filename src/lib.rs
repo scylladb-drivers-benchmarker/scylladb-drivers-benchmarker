@@ -16,7 +16,7 @@ use crate::{
 pub use plotting::{OutputFormat, PlotKind, VisKind};
 
 mod benchmarking;
-mod command;
+pub mod command;
 pub mod commit_hash;
 mod config;
 pub mod database;
