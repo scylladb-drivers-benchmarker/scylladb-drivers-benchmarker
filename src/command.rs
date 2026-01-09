@@ -162,9 +162,9 @@ macro_rules! cmd {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PrintableOutput(process::Output);
 
-impl Into<PrintableOutput> for process::Output {
-    fn into(self) -> PrintableOutput {
-        PrintableOutput(self)
+impl From<process::Output> for PrintableOutput {
+    fn from(output: process::Output) -> PrintableOutput {
+        PrintableOutput(output)
     }
 }
 
