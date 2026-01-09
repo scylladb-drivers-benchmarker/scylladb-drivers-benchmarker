@@ -1,4 +1,3 @@
-use assert_cmd::assert;
 use scylladb_drivers_benchmarker::{
     commit_hash::CommitHash,
     database::utilities::{BenchmarkParams, BenchmarkRecord},
