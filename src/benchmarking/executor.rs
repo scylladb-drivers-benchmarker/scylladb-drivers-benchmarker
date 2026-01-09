@@ -97,15 +97,11 @@ impl Executor {
 }
 
 #[derive(Debug)]
-pub(crate) struct CommandExecutor {
-    command: command::Command,
-}
+pub(crate) struct CommandExecutor(command::Command);
 
 impl CommandExecutor {
     fn new(command: command::Command, run_command: command::Command) -> Self {
-        CommandExecutor {
-            command: command.with_cmd_arg(run_command),
-        }
+        CommandExecutor(command.with_cmd_arg(run_command))
     }
 }
 
@@ -126,7 +122,7 @@ impl CommandExecutor {
 impl MeasuringEquipment for CommandExecutor {
     fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, MeasurementError> {
         Self::handle_output(
-            self.command
+            self.0
                 .clone()
                 .with_arg(point.to_string())
                 .process()
@@ -139,7 +135,7 @@ impl MeasuringEquipment for CommandExecutor {
         point: BenchmarkPoint,
         timeout: Duration,
     ) -> Result<BenchmarkRecord, MeasurementError> {
-        self.command
+        self.0
             .clone()
             .with_arg(point.to_string())
             .process()

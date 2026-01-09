@@ -160,28 +160,26 @@ macro_rules! cmd {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PrintableOutput {
-    value: process::Output,
-}
+pub struct PrintableOutput(process::Output);
 
 impl Into<PrintableOutput> for process::Output {
     fn into(self) -> PrintableOutput {
-        PrintableOutput { value: self }
+        PrintableOutput(self)
     }
 }
 
 impl Display for PrintableOutput {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "status: {}", self.value.status)?;
+        writeln!(f, "status: {}", self.0.status)?;
         write!(
             f,
             "stdout: \n\"\n{}\"\n",
-            String::from_utf8_lossy(&self.value.stdout)
+            String::from_utf8_lossy(&self.0.stdout)
         )?;
         write!(
             f,
             "stderr: \n\"\n{}\"\n",
-            String::from_utf8_lossy(&self.value.stderr)
+            String::from_utf8_lossy(&self.0.stderr)
         )
     }
 }
