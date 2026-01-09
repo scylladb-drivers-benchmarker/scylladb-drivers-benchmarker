@@ -178,7 +178,7 @@ fn renderable_perf_stat_view() {
     for chart in &mut charts {
         chart
             .configure_series_labels()
-            .border_style(&BLACK)
+            .border_style(BLACK)
             .draw()
             .unwrap();
     }

@@ -76,7 +76,7 @@ fn plot_series_generic_test(
     let points = 1u64..101u64;
 
     for (commit_idx, commit) in commits.iter().enumerate() {
-        for point in points.clone().into_iter() {
+        for point in points.clone() {
             let params = BenchmarkParams::new(
                 commit.clone(),
                 "test-bench".to_string(),
@@ -144,7 +144,7 @@ fn plot_perf_generic_test(output: &str, format: OutputFormat, delete_result: boo
     let points = 1u64..101u64;
 
     for (commit_idx, commit) in commits.iter().enumerate() {
-        for point in points.clone().into_iter() {
+        for point in points.clone() {
             let params = BenchmarkParams::new(
                 commit.clone(),
                 "test-bench".to_string(),

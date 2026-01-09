@@ -146,7 +146,7 @@ fn perf_stat_plot_runs() {
     let plot = PerfStatPlot::from_dataset(
         dataset,
         "TestPerfStat".to_string(),
-        &vec!["prog1".to_string(), "prog2".to_string()],
+        &["prog1".to_string(), "prog2".to_string()],
         vec!["task-clock".to_string(), "context-switches".to_string()],
     )
     .unwrap();
