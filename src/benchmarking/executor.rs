@@ -91,7 +91,9 @@ impl Executor {
                 CommandExecutor::new(cmd!("perf", "stat", "--json"), run_command).into()
             }
             MeasurementMethod::Flamegraph => todo!(),
-            MeasurementMethod::Command(_) => todo!(),
+            MeasurementMethod::Command(command) => {
+                CommandExecutor::new(command, run_command).into()
+            }
         }
     }
 }

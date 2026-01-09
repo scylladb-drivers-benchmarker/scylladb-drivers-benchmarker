@@ -1,14 +1,14 @@
 use std::fmt::{self, Debug, Display};
 use std::str::FromStr;
 
-use crate::command::CommandParsingError;
+use crate::command::{self, CommandParsingError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MeasurementMethod {
     Time,
     Perf,
     Flamegraph,
-    Command(String),
+    Command(command::Command),
 }
 
 #[justerror::Error]
@@ -36,7 +36,7 @@ impl FromStr for MeasurementMethod {
             "perf" => Ok(MeasurementMethod::Perf),
             "flamegraph" => Ok(MeasurementMethod::Flamegraph),
             "time" => Ok(MeasurementMethod::Time),
-            value => Ok(MeasurementMethod::Command(value.to_owned())),
+            value => Ok(MeasurementMethod::Command(value.parse()?)),
         }
     }
 }
