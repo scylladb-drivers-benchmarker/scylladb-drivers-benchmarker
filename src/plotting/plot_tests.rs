@@ -69,9 +69,7 @@ fn series_plot_fails_on_permission_denied() {
 
     let path = Path::new("no_write.png");
     File::create(path).unwrap();
-    let mut perms = fs::metadata(path).unwrap().permissions();
-    perms.set_mode(0o444);
-    fs::set_permissions(path, perms).unwrap();
+    fs::set_permissions(path, fs::Permissions::from_mode(0o444)).unwrap();
 
     let plot = setup_test_plot();
 
@@ -80,9 +78,6 @@ fn series_plot_fails_on_permission_denied() {
     assert!(matches!(result.unwrap_err(), PlotError::Plotters(msg)
         if msg == "backend error: Drawing backend error: ImageError(IoError(Os { code: 13, kind: PermissionDenied, message: \"Permission denied\" }))"));
 
-    let mut perms = fs::metadata(path).unwrap().permissions();
-    perms.set_mode(0o644);
-    fs::set_permissions(path, perms).unwrap();
     fs::remove_file(path).unwrap();
 }
 
