@@ -32,7 +32,7 @@ fn setup_git(repo: &str) {
 
 fn check_data(
     commit_hash: &CommitHash,
-    data: impl Iterator<Item = (BenchmarkParams, BenchmarkRecord)>,
+    mut data: impl Iterator<Item = (BenchmarkParams, BenchmarkRecord)>,
 ) {
     let get_params = |point| {
         BenchmarkParams::new(
@@ -43,15 +43,13 @@ fn check_data(
         )
     };
 
-    let mut cnt = 0;
+    assert_eq!(data.by_ref().count(), 8usize);
     for (params, _record) in data {
-        cnt += 1;
         if params != get_params(params.benchmark_point) {
             println!("{:?}", params);
             assert!(params == get_params(params.benchmark_point));
         }
     }
-    assert_eq!(cnt, 8usize);
 }
 
 struct CppVsRust {

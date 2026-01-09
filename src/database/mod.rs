@@ -229,7 +229,6 @@ impl Database {
         } else {
             Err(DatabaseError::MultipleResults)
         }
-
     }
 
     pub fn result_exists(&self, params: BenchmarkParams) -> Result<bool, DatabaseError> {
