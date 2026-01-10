@@ -327,10 +327,7 @@ impl Plot for PerfStatPlot {
                         .unwrap_or((0.0, 1.0));
 
                 let mut chart = ChartBuilder::on(&area)
-                    .caption(
-                        self.events[id].clone(),
-                        CAPTION_FONT,
-                    )
+                    .caption(self.events[id].clone(), CAPTION_FONT)
                     .margin(MARGIN_SIZE)
                     .x_label_area_size(X_LABEL_AREA_SIZE)
                     .y_label_area_size(Y_LABEL_AREA_SIZE)

@@ -73,8 +73,28 @@ fn svg_to_rgba(path: &std::path::Path) -> RgbaImage {
 
     resvg::render(&tree, tiny_skia::Transform::default(), &mut pixmap.as_mut());
 
-    RgbaImage::from_raw(pixmap.width(), pixmap.height(), pixmap.data().to_vec())
-        .unwrap()
+    RgbaImage::from_raw(pixmap.width(), pixmap.height(), pixmap.data().to_vec()).unwrap()
+}
+
+fn check_files_equality(output: &str, expected_output: &str, format: OutputFormat) {
+    match format {
+        OutputFormat::Png => {
+            let f1 = open(output).unwrap().to_rgba8();
+            let f2 = open(expected_output).unwrap().to_rgba8();
+            let result = image_compare::rgba_hybrid_compare(&f1, &f2)
+                .expect("Images had different dimensions");
+            assert!(result.score > 0.98, "similarity too low: {}", result.score);
+        }
+        OutputFormat::Svg => {
+            let f1 = svg_to_rgba(output.as_ref());
+            let f2 = svg_to_rgba(expected_output.as_ref());
+
+            let result = image_compare::rgba_hybrid_compare(&f1, &f2)
+                .expect("Images had different dimensions");
+
+            assert!(result.score > 0.98, "similarity too low: {}", result.score);
+        }
+    };
 }
 
 fn plot_series_generic_test(
@@ -135,31 +155,12 @@ fn plot_series_generic_test(
         vis_kind.to_string(),
     ]);
 
-    assert!(Path::new(output).exists());
-
-    match format {
-        OutputFormat::Png => {
-            let f1 = open(output).unwrap().to_rgba8();
-            let f2 = open(expected_output).unwrap().to_rgba8();
-            let result = image_compare::rgba_hybrid_compare(&f1, &f2)
-                .expect("Images had different dimensions");
-            assert!(result.score > 0.98);
-        }
-        OutputFormat::Svg => {
-            let f1 = svg_to_rgba(output.as_ref());
-            let f2 = svg_to_rgba(expected_output.as_ref());
-
-            let result = image_compare::rgba_hybrid_compare(&f1, &f2)
-                .expect("Images had different dimensions");
-
-            assert!(result.score > 0.98,);
-        }
-    };
+    check_files_equality(output, expected_output, format);
 
     fs::remove_file(output).unwrap();
 }
 
-fn plot_perf_generic_test(output: &str, format: OutputFormat, delete_result: bool) {
+fn plot_perf_generic_test(output: &str, expected_output: &str, format: OutputFormat) {
     let db_path = "./tests/plot_test/test.db";
     let db = init_db(db_path);
 
@@ -254,11 +255,8 @@ fn plot_perf_generic_test(output: &str, format: OutputFormat, delete_result: boo
         "task-clock,context-switches,page-faults",
     ]);
 
-    assert!(Path::new(output).exists());
-
-    if delete_result {
-        fs::remove_file(output).unwrap();
-    }
+    check_files_equality(output, expected_output, format);
+    fs::remove_file(output).unwrap();
 }
 
 // Compiling rust by two tests in parallel sometimes fails.
@@ -290,19 +288,18 @@ fn plot_series() {
 #[test]
 #[file_serial]
 fn plot_perf() {
-    // To see the results of the test, set this to false.
-    let delete_results = true;
-
     let output_base = "./tests/plot_test/perf";
+    let expected_base = "./tests/plot_test/expected_perf";
 
     let formats = [OutputFormat::Png, OutputFormat::Svg];
 
     for format in &formats {
-        let output_file = match format {
-            OutputFormat::Png => format!("{}.png", output_base),
-            OutputFormat::Svg => format!("{}.svg", output_base),
-        };
+        let sufix = format!(".{}", format.to_string());
 
-        //    plot_perf_generic_test(&output_file, *format, delete_results);
+        plot_perf_generic_test(
+            &(output_base.to_owned() + &sufix),
+            &(expected_base.to_owned() + &sufix),
+            *format,
+        );
     }
 }
