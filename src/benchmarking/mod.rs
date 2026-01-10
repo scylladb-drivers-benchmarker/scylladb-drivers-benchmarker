@@ -2,7 +2,7 @@ mod executor;
 
 use std::str::FromStr;
 
-use crate::benchmarking::executor::{CompileError, Executor, MeasurementError, MeasuringEquipment};
+use crate::benchmarking::executor::{CompileError, MeasurementError, execute_all};
 use crate::command::{Command, CommandParsingError};
 use crate::commit_hash::CommitHash;
 use crate::database::utilities::BenchmarkFilters;
@@ -78,24 +78,12 @@ pub fn benchmark(
 
     let built_source = build_source(&backend_config.build_command)?;
 
-    let executor = Executor::new(
+    execute_all(
         built_source,
         measurement_method,
         Command::from_str(&backend_config.run_command)?,
-    );
-
-    let execute = |point| {
-        if let Some(timeout) = benchmark_data.timeout {
-            executor.execute_with_timeout(point, timeout)
-        } else {
-            executor.execute(point)
-        }
-    };
-
-    for point in points.into_iter() {
-        let benchmark_result = execute(point)?;
-        database.insert_data(param_generator.finalize(point), benchmark_result)?;
-    }
-
-    Ok(())
+        points.into_iter(),
+        |point, record| database.insert_data(param_generator.finalize(point), record),
+        benchmark_data.timeout,
+    )
 }

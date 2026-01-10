@@ -16,7 +16,6 @@ thiserror = "2.0.17"
 home = "0.5.12"
 wait-timeout = "0.2.1"
 humantime-serde = "1.1.1"
-enum_dispatch = "0.3.13"
 
 [dev-dependencies]
 assert_cmd = "2.1.1"

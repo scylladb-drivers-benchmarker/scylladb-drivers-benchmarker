@@ -3,12 +3,11 @@
 //! commands eg. whether the run command they actually interacts with the
 //! output of the build command.
 
+use std::error::Error;
 use std::io;
 use std::process::Output;
 use std::str::FromStr;
 use std::time::Duration;
-
-use enum_dispatch::enum_dispatch;
 
 use crate::command::{Command, CommandParsingError, OutputWithTimeout, PrintableOutput};
 use crate::database::utilities::BenchmarkRecord;
@@ -59,7 +58,6 @@ pub enum MeasurementError {
 }
 
 /// The executor collects data according to its internals (time, perf, ...)
-#[enum_dispatch(Executor)]
 pub trait MeasuringEquipment {
     fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, MeasurementError>;
     fn execute_with_timeout(
@@ -67,35 +65,51 @@ pub trait MeasuringEquipment {
         point: BenchmarkPoint,
         timeout: Duration,
     ) -> Result<BenchmarkRecord, MeasurementError>;
-}
 
-/// Currently command is the only executor, once a more complicated one
-/// is needed (eg. for Flamegraph) it should be added here
-#[enum_dispatch]
-#[derive(Debug)]
-pub(crate) enum Executor {
-    CommandExecutor,
-}
-
-impl Executor {
-    pub fn new(
-        _: BuiltSource,
-        measurement_method: MeasurementMethod,
-        run_command: command::Command,
-    ) -> Self {
-        match measurement_method {
-            MeasurementMethod::Time => {
-                CommandExecutor::new(cmd!("time", "-f", "%e"), run_command).into()
+    fn execute_all<CallbackError, ResultingError>(
+        &self,
+        points: impl Iterator<Item = BenchmarkPoint>,
+        mut callback: impl FnMut(BenchmarkPoint, BenchmarkRecord) -> Result<(), CallbackError>,
+        opt_timeout: Option<Duration>,
+    ) -> Result<(), ResultingError>
+    where
+        CallbackError: Error,
+        ResultingError: Error + From<CallbackError> + From<MeasurementError>,
+    {
+        let execute = |point| {
+            if let Some(timeout) = opt_timeout {
+                self.execute_with_timeout(point, timeout)
+            } else {
+                self.execute(point)
             }
-            MeasurementMethod::Perf => {
-                CommandExecutor::new(cmd!("perf", "stat", "--json"), run_command).into()
-            }
-            MeasurementMethod::Flamegraph => todo!(),
-            MeasurementMethod::Command(command) => {
-                CommandExecutor::new(command, run_command).into()
-            }
+        };
+        for point in points {
+            let result = execute(point)?;
+            callback(point, result)?;
         }
+        Ok(())
     }
+}
+
+pub fn execute_all<CallbackError, ResultingError>(
+    _: BuiltSource,
+    measurement_method: MeasurementMethod,
+    run_command: command::Command,
+    points: impl Iterator<Item = BenchmarkPoint>,
+    callback: impl FnMut(BenchmarkPoint, BenchmarkRecord) -> Result<(), CallbackError>,
+    timeout: Option<Duration>,
+) -> Result<(), ResultingError>
+where
+    CallbackError: Error,
+    ResultingError: Error + From<CallbackError> + From<MeasurementError>,
+{
+    match measurement_method {
+        MeasurementMethod::Time => CommandExecutor::new_time(run_command),
+        MeasurementMethod::Perf => CommandExecutor::new_perf(run_command),
+        MeasurementMethod::Flamegraph => todo!(),
+        MeasurementMethod::Command(command) => CommandExecutor::new(command, run_command),
+    }
+    .execute_all(points, callback, timeout)
 }
 
 #[derive(Debug)]
@@ -104,6 +118,14 @@ pub(crate) struct CommandExecutor(command::Command);
 impl CommandExecutor {
     fn new(command: command::Command, run_command: command::Command) -> Self {
         CommandExecutor(command.with_cmd_arg(run_command))
+    }
+
+    fn new_time(run_command: command::Command) -> Self {
+        CommandExecutor::new(cmd!("time", "-f", "%e"), run_command)
+    }
+
+    fn new_perf(run_command: command::Command) -> Self {
+        CommandExecutor::new(cmd!("perf", "stat", "--json"), run_command)
     }
 }
 
@@ -153,22 +175,14 @@ mod test {
 
     #[test]
     fn test_execution_error() {
-        let executor = Executor::new(
-            BuiltSource::new_unchecked(),
-            MeasurementMethod::Time,
-            cmd!("git", "fail"),
-        );
+        let executor = CommandExecutor::new_time(cmd!("git", "fail"));
         let error = executor.execute(0).unwrap_err();
         assert!(matches!(error, MeasurementError::ExecutionFailed(_)));
     }
 
     #[test]
     fn test_execution_timeout() {
-        let executor = Executor::new(
-            BuiltSource::new_unchecked(),
-            MeasurementMethod::Time,
-            command::Command::from_str("sleep").unwrap(),
-        );
+        let executor = CommandExecutor::new_time(cmd!("sleep"));
         let output = executor
             .execute_with_timeout(2, std::time::Duration::from_secs(1))
             .unwrap();
@@ -176,11 +190,7 @@ mod test {
     }
     #[test]
     fn test_execution_in_time() {
-        let executor = Executor::new(
-            BuiltSource::new_unchecked(),
-            MeasurementMethod::Time,
-            command::Command::from_str("sleep").unwrap(),
-        );
+        let executor = CommandExecutor::new_time(cmd!("sleep"));
         let output = executor
             .execute_with_timeout(1, std::time::Duration::from_secs(2))
             .unwrap();
