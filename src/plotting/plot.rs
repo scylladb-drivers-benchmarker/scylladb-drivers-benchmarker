@@ -235,8 +235,8 @@ impl PerfStatPlot {
             for event_name in &events {
                 let any_data = values.iter().any(|d| {
                     d.as_ref()
-                    .and_then(|perf| perf.filter_value(event_name))
-                    .is_some()
+                        .and_then(|perf| perf.filter_value(event_name))
+                        .is_some()
                 });
 
                 if !any_data {

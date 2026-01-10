@@ -9,8 +9,8 @@ use scylladb_drivers_benchmarker::{
     },
 };
 use serial_test::file_serial;
-
-use crate::common::{run, sdb_command};
+mod common;
+use crate::common::{run, run_assert_empty, sdb_command};
 use scylladb_drivers_benchmarker::utilities::BenchmarkPoint;
 use std::{
     fs::{self, File},
@@ -18,14 +18,6 @@ use std::{
     path::Path,
 };
 use tempfile::TempDir;
-
-mod common;
-
-// TODO: eliminate this
-fn run_bin(args: &[&str]) -> String {
-    let output = run(sdb_command().args(args));
-    String::from_utf8_lossy(&output.stdout).to_string()
-}
 
 fn init_git_repo(path: &Path, num_commits: usize) -> Vec<CommitHash> {
     if !path.join(".git").exists() {
@@ -125,24 +117,25 @@ fn plot_series_generic_test(
         commits[2]
     );
 
-    run_bin(&[
-        "-d",
-        &db_path,
-        "plot",
-        "test-bench",
-        "-b",
-        "./tests/plot_test/config.yml",
-        from_arg.as_str(),
-        "-m",
-        "time",
-        "-o",
-        output,
-        "-f",
-        format.to_string(),
-        "series",
-        "-v",
-        vis_kind.to_string(),
-    ]);
+    run_assert_empty(
+        sdb_command()
+            .arg("-d")
+            .arg(&db_path)
+            .arg("plot")
+            .arg("test-bench")
+            .arg("-b")
+            .arg("./tests/plot_test/config.yml")
+            .arg(from_arg.as_str())
+            .arg("-m")
+            .arg("time")
+            .arg("-o")
+            .arg(output)
+            .arg("-f")
+            .arg(format.to_string())
+            .arg("series")
+            .arg("-v")
+            .arg(vis_kind.to_string()),
+    );
 
     check_files_equality(output, expected_output, format);
 
@@ -160,24 +153,25 @@ fn plot_perf_generic_test(output: &str, expected_output: &str, format: OutputFor
         commits[2]
     );
 
-    run_bin(&[
-        "-d",
-        &db_path,
-        "plot",
-        "test-bench",
-        "-b",
-        "./tests/plot_test/config.yml",
-        from_arg.as_str(),
-        "-m",
-        "perf",
-        "-o",
-        output,
-        "-f",
-        format.to_string(),
-        "perf-stat",
-        "-e",
-        "task-clock,context-switches,page-faults",
-    ]);
+    run_assert_empty(
+        sdb_command()
+            .arg("-d")
+            .arg(&db_path)
+            .arg("plot")
+            .arg("test-bench")
+            .arg("-b")
+            .arg("./tests/plot_test/config.yml")
+            .arg(from_arg.as_str())
+            .arg("-m")
+            .arg("perf")
+            .arg("-o")
+            .arg(output)
+            .arg("-f")
+            .arg(format.to_string())
+            .arg("perf-stat")
+            .arg("-e")
+            .arg("task-clock,context-switches,page-faults"),
+    );
 
     check_files_equality(output, expected_output, format);
     fs::remove_file(output).unwrap();
