@@ -12,6 +12,8 @@ use crate::Database;
 use crate::measurement::MeasurementMethod;
 use crate::perf_stat::PerfStatData;
 
+use plotters::coord::Shift;
+use plotters::drawing::DrawingArea;
 use plotters::prelude::*;
 
 const MARGIN_SIZE: u32 = 20;
@@ -29,10 +31,29 @@ const LABEL_FONT: (&str, u32) = (FONT_FAMILY, LABEL_FONT_SIZE);
 const BACKGROUND_COLOR: RGBColor = WHITE;
 const LEGEND_BORDER_COLOR: RGBColor = BLACK;
 
+const LEGEND_BORDER_SIZE: u32 = 1;
+
 pub(crate) trait Plot {
-    fn plot<DB: DrawingBackend>(&self, backend: DB) -> Result<(), PlotError>
+    fn plot<DB: DrawingBackend + NamedBackend>(&self, backend: DB) -> Result<(), PlotError>
     where
         DB::ErrorType: 'static;
+}
+
+// A very hacky way to differentiate backends, necessary as text has different pixel size.
+pub(crate) trait NamedBackend {
+    fn name(&self) -> &'static str;
+}
+
+impl<'a> NamedBackend for BitMapBackend<'a> {
+    fn name(&self) -> &'static str {
+        "bitmap"
+    }
+}
+
+impl<'a> NamedBackend for SVGBackend<'a> {
+    fn name(&self) -> &'static str {
+        "svg"
+    }
 }
 
 pub(crate) struct SeriesPlot {
@@ -113,7 +134,7 @@ impl SeriesPlot {
 }
 
 impl Plot for SeriesPlot {
-    fn plot<DB: DrawingBackend>(&self, backend: DB) -> Result<(), PlotError>
+    fn plot<DB: DrawingBackend + NamedBackend>(&self, backend: DB) -> Result<(), PlotError>
     where
         DB::ErrorType: 'static,
     {
@@ -166,7 +187,7 @@ impl Plot for SeriesPlot {
         charts[0]
             .configure_series_labels()
             .position(SeriesLabelPosition::MiddleRight)
-            .border_style(LEGEND_BORDER_COLOR)
+            .border_style(LEGEND_BORDER_COLOR.stroke_width(LEGEND_BORDER_SIZE))
             .background_style(BACKGROUND_COLOR)
             .draw()?;
 
@@ -177,6 +198,15 @@ impl Plot for SeriesPlot {
 }
 
 impl PerfStatPlot {
+    const LEGEND_MARGIN_WIDTH: i32 = 10; // outer right margin width
+    const LEGEND_PADDING_X: i32 = 10; // inner horizontal padding
+    const LEGEND_PADDING_Y: i32 = 10; // inner vertical padding
+    const LEGEND_MARKER_WIDTH: i32 = 10; // color rectangle width
+    const LEGEND_MARKER_HEIGHT: i32 = 10; // color rectangle height
+    const LEGEND_MARKER_TEXT_GAP: i32 = 5; // gap between marker and text
+    const LEGEND_ENTRY_SPACING: i32 = 8; // vertical gap between legend entries
+    const LEGEND_CHAR_HEIGHT: i32 = LABEL_FONT_SIZE as i32; // legend text character height
+
     fn new(
         benchmark_name: String,
         events: Vec<String>,
@@ -286,25 +316,110 @@ impl PerfStatPlot {
 
         PerfStatPlot::from_dataset(dataset, benchmark_config.name, names, events)
     }
-}
 
-impl Plot for PerfStatPlot {
-    fn plot<DB: DrawingBackend>(&self, backend: DB) -> Result<(), PlotError>
+    fn add_legend<DB: NamedBackend + DrawingBackend>(
+        &self,
+        backend: &str,
+        area: DrawingArea<DB, Shift>,
+    ) -> Result<(), PlotError>
     where
         DB::ErrorType: 'static,
     {
+        let (plot_width, plot_height) = area.dim_in_pixel();
+
+        // For some reason this does not work correctly for svg
+        let max_label_width = self
+            .results
+            .iter()
+            .map(|r| {
+                let style = TextStyle::from(LABEL_FONT.into_font());
+                area.estimate_text_size(&r.name, &style)
+                    .expect("failed to estimate text size")
+                    .0 // width
+            })
+            .max()
+            .unwrap_or(50);
+
+        // So we scale it in this terrible, hacky, heuristic way
+        let scale_factor = match backend {
+            "svg" => 0.9f64,
+            _ => 1.0f64,
+        };
+
+        let entry_height = Self::LEGEND_MARKER_HEIGHT.max(Self::LEGEND_CHAR_HEIGHT);
+
+        let legend_width = Self::LEGEND_PADDING_X * 2
+            + Self::LEGEND_MARKER_WIDTH
+            + Self::LEGEND_MARKER_TEXT_GAP
+            + (max_label_width as f64 * scale_factor) as i32;
+
+        let legend_height = Self::LEGEND_PADDING_Y * 2
+            + self.results.len() as i32 * entry_height
+            + (self.results.len() as i32 - 1) * Self::LEGEND_ENTRY_SPACING;
+
+        let legend_left = plot_width as i32 - legend_width - Self::LEGEND_MARGIN_WIDTH;
+        let legend_top = (plot_height as i32 - legend_height) / 2;
+
+        let legend_rect = [
+            (legend_left, legend_top),
+            (legend_left + legend_width, legend_top + legend_height),
+        ];
+
+        // background
+        area.draw(&Rectangle::new(legend_rect, BACKGROUND_COLOR.filled()))?;
+
+        // border
+        area.draw(&Rectangle::new(
+            legend_rect,
+            LEGEND_BORDER_COLOR.stroke_width(LEGEND_BORDER_SIZE),
+        ))?;
+
+        let mut y = legend_top + Self::LEGEND_PADDING_Y;
+        for r in &self.results {
+            area.draw(&Rectangle::new(
+                [
+                    (legend_left + Self::LEGEND_PADDING_X, y),
+                    (
+                        legend_left + Self::LEGEND_PADDING_X + Self::LEGEND_MARKER_WIDTH,
+                        y + Self::LEGEND_MARKER_HEIGHT,
+                    ),
+                ],
+                r.color.filled(),
+            ))?;
+
+            area.draw(&Text::new(
+                r.name.clone(),
+                (
+                    legend_left
+                        + Self::LEGEND_PADDING_X
+                        + Self::LEGEND_MARKER_WIDTH
+                        + Self::LEGEND_MARKER_TEXT_GAP,
+                    y,
+                ),
+                LABEL_FONT,
+            ))?;
+
+            y += entry_height + Self::LEGEND_ENTRY_SPACING;
+        }
+
+        Ok(())
+    }
+}
+
+impl Plot for PerfStatPlot {
+    fn plot<DB: DrawingBackend + NamedBackend>(&self, backend: DB) -> Result<(), PlotError>
+    where
+        DB::ErrorType: 'static,
+    {
+        let backend_name = backend.name();
+
         let root = DrawingArea::from(backend);
         root.fill(&BACKGROUND_COLOR)?;
 
-        let (title_legend_area, plot_area) = root.split_vertically(20);
-
-        let _legend_area = title_legend_area.titled(
+        let plot_area = root.titled(
             &format!("Benchmark {} Results", &self.benchmark_name),
             TITLE_FONT,
-        )?; // TODO make single legend area.
-
-        // Somehow plot legend_area; has to be done experimentally, currently no way to do it properly.
-        // For now each subplot has its own legend.
+        )?;
 
         let subareas = plot_area.split_evenly((self.events.len(), 1));
 
@@ -358,14 +473,7 @@ impl Plot for PerfStatPlot {
             r.add_to_plot(&mut charts)?;
         }
 
-        for chart in &mut charts {
-            chart
-                .configure_series_labels()
-                .position(SeriesLabelPosition::MiddleRight)
-                .border_style(LEGEND_BORDER_COLOR)
-                .background_style(BACKGROUND_COLOR)
-                .draw()?;
-        }
+        self.add_legend(backend_name, plot_area)?;
 
         root.present()?;
         Ok(())

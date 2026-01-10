@@ -36,9 +36,9 @@ pub(crate) struct RenderableSeries {
 
 pub(crate) struct RenderablePerfStat {
     pub points: Vec<BenchmarkPoint>,
-    name: String,
+    pub color: PaletteColor<Palette99>,
+    pub name: String,
     values: Vec<Vec<Option<f64>>>,
-    color: PaletteColor<Palette99>,
     ranges: Vec<Option<(f64, f64)>>,
 }
 

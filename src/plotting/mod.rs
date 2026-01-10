@@ -21,7 +21,9 @@ pub use series::VisKind;
 
 use plotters::backend::{BitMapBackend, SVGBackend};
 
-const IMAGE_SIZE: (u32, u32) = (1920, 1080);
+pub(crate) const IMAGE_WIDTH: u32 = 1920;
+pub(crate) const IMAGE_HEIGHT: u32 = 1080;
+pub(crate) const IMAGE_SIZE: (u32, u32) = (IMAGE_WIDTH, IMAGE_HEIGHT);
 
 #[derive(Debug, clap::Subcommand)]
 pub enum PlotKind {
