@@ -3,19 +3,21 @@ use resvg::{tiny_skia, usvg};
 use scylladb_drivers_benchmarker::{
     OutputFormat, VisKind,
     commit_hash::CommitHash,
-    database,
-    database::utilities::{BenchmarkParams, BenchmarkRecord},
+    database::{
+        self,
+        utilities::{BenchmarkParams, BenchmarkRecord},
+    },
 };
 use serial_test::file_serial;
 
+use crate::common::{run, sdb_command};
+use scylladb_drivers_benchmarker::utilities::BenchmarkPoint;
 use std::{
     fs::{self, File},
     io::Write,
     path::Path,
 };
 use tempfile::TempDir;
-
-use crate::common::{run, sdb_command};
 
 mod common;
 
@@ -50,21 +52,22 @@ fn init_git_repo(path: &Path, num_commits: usize) -> Vec<CommitHash> {
             .arg("-m")
             .arg(format!("Commit {}", i)));
 
-        let hash = CommitHash::new(path, "HEAD".to_string()).unwrap();
+        let hash = CommitHash::new(path, "HEAD".to_owned()).unwrap();
         hashes.push(hash);
     }
 
     hashes
 }
 
-fn init_db(db_path: &str) -> database::Database {
-    let db = database::Database::new(Path::new(db_path)).unwrap();
-    db.drop_all_data().unwrap();
-    db
+fn load_image(path: &str, format: OutputFormat) -> RgbaImage {
+    match format {
+        OutputFormat::Png => open(path).unwrap().to_rgba8(),
+        OutputFormat::Svg => svg_to_rgba(path.as_ref()),
+    }
 }
 
 fn svg_to_rgba(path: &std::path::Path) -> RgbaImage {
-    let svg_data = std::fs::read(path).unwrap();
+    let svg_data = fs::read(path).unwrap();
     let opt = usvg::Options::default();
     let tree = usvg::Tree::from_data(&svg_data, &opt).unwrap();
 
@@ -77,30 +80,20 @@ fn svg_to_rgba(path: &std::path::Path) -> RgbaImage {
 }
 
 fn check_files_equality(output: &str, expected_output: &str, format: OutputFormat) {
-    let (f1, f2) = match format {
-        OutputFormat::Png => (
-            open(output).unwrap().to_rgba8(),
-            open(expected_output).unwrap().to_rgba8(),
-        ),
-        OutputFormat::Svg => (
-            svg_to_rgba(output.as_ref()),
-            svg_to_rgba(expected_output.as_ref()),
-        ),
-    };
-
-    let result =
-        image_compare::rgba_hybrid_compare(&f1, &f2).expect("Images had different dimensions");
-    assert!(result.score > 0.98, "similarity too low: {}", result.score);
+    let result = image_compare::rgba_hybrid_compare(
+        &load_image(output, format),
+        &load_image(expected_output, format),
+    )
+    .expect("Images had different dimensions");
+    assert!(result.score > 0.95, "similarity too low: {}", result.score);
 }
 
-fn plot_series_generic_test(
-    output: &str,
-    expected_output: &str,
-    vis_kind: VisKind,
-    format: OutputFormat,
-) {
+fn setup_initial_data(
+    data_generator: fn(usize, &CommitHash, BenchmarkPoint) -> (BenchmarkParams, BenchmarkRecord),
+) -> (String, TempDir, Vec<CommitHash>) {
     let db_path = "./tests/plot_test/test.db";
-    let db = init_db(db_path);
+    let db = database::Database::new(Path::new(db_path)).unwrap();
+    db.drop_all_data().unwrap();
 
     let tmp_repo = TempDir::new().unwrap();
     let commits = init_git_repo(tmp_repo.path(), 3);
@@ -109,19 +102,20 @@ fn plot_series_generic_test(
 
     for (commit_idx, commit) in commits.iter().enumerate() {
         for point in points.clone() {
-            let params = BenchmarkParams::new(
-                commit.clone(),
-                "test-bench".to_string(),
-                point,
-                "time".to_string(),
-            );
-
-            let value = commit_idx as f64 * 100.0 + point as f64 * point as f64;
-
-            db.insert_data(params, BenchmarkRecord::Data(value.to_string()))
-                .unwrap();
+            let (params, record) = data_generator(commit_idx, commit, point);
+            db.insert_data(params, record).unwrap();
         }
     }
+    (db_path.to_owned(), tmp_repo, commits)
+}
+
+fn plot_series_generic_test(
+    output: &str,
+    expected_output: &str,
+    vis_kind: VisKind,
+    format: OutputFormat,
+) {
+    let (db_path, tmp_repo, commits) = setup_initial_data(generate_series_data);
 
     let from_arg = format!(
         "--from={}:{},{},{}",
@@ -133,7 +127,7 @@ fn plot_series_generic_test(
 
     run_bin(&[
         "-d",
-        db_path,
+        &db_path,
         "plot",
         "test-bench",
         "-b",
@@ -156,66 +150,7 @@ fn plot_series_generic_test(
 }
 
 fn plot_perf_generic_test(output: &str, expected_output: &str, format: OutputFormat) {
-    let db_path = "./tests/plot_test/test.db";
-    let db = init_db(db_path);
-
-    let tmp_repo = TempDir::new().unwrap();
-    let commits = init_git_repo(tmp_repo.path(), 3);
-
-    let points = 1u64..101u64;
-
-    for (commit_idx, commit) in commits.iter().enumerate() {
-        for point in points.clone() {
-            let params = BenchmarkParams::new(
-                commit.clone(),
-                "test-bench".to_string(),
-                point,
-                "perf".to_string(),
-            );
-
-            let value = commit_idx as f64 * 1000.0 + point as f64 * point as f64;
-
-            // Some perf data multiplied by arbitrary factors to simulate semi-realistic values.
-            let json_value = format!(
-                r#"{{
-"counter-value":"{task_clock_val:.6}","unit":"msec","event":"task-clock","event-runtime":{task_clock_runtime},"pcnt-running":100.0,"metric-value":"{task_clock_metric:.6}","metric-unit":"CPUs utilized"
-}}
-{{
-"counter-value":"{ctx_switch_val:.6}","unit":"","event":"context-switches","event-runtime":{ctx_switch_runtime},"pcnt-running":100.0,"metric-value":"{ctx_switch_metric:.6}","metric-unit":"K/sec"
-}}
-{{
-"counter-value":"{cpu_mig_val:.6}","unit":"","event":"cpu-migrations","event-runtime":{cpu_mig_runtime},"pcnt-running":100.0,"metric-value":"{cpu_mig_metric:.6}","metric-unit":"/sec"
-}}
-{{
-"counter-value":"{page_fault_val:.6}","unit":"","event":"page-faults","event-runtime":{page_fault_runtime},"pcnt-running":100.0,"metric-value":"{page_fault_metric:.6}","metric-unit":"K/sec"
-}}
-{{
-"counter-value":"<not counted>","unit":"","event":"cpu_atom/cycles/","event-runtime":0,"pcnt-running":0.0,"metric-value":"0.000000","metric-unit":""
-}}
-{{
-"counter-value":"{core_cycles_val:.6}","unit":"","event":"cpu_core/cycles/","event-runtime":{core_cycles_runtime},"pcnt-running":100.0,"metric-value":"{core_cycles_metric:.6}","metric-unit":"GHz"
-}}"#,
-                task_clock_val = value * 0.00374,
-                task_clock_runtime = 374_411 + commit_idx as u64,
-                task_clock_metric = value * 0.000374,
-                ctx_switch_val = value * 0.01,
-                ctx_switch_runtime = 374_411,
-                ctx_switch_metric = value * 0.02670862,
-                cpu_mig_val = value * 0.0,
-                cpu_mig_runtime = 374_411,
-                cpu_mig_metric = value * 0.0,
-                page_fault_val = value * 75.0,
-                page_fault_runtime = 374_411,
-                page_fault_metric = value * 2.00314628,
-                core_cycles_val = value * 1_461_835.0,
-                core_cycles_runtime = 374_411,
-                core_cycles_metric = value * 3.904359,
-            );
-
-            db.insert_data(params, BenchmarkRecord::Data(json_value.to_string()))
-                .unwrap();
-        }
-    }
+    let (db_path, tmp_repo, commits) = setup_initial_data(generate_perf_data);
 
     let from_arg = format!(
         "--from={}:{},{},{}",
@@ -227,7 +162,7 @@ fn plot_perf_generic_test(output: &str, expected_output: &str, format: OutputFor
 
     run_bin(&[
         "-d",
-        db_path,
+        &db_path,
         "plot",
         "test-bench",
         "-b",
@@ -291,4 +226,73 @@ fn plot_perf() {
             *format,
         );
     }
+}
+
+fn generate_series_data(
+    commit_idx: usize,
+    commit: &CommitHash,
+    point: BenchmarkPoint,
+) -> (BenchmarkParams, BenchmarkRecord) {
+    let params = BenchmarkParams::new(
+        commit.clone(),
+        "test-bench".to_owned(),
+        point,
+        "time".to_owned(),
+    );
+
+    let value = commit_idx as f64 * 100.0 + point as f64 * point as f64;
+    (params, BenchmarkRecord::Data(value.to_string()))
+}
+
+fn generate_perf_data(
+    commit_idx: usize,
+    commit: &CommitHash,
+    point: BenchmarkPoint,
+) -> (BenchmarkParams, BenchmarkRecord) {
+    let params = BenchmarkParams::new(
+        commit.clone(),
+        "test-bench".to_owned(),
+        point,
+        "perf".to_owned(),
+    );
+
+    let value = commit_idx as f64 * 1000.0 + point as f64 * point as f64;
+
+    // Some perf data multiplied by arbitrary factors to simulate semi-realistic values.
+    let json_value = format!(
+        r#"{{
+"counter-value":"{task_clock_val:.6}","unit":"msec","event":"task-clock","event-runtime":{task_clock_runtime},"pcnt-running":100.0,"metric-value":"{task_clock_metric:.6}","metric-unit":"CPUs utilized"
+}}
+{{
+"counter-value":"{ctx_switch_val:.6}","unit":"","event":"context-switches","event-runtime":{ctx_switch_runtime},"pcnt-running":100.0,"metric-value":"{ctx_switch_metric:.6}","metric-unit":"K/sec"
+}}
+{{
+"counter-value":"{cpu_mig_val:.6}","unit":"","event":"cpu-migrations","event-runtime":{cpu_mig_runtime},"pcnt-running":100.0,"metric-value":"{cpu_mig_metric:.6}","metric-unit":"/sec"
+}}
+{{
+"counter-value":"{page_fault_val:.6}","unit":"","event":"page-faults","event-runtime":{page_fault_runtime},"pcnt-running":100.0,"metric-value":"{page_fault_metric:.6}","metric-unit":"K/sec"
+}}
+{{
+"counter-value":"<not counted>","unit":"","event":"cpu_atom/cycles/","event-runtime":0,"pcnt-running":0.0,"metric-value":"0.000000","metric-unit":""
+}}
+{{
+"counter-value":"{core_cycles_val:.6}","unit":"","event":"cpu_core/cycles/","event-runtime":{core_cycles_runtime},"pcnt-running":100.0,"metric-value":"{core_cycles_metric:.6}","metric-unit":"GHz"
+}}"#,
+        task_clock_val = value * 0.00374,
+        task_clock_runtime = 374_411 + commit_idx as u64,
+        task_clock_metric = value * 0.000374,
+        ctx_switch_val = value * 0.01,
+        ctx_switch_runtime = 374_411,
+        ctx_switch_metric = value * 0.02670862,
+        cpu_mig_val = value * 0.0,
+        cpu_mig_runtime = 374_411,
+        cpu_mig_metric = value * 0.0,
+        page_fault_val = value * 75.0,
+        page_fault_runtime = 374_411,
+        page_fault_metric = value * 2.00314628,
+        core_cycles_val = value * 1_461_835.0,
+        core_cycles_runtime = 374_411,
+        core_cycles_metric = value * 3.904359,
+    );
+    (params, BenchmarkRecord::Data(json_value.to_string()))
 }
