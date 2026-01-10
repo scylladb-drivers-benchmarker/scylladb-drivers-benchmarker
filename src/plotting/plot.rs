@@ -36,6 +36,7 @@ pub(crate) trait Plot {
 pub(crate) struct SeriesPlot {
     pub benchmark_name: String,
     pub results: Vec<RenderableSeries>,
+    pub visualization_kind: VisKind,
 }
 
 pub(crate) struct PerfStatPlot {
@@ -46,10 +47,11 @@ pub(crate) struct PerfStatPlot {
 }
 
 impl SeriesPlot {
-    fn new(benchmark_name: String, results: Vec<RenderableSeries>) -> Self {
+    fn new(benchmark_name: String, results: Vec<RenderableSeries>, visualization_kind: VisKind) -> Self {
         SeriesPlot {
             benchmark_name,
             results,
+            visualization_kind,
         }
     }
 
@@ -82,7 +84,7 @@ impl SeriesPlot {
             ));
         }
 
-        Ok(SeriesPlot::new(benchmark_name, results))
+        Ok(SeriesPlot::new(benchmark_name, results, visualization_kind))
     }
 
     pub(crate) fn build(
@@ -125,8 +127,13 @@ impl Plot for SeriesPlot {
         let (y_min, y_max) =
             calc_min_max(self.results.iter().filter_map(|r| r.range())).unwrap_or((0.0, 1.0));
 
+        let log_text = match self.visualization_kind {
+            VisKind::Log => " (log scale)",
+            _ => "",
+        };
+
         let plot_area = root.titled(
-            &format!("Benchmark {} Results", &self.benchmark_name),
+            &format!("Benchmark {} Results{}", &self.benchmark_name, log_text),
             TITLE_FONT,
         )?;
 
