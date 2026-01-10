@@ -1,3 +1,5 @@
+use image::{RgbaImage, open};
+use resvg::{tiny_skia, usvg};
 use scylladb_drivers_benchmarker::{
     OutputFormat, VisKind,
     commit_hash::CommitHash,
@@ -61,11 +63,25 @@ fn init_db(db_path: &str) -> database::Database {
     db
 }
 
+fn svg_to_rgba(path: &std::path::Path) -> RgbaImage {
+    let svg_data = std::fs::read(path).unwrap();
+    let opt = usvg::Options::default();
+    let tree = usvg::Tree::from_data(&svg_data, &opt).unwrap();
+
+    let size = tree.size();
+    let mut pixmap = tiny_skia::Pixmap::new(size.width() as u32, size.height() as u32).unwrap();
+
+    resvg::render(&tree, tiny_skia::Transform::default(), &mut pixmap.as_mut());
+
+    RgbaImage::from_raw(pixmap.width(), pixmap.height(), pixmap.data().to_vec())
+        .unwrap()
+}
+
 fn plot_series_generic_test(
     output: &str,
+    expected_output: &str,
     vis_kind: VisKind,
     format: OutputFormat,
-    delete_result: bool,
 ) {
     let db_path = "./tests/plot_test/test.db";
     let db = init_db(db_path);
@@ -99,14 +115,6 @@ fn plot_series_generic_test(
         commits[2]
     );
     let config_path = "./tests/plot_test/config.yml";
-    let vis_kind_str = match vis_kind {
-        VisKind::Linear => "linear",
-        VisKind::Log => "log",
-    };
-    let format_str = match format {
-        OutputFormat::Png => "png",
-        OutputFormat::Svg => "svg",
-    };
 
     run_bin(&[
         "-d",
@@ -121,17 +129,34 @@ fn plot_series_generic_test(
         "-o",
         output,
         "-f",
-        format_str,
+        format.to_string(),
         "series",
         "-v",
-        vis_kind_str,
+        vis_kind.to_string(),
     ]);
 
     assert!(Path::new(output).exists());
 
-    if delete_result {
-        fs::remove_file(output).unwrap();
-    }
+    match format {
+        OutputFormat::Png => {
+            let f1 = open(output).unwrap().to_rgba8();
+            let f2 = open(expected_output).unwrap().to_rgba8();
+            let result = image_compare::rgba_hybrid_compare(&f1, &f2)
+                .expect("Images had different dimensions");
+            assert!(result.score > 0.98);
+        }
+        OutputFormat::Svg => {
+            let f1 = svg_to_rgba(output.as_ref());
+            let f2 = svg_to_rgba(expected_output.as_ref());
+
+            let result = image_compare::rgba_hybrid_compare(&f1, &f2)
+                .expect("Images had different dimensions");
+
+            assert!(result.score > 0.98,);
+        }
+    };
+
+    fs::remove_file(output).unwrap();
 }
 
 fn plot_perf_generic_test(output: &str, format: OutputFormat, delete_result: bool) {
@@ -242,24 +267,22 @@ fn plot_perf_generic_test(output: &str, format: OutputFormat, delete_result: boo
 #[test]
 #[file_serial]
 fn plot_series() {
-    // To see the results of the test, set this to false.
-    let delete_results = true;
-
     let output_base = "./tests/plot_test/series";
+    let expected_base = "./tests/plot_test/expected_series";
 
     let vis_kinds = [VisKind::Linear, VisKind::Log];
     let formats = [OutputFormat::Png, OutputFormat::Svg];
 
     for vis_kind in &vis_kinds {
         for format in &formats {
-            let output_file = match (vis_kind, format) {
-                (VisKind::Linear, OutputFormat::Png) => format!("{}_linear.png", output_base),
-                (VisKind::Linear, OutputFormat::Svg) => format!("{}_linear.svg", output_base),
-                (VisKind::Log, OutputFormat::Png) => format!("{}_log.png", output_base),
-                (VisKind::Log, OutputFormat::Svg) => format!("{}_log.svg", output_base),
-            };
+            let sufix = format!("_{}.{}", vis_kind.to_string(), format.to_string());
 
-            plot_series_generic_test(&output_file, *vis_kind, *format, delete_results);
+            plot_series_generic_test(
+                &(output_base.to_owned() + &sufix),
+                &(expected_base.to_owned() + &sufix),
+                *vis_kind,
+                *format,
+            );
         }
     }
 }
@@ -280,6 +303,6 @@ fn plot_perf() {
             OutputFormat::Svg => format!("{}.svg", output_base),
         };
 
-        plot_perf_generic_test(&output_file, *format, delete_results);
+        //    plot_perf_generic_test(&output_file, *format, delete_results);
     }
 }

@@ -7,6 +7,15 @@ pub enum VisKind {
     Log,
 }
 
+impl VisKind {
+    pub fn to_string(&self) -> &'static str {
+        match self {
+            VisKind::Linear => "linear",
+            VisKind::Log => "log",
+        }
+    }
+}
+
 pub(crate) trait SeriesValue: PlottableValue + PartialOrd + Into<f64> {}
 impl<T: PlottableValue + PartialOrd + Into<f64>> SeriesValue for T {}
 

@@ -23,3 +23,6 @@ assert_cmd = "2.1.1"
 tempfile = "3.23.0"
 plotters = "0.3.3"
 serial_test = { version = "3.1.1", features = ["file_locks"] }
+image = "0.25.9"
+image-compare = "0.5.0"
+resvg = "0.45.1"

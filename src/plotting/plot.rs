@@ -47,7 +47,11 @@ pub(crate) struct PerfStatPlot {
 }
 
 impl SeriesPlot {
-    fn new(benchmark_name: String, results: Vec<RenderableSeries>, visualization_kind: VisKind) -> Self {
+    fn new(
+        benchmark_name: String,
+        results: Vec<RenderableSeries>,
+        visualization_kind: VisKind,
+    ) -> Self {
         SeriesPlot {
             benchmark_name,
             results,

@@ -66,7 +66,7 @@ fn series_plot_fails_on_permission_denied() {
     use std::fs::{self, File};
     use std::os::unix::fs::PermissionsExt;
     use std::path::Path;
-
+    // TODO zmienic na tmp lokalizacje, jesli w trakcje debugu ten plik nie zostanie usuniety, to test failuje
     let path = Path::new("no_write.png");
     File::create(path).unwrap();
     fs::set_permissions(path, fs::Permissions::from_mode(0o444)).unwrap();

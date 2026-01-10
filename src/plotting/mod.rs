@@ -48,32 +48,28 @@ pub enum OutputFormat {
     Svg,
 }
 
+impl OutputFormat {
+    pub fn to_string(&self) -> &'static str {
+        match self {
+            OutputFormat::Png => "png",
+            OutputFormat::Svg => "svg",
+        }
+    }
+}
+
 fn plot_on_backend<P: Plot>(plot: P, output: &str, format: OutputFormat) -> Result<(), PlotError> {
     let extension = output.rsplit('.').next().unwrap_or("").to_string();
 
+    if format.to_string() != extension {
+        return Err(PlotError::IncompatibleFileExtension {
+            extension,
+            format: format.to_string().to_owned(),
+        });
+    }
+
     match format {
-        OutputFormat::Png => {
-            if extension != "png" {
-                return Err(PlotError::IncompatibleFileExtension {
-                    extension,
-                    format: "png".to_string(),
-                });
-            }
-
-            let backend = BitMapBackend::new(output, IMAGE_SIZE);
-            plot.plot(backend)
-        }
-
-        OutputFormat::Svg => {
-            if extension != "svg" {
-                return Err(PlotError::IncompatibleFileExtension {
-                    extension,
-                    format: "svg".to_string(),
-                });
-            }
-            let backend = SVGBackend::new(output, IMAGE_SIZE);
-            plot.plot(backend)
-        }
+        OutputFormat::Png => plot.plot(BitMapBackend::new(output, IMAGE_SIZE)),
+        OutputFormat::Svg => plot.plot(SVGBackend::new(output, IMAGE_SIZE)),
     }
 }
 
