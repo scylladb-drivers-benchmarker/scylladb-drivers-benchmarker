@@ -232,6 +232,21 @@ impl PerfStatPlot {
         let mut unit: HashMap<String, Result<String, ()>> = HashMap::new();
 
         for (id, (name, values)) in names.iter().zip(dataset.results.into_iter()).enumerate() {
+            for event_name in &events {
+                let any_data = values.iter().any(|d| {
+                    d.as_ref()
+                    .and_then(|perf| perf.filter_value(event_name))
+                    .is_some()
+                });
+
+                if !any_data {
+                    return Err(PlotError::InvalidData(format!(
+                        "Event '{}' not found in dataset",
+                        event_name
+                    )));
+                }
+            }
+
             let values_per_event: Vec<Vec<Option<f64>>> = events
                 .iter()
                 .map(|event_name| {

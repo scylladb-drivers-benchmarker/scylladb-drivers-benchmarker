@@ -157,3 +157,61 @@ fn perf_stat_plot_runs() {
     let result = plot_on_backend(plot, path_png, OutputFormat::Png);
     assert!(result.is_ok());
 }
+
+#[test]
+fn invalid_perf_metric() {
+    use crate::perf_stat::PerfStatData;
+    let points = vec![1, 2];
+
+    let prog1_step1 = PerfStatData::from_str(
+        r#"
+        {"event":"task-clock","metric-value":"0,000374","metric-unit":"CPUs utilized"}
+        {"event":"context-switches","metric-value":"2,670862","metric-unit":"K/sec"}
+    "#,
+    )
+    .unwrap();
+
+    let prog1_step2 = PerfStatData::from_str(
+        r#"
+        {"event":"task-clock","metric-value":"0,000474","metric-unit":"CPUs utilized"}
+        {"event":"context-switches","metric-value":"3,670862","metric-unit":"K/sec"}
+    "#,
+    )
+    .unwrap();
+
+    let prog2_step1 = PerfStatData::from_str(
+        r#"
+        {"event":"task-clock","metric-value":"0,000500","metric-unit":"CPUs utilized"}
+        {"event":"context-switches","metric-value":"2,000000","metric-unit":"K/sec"}
+    "#,
+    )
+    .unwrap();
+
+    let prog2_step2 = PerfStatData::from_str(
+        r#"
+        {"event":"task-clock","metric-value":"0,000600","metric-unit":"CPUs utilized"}
+        {"event":"context-switches","metric-value":"3,000000","metric-unit":"K/sec"}
+    "#,
+    )
+    .unwrap();
+
+    let dataset: BenchmarkDataset<PerfStatData> = BenchmarkDataset {
+        points: points.clone(),
+        results: vec![
+            vec![Some(prog1_step1), Some(prog1_step2)],
+            vec![Some(prog2_step1), Some(prog2_step2)],
+        ],
+    };
+
+    let result = PerfStatPlot::from_dataset(
+        dataset,
+        "TestPerfStat".to_string(),
+        &["prog1".to_string(), "prog2".to_string()],
+        vec!["incorrect-metric".to_string()],
+    );
+
+    assert!(matches!(
+        result,
+        Err(PlotError::InvalidData(ref error)) if error == "Event 'incorrect-metric' not found in dataset"
+    ));
+}
