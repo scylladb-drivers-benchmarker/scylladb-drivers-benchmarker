@@ -14,15 +14,17 @@ use crate::perf_stat::PerfStatData;
 
 use plotters::prelude::*;
 
-const MARGIN_SIZE: u32 = 10;
-const X_LABEL_AREA_SIZE: u32 = 30;
-const Y_LABEL_AREA_SIZE: u32 = 40;
+const MARGIN_SIZE: u32 = 20;
+const X_LABEL_AREA_SIZE: u32 = 40;
+const Y_LABEL_AREA_SIZE: u32 = 70;
 
 const FONT_FAMILY: &str = "sans-serif";
 const TITLE_FONT_SIZE: u32 = 40;
 const TITLE_FONT: (&str, u32) = (FONT_FAMILY, TITLE_FONT_SIZE);
 const CAPTION_FONT_SIZE: u32 = 24;
 const CAPTION_FONT: (&str, u32) = (FONT_FAMILY, CAPTION_FONT_SIZE);
+const LABEL_FONT_SIZE: u32 = 16;
+const LABEL_FONT: (&str, u32) = (FONT_FAMILY, LABEL_FONT_SIZE);
 
 const BACKGROUND_COLOR: RGBColor = WHITE;
 const LEGEND_BORDER_COLOR: RGBColor = BLACK;
@@ -143,7 +145,14 @@ impl Plot for SeriesPlot {
             .y_label_area_size(Y_LABEL_AREA_SIZE)
             .build_cartesian_2d(x_start..x_end, y_min..y_max)?;
 
-        chart.configure_mesh().draw()?;
+        chart
+            .configure_mesh()
+            .label_style(LABEL_FONT)
+            .y_desc("Benchmark value")
+            .y_label_style(LABEL_FONT)
+            .x_desc("Input size")
+            .x_label_style(LABEL_FONT)
+            .draw()?;
 
         let mut charts: [ChartContext<_, _>; 1] = [chart];
         for series in &self.results {
@@ -315,7 +324,7 @@ impl Plot for PerfStatPlot {
 
                 let mut chart = ChartBuilder::on(&area)
                     .caption(
-                        self.events[id].clone() + ", unit: " + &self.units[id].clone(),
+                        self.events[id].clone(),
                         CAPTION_FONT,
                     )
                     .margin(MARGIN_SIZE)
@@ -324,7 +333,21 @@ impl Plot for PerfStatPlot {
                     .build_cartesian_2d(x_start..x_end, y_min..y_max)
                     .map_err(|e| PlotError::Plotters(e.to_string()))?;
 
-                chart.configure_mesh().draw()?;
+                chart
+                    .configure_mesh()
+                    .label_style(LABEL_FONT)
+                    .y_desc(format!(
+                        "Value ({})",
+                        if self.units[id].is_empty() {
+                            "unknown unit"
+                        } else {
+                            &self.units[id]
+                        }
+                    ))
+                    .y_label_style(LABEL_FONT)
+                    .x_desc("Input size")
+                    .x_label_style(LABEL_FONT)
+                    .draw()?;
 
                 Ok(chart)
             })
