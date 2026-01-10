@@ -77,24 +77,20 @@ fn svg_to_rgba(path: &std::path::Path) -> RgbaImage {
 }
 
 fn check_files_equality(output: &str, expected_output: &str, format: OutputFormat) {
-    match format {
-        OutputFormat::Png => {
-            let f1 = open(output).unwrap().to_rgba8();
-            let f2 = open(expected_output).unwrap().to_rgba8();
-            let result = image_compare::rgba_hybrid_compare(&f1, &f2)
-                .expect("Images had different dimensions");
-            assert!(result.score > 0.98, "similarity too low: {}", result.score);
-        }
-        OutputFormat::Svg => {
-            let f1 = svg_to_rgba(output.as_ref());
-            let f2 = svg_to_rgba(expected_output.as_ref());
-
-            let result = image_compare::rgba_hybrid_compare(&f1, &f2)
-                .expect("Images had different dimensions");
-
-            assert!(result.score > 0.98, "similarity too low: {}", result.score);
-        }
+    let (f1, f2) = match format {
+        OutputFormat::Png => (
+            open(output).unwrap().to_rgba8(),
+            open(expected_output).unwrap().to_rgba8(),
+        ),
+        OutputFormat::Svg => (
+            svg_to_rgba(output.as_ref()),
+            svg_to_rgba(expected_output.as_ref()),
+        ),
     };
+
+    let result =
+        image_compare::rgba_hybrid_compare(&f1, &f2).expect("Images had different dimensions");
+    assert!(result.score > 0.98, "similarity too low: {}", result.score);
 }
 
 fn plot_series_generic_test(
@@ -134,7 +130,6 @@ fn plot_series_generic_test(
         commits[1],
         commits[2]
     );
-    let config_path = "./tests/plot_test/config.yml";
 
     run_bin(&[
         "-d",
@@ -142,7 +137,7 @@ fn plot_series_generic_test(
         "plot",
         "test-bench",
         "-b",
-        config_path,
+        "./tests/plot_test/config.yml",
         from_arg.as_str(),
         "-m",
         "time",
@@ -229,12 +224,6 @@ fn plot_perf_generic_test(output: &str, expected_output: &str, format: OutputFor
         commits[1],
         commits[2]
     );
-    let config_path = "./tests/plot_test/config.yml";
-
-    let format_str = match format {
-        OutputFormat::Png => "png",
-        OutputFormat::Svg => "svg",
-    };
 
     run_bin(&[
         "-d",
@@ -242,14 +231,14 @@ fn plot_perf_generic_test(output: &str, expected_output: &str, format: OutputFor
         "plot",
         "test-bench",
         "-b",
-        config_path,
+        "./tests/plot_test/config.yml",
         from_arg.as_str(),
         "-m",
         "perf",
         "-o",
         output,
         "-f",
-        format_str,
+        format.to_string(),
         "perf-stat",
         "-e",
         "task-clock,context-switches,page-faults",
