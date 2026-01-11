@@ -4,7 +4,7 @@ use std::error::Error;
 use std::str::FromStr;
 use std::time::Duration;
 
-use crate::benchmarking::executor::{Callback, CommandMeasurementError, CompileError, execute_all};
+use crate::benchmarking::executor::{Callback, CompileError, execute_all};
 use crate::command::{Command, CommandParsingError};
 use crate::commit_hash::CommitHash;
 use crate::database::utilities::BenchmarkFilters;
