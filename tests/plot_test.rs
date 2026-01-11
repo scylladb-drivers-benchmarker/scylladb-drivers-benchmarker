@@ -185,9 +185,6 @@ fn plot_perf_generic_test(output: &str, expected_output: &str, format: OutputFor
     fs::remove_file(output).unwrap();
 }
 
-// Compiling rust by two tests in parallel sometimes fails.
-// We chose to serialize those two tests to avoid unpredictable test failures.
-
 #[test]
 fn plot_series() {
     let output_base = "./tests/plot_test/series";
