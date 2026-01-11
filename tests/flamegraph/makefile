@@ -1,3 +1,1 @@
-CFLAGS=-O3 -fno-plt -ggdb3
-
-main: elide.o
+CFLAGS=-O3 -fno-plt -ggdb3 -fno-omit-frame-pointer
