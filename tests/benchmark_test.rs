@@ -13,26 +13,10 @@ use serial_test::file_serial;
 
 use utilities::run_utilities::{run, run_safe, sdb_command};
 
+use crate::utilities::{db_utils::open_clean_db, git_utils::setup_git};
+
 mod utilities;
 
-fn setup_git(repo: &str) {
-    if Path::new(&(repo.to_owned() + "/.git/")).is_dir() {
-        return;
-    }
-
-    run(std::process::Command::new("git")
-        .current_dir(repo)
-        .arg("init"));
-    run(std::process::Command::new("git")
-        .current_dir(repo)
-        .arg("add")
-        .arg("-A"));
-    run(std::process::Command::new("git")
-        .current_dir(repo)
-        .arg("commit")
-        .arg("-m")
-        .arg("\"initial\""));
-}
 
 fn check_data(
     commit_hash: &CommitHash,
@@ -64,11 +48,7 @@ impl CppVsRust {
     fn new() -> Self {
         setup_git("./tests/cpp_vs_rust_test/cpp/");
         setup_git("./tests/cpp_vs_rust_test/rust/");
-
-        let db = database::Database::new(Path::new("./tests/cpp_vs_rust_test/test.db")).unwrap();
-        db.drop_all_data().unwrap();
-
-        CppVsRust { db }
+        CppVsRust { db: open_clean_db(Path::new("./tests/cpp_vs_rust_test/test.db")) }
     }
 
     fn gather_data(&self, path: &str, command: &mut std::process::Command) -> CommitHash {
