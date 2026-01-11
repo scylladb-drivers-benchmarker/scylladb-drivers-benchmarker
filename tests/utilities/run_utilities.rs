@@ -11,9 +11,14 @@ pub fn run(cmd: &mut std::process::Command) -> Output {
     run_safe(cmd, |output: &Output| output.status.success())
 }
 
-pub fn run_assert_empty(cmd: &mut std::process::Command) {
+pub fn run_only_stdout(cmd: &mut std::process::Command) -> String {
     let output = run(cmd);
-    assert!(output.stderr.is_empty() && output.stdout.is_empty());
+    assert!(output.stderr.is_empty());
+    String::from_utf8(output.stdout).unwrap()
+}
+
+pub fn run_no_output(cmd: &mut std::process::Command) {
+    assert!(run_only_stdout(cmd).is_empty())
 }
 
 pub fn run_safe(cmd: &mut std::process::Command, verifier: impl Fn(&Output) -> bool) -> Output {

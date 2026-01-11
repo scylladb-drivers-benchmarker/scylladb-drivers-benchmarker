@@ -8,15 +8,8 @@ use std::io::Write;
 use std::path::Path;
 use tempfile::NamedTempFile;
 
-use crate::common::{run, sdb_command};
-
-mod common;
-
-// TODO: eliminate this
-fn run_bin(args: &[&str]) -> String {
-    let output = run(sdb_command().args(args));
-    String::from_utf8_lossy(&output.stdout).to_string()
-}
+mod utilities;
+use utilities::run_utilities::{run_no_output, run_only_stdout, sdb_command};
 
 #[test]
 fn database() {
@@ -42,25 +35,35 @@ fn database() {
             .unwrap();
     }
 
-    let print_output = run_bin(&["-d", db_path, "database", "print"]);
+    let print_output = run_only_stdout(
+        sdb_command()
+            .arg("-d")
+            .arg(db_path)
+            .arg("database")
+            .arg("print"),
+    );
 
     assert!(print_output.contains("commit1"));
     assert!(print_output.contains("commit2"));
     assert!(print_output.contains("commit3"));
 
-    let print_output = run_bin(&[
-        "-d",
-        db_path,
-        "database",
-        "drop",
-        "--commit-hash",
-        "commit1:commit3",
-    ]);
+    run_no_output(
+        sdb_command()
+            .arg("-d")
+            .arg(db_path)
+            .arg("database")
+            .arg("drop")
+            .arg("--commit-hash")
+            .arg("commit1:commit3"),
+    );
 
-    assert_eq!(print_output, "");
-
-    let print_output = run_bin(&["-d", db_path, "database", "print"]);
-
+    let print_output = run_only_stdout(
+        sdb_command()
+            .arg("-d")
+            .arg(db_path)
+            .arg("database")
+            .arg("print"),
+    );
     assert!(!print_output.contains("commit1"));
     assert!(print_output.contains("commit2"));
     assert!(!print_output.contains("commit3"));
@@ -112,14 +115,16 @@ fn database_file() {
 
     {
         // Integration test database print.
-        let print_output = run_bin(&[
-            "-d",
-            db_path,
-            "database",
-            "print",
-            "--benchmark-name",
-            "file-bench:test",
-        ]);
+        let print_output = run_only_stdout(
+            sdb_command()
+                .arg("-d")
+                .arg(db_path)
+                .arg("database")
+                .arg("print")
+                .arg("--benchmark-name")
+                .arg("file-bench")
+                .arg("test"),
+        );
 
         assert!(print_output.contains("FilePath"));
         assert!(print_output.contains(&tmp_file.path().to_owned().to_string_lossy().to_string()));

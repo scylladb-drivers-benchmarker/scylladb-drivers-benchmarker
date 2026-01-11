@@ -1,5 +1,7 @@
-use image::{RgbaImage, open};
-use resvg::{tiny_skia, usvg};
+mod utilities;
+use utilities::image_compare::check_files_equality;
+use utilities::run_utilities::{run, run_no_output, sdb_command};
+
 use scylladb_drivers_benchmarker::{
     OutputFormat, VisKind,
     commit_hash::CommitHash,
@@ -8,16 +10,17 @@ use scylladb_drivers_benchmarker::{
         utilities::{BenchmarkParams, BenchmarkRecord},
     },
 };
-mod common;
-use crate::common::{run, run_assert_empty, sdb_command};
+
+
+
 use scylladb_drivers_benchmarker::utilities::BenchmarkPoint;
 use std::{
     fs::{self, File},
     io::Write,
     path::Path,
 };
-use tempfile::{NamedTempFile, TempDir};
 use tempfile::Builder;
+use tempfile::{NamedTempFile, TempDir};
 
 fn init_git_repo(path: &Path, num_commits: usize) -> Vec<CommitHash> {
     if !path.join(".git").exists() {
@@ -51,35 +54,6 @@ fn init_git_repo(path: &Path, num_commits: usize) -> Vec<CommitHash> {
     hashes
 }
 
-fn load_image(path: &str, format: OutputFormat) -> RgbaImage {
-    match format {
-        OutputFormat::Png => open(path).unwrap().to_rgba8(),
-        OutputFormat::Svg => svg_to_rgba(path.as_ref()),
-    }
-}
-
-fn svg_to_rgba(path: &std::path::Path) -> RgbaImage {
-    let svg_data = fs::read(path).unwrap();
-    let opt = usvg::Options::default();
-    let tree = usvg::Tree::from_data(&svg_data, &opt).unwrap();
-
-    let size = tree.size();
-    let mut pixmap = tiny_skia::Pixmap::new(size.width() as u32, size.height() as u32).unwrap();
-
-    resvg::render(&tree, tiny_skia::Transform::default(), &mut pixmap.as_mut());
-
-    RgbaImage::from_raw(pixmap.width(), pixmap.height(), pixmap.data().to_vec()).unwrap()
-}
-
-fn check_files_equality(output: &str, expected_output: &str, format: OutputFormat) {
-    let result = image_compare::rgba_hybrid_compare(
-        &load_image(output, format),
-        &load_image(expected_output, format),
-    )
-    .expect("Images had different dimensions");
-    assert!(result.score > 0.95, "similarity too low: {}", result.score);
-}
-
 struct TestData {
     db_file: NamedTempFile,
     repo_dir: TempDir,
@@ -101,9 +75,7 @@ fn build_from_arg(path: &TempDir, commits: Vec<CommitHash>) -> String {
 fn setup_initial_data(
     data_generator: fn(usize, &CommitHash, BenchmarkPoint) -> (BenchmarkParams, BenchmarkRecord),
 ) -> TestData {
-    let db_file =    Builder::new()
-        .suffix(".db")
-        .tempfile().unwrap();
+    let db_file = Builder::new().suffix(".db").tempfile().unwrap();
 
     let db = database::Database::new(db_file.path()).unwrap();
 
@@ -133,10 +105,10 @@ fn plot_series_generic_test(
 ) {
     let test_data = setup_initial_data(generate_series_data);
 
-    run_assert_empty(
+    run_no_output(
         sdb_command()
             .arg("-d")
-            .arg(&test_data.db_file.path().to_string_lossy().to_string())
+            .arg(test_data.db_file.path().to_string_lossy().to_string())
             .arg("plot")
             .arg("test-bench")
             .arg("-b")
@@ -161,10 +133,10 @@ fn plot_series_generic_test(
 fn plot_perf_generic_test(output: &str, expected_output: &str, format: OutputFormat) {
     let test_data = setup_initial_data(generate_perf_data);
 
-    run_assert_empty(
+    run_no_output(
         sdb_command()
             .arg("-d")
-            .arg(&test_data.db_file.path().to_string_lossy().to_string())
+            .arg(test_data.db_file.path().to_string_lossy().to_string())
             .arg("plot")
             .arg("test-bench")
             .arg("-b")

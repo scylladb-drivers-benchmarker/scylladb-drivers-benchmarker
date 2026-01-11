@@ -1,7 +1,7 @@
 benchmarks:
   - name: regex
-    starting-step: 100000
+    starting-step: 2000000
     no-steps: 8
     step-progress: 2
     progress-type: multiplicative
-    timeout: "50ms"
+    timeout: "500ms"

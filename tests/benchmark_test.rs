@@ -7,9 +7,9 @@ use scylladb_drivers_benchmarker::{
 };
 use serial_test::file_serial;
 
-use crate::common::{run, run_safe, sdb_command};
+use utilities::run_utilities::{run, run_safe, sdb_command};
 
-mod common;
+mod utilities;
 
 fn setup_git(repo: &str) {
     if Path::new(&(repo.to_owned() + "/.git/")).is_dir() {
