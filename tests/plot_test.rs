@@ -1,26 +1,25 @@
 mod utilities;
-use utilities::image_compare::check_files_equality;
-use utilities::run_utilities::{run, run_no_output, sdb_command};
+use utilities::{
+    image_compare::check_files_equality,
+    run_utilities::{run, run_no_output, sdb_command},
+};
 
 use scylladb_drivers_benchmarker::{
     OutputFormat, VisKind,
     commit_hash::CommitHash,
+    utilities::BenchmarkPoint,
     database::{
         self,
         utilities::{BenchmarkParams, BenchmarkRecord},
     },
 };
 
-
-
-use scylladb_drivers_benchmarker::utilities::BenchmarkPoint;
 use std::{
     fs::{self, File},
     io::Write,
     path::Path,
 };
-use tempfile::Builder;
-use tempfile::{NamedTempFile, TempDir};
+use tempfile::{Builder, NamedTempFile, TempDir};
 
 fn init_git_repo(path: &Path, num_commits: usize) -> Vec<CommitHash> {
     if !path.join(".git").exists() {
