@@ -6,8 +6,8 @@ use std::{
 
 use scylladb_drivers_benchmarker::{
     commit_hash::CommitHash,
-    database::utilities::{BenchmarkParams, BenchmarkRecord},
-    database::{self, Database},
+    database::{Database, utilities::{BenchmarkParams, BenchmarkRecord}},
+    utilities::BenchmarkParamsBuilder,
 };
 use serial_test::file_serial;
 
@@ -22,20 +22,15 @@ fn check_data(
     commit_hash: &CommitHash,
     mut data: impl Iterator<Item = (BenchmarkParams, BenchmarkRecord)>,
 ) {
-    let get_params = |point| {
-        BenchmarkParams::new(
-            commit_hash.clone(),
+    let param_builder = BenchmarkParamsBuilder::new(commit_hash.clone(),
             "regex".to_owned(),
-            point,
-            "time".to_owned(),
-        )
-    };
+            "time".to_owned());
 
     assert_eq!(data.by_ref().count(), 8usize);
     for (params, _record) in data {
-        if params != get_params(params.benchmark_point) {
+        if params != param_builder.finalize(params.benchmark_point) {
             println!("{:?}", params);
-            assert!(params == get_params(params.benchmark_point));
+            assert!(params == param_builder.finalize(params.benchmark_point));
         }
     }
 }
