@@ -158,9 +158,9 @@ impl PerfStatPlot {
         PerfStatPlot::from_dataset(dataset, benchmark_config.name, names, events)
     }
 
-    fn add_legend<DB: NamedBackend + DrawingBackend>(
+    fn add_legend<DB: BackendWithKind + DrawingBackend>(
         &self,
-        backend: &str,
+        scale_factor: f64,
         area: DrawingArea<DB, Shift>,
     ) -> Result<(), PlotError>
     where
@@ -182,17 +182,14 @@ impl PerfStatPlot {
             .unwrap_or(50);
 
         // So we scale it in this terrible, hacky, heuristic way
-        let scale_factor = match backend {
-            "svg" => 0.9f64,
-            _ => 1.0f64,
-        };
+        let text_width = max_label_width as f64 * scale_factor;
 
         let entry_height = Self::LEGEND_MARKER_HEIGHT.max(Self::LEGEND_CHAR_HEIGHT);
 
         let legend_width = Self::LEGEND_PADDING_X * 2
             + Self::LEGEND_MARKER_WIDTH
             + Self::LEGEND_MARKER_TEXT_GAP
-            + (max_label_width as f64 * scale_factor) as i32;
+            + text_width as i32;
 
         let legend_height = Self::LEGEND_PADDING_Y * 2
             + self.results.len() as i32 * entry_height
@@ -248,11 +245,11 @@ impl PerfStatPlot {
 }
 
 impl Plot for PerfStatPlot {
-    fn plot<DB: DrawingBackend + NamedBackend>(&self, backend: DB) -> Result<(), PlotError>
+    fn plot<DB: DrawingBackend + BackendWithKind>(&self, backend: DB) -> Result<(), PlotError>
     where
         DB::ErrorType: 'static,
     {
-        let backend_name = backend.name();
+        let backend_kind = backend.kind();
 
         let root = DrawingArea::from(backend);
         root.fill(&BACKGROUND_COLOR)?;
@@ -314,7 +311,12 @@ impl Plot for PerfStatPlot {
             r.add_to_plot(&mut charts)?;
         }
 
-        self.add_legend(backend_name, plot_area)?;
+        let scale_factor = match backend_kind {
+            BackendKind::Svg => 0.9,
+            _ => 1.0,
+        };
+
+        self.add_legend(scale_factor, plot_area)?;
 
         root.present()?;
         Ok(())

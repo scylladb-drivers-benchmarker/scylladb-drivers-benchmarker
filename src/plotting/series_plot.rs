@@ -85,7 +85,7 @@ impl SeriesPlot {
 }
 
 impl Plot for SeriesPlot {
-    fn plot<DB: DrawingBackend + NamedBackend>(&self, backend: DB) -> Result<(), PlotError>
+    fn plot<DB: DrawingBackend + BackendWithKind>(&self, backend: DB) -> Result<(), PlotError>
     where
         DB::ErrorType: 'static,
     {
