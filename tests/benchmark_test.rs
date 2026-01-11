@@ -1,8 +1,4 @@
-use std::{
-    fs::File,
-    io::Write,
-    path::Path,
-};
+use std::{fs::File, io::Write, path::Path};
 
 use scylladb_drivers_benchmarker::{
     commit_hash::CommitHash,

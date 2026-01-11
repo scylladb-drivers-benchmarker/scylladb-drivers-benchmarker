@@ -1,7 +1,5 @@
-
 use std::process::Output;
 use std::time::Duration;
-
 
 use crate::benchmarking::executor::{CommandMeasurementError, MeasuringEquipment};
 use crate::command::OutputWithTimeout;

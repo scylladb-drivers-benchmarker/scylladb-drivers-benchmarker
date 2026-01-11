@@ -50,10 +50,7 @@ fn insert_get_empty() {
     insert_get(vec![
         (example_param("aa"), BenchmarkRecord::Data("".to_owned())),
         (example_param("bbb"), BenchmarkRecord::Timeout),
-        (
-            example_param("cccc"),
-            BenchmarkRecord::FilePath("".to_owned()),
-        ),
+        (example_param("cccc"), BenchmarkRecord::FilePath("".into())),
     ]);
 }
 

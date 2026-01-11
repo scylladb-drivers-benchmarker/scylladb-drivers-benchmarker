@@ -7,11 +7,11 @@ use utilities::{
 use scylladb_drivers_benchmarker::{
     OutputFormat, VisKind,
     commit_hash::CommitHash,
-    utilities::BenchmarkPoint,
     database::{
         self,
         utilities::{BenchmarkParams, BenchmarkRecord},
     },
+    utilities::BenchmarkPoint,
 };
 
 use std::{

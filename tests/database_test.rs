@@ -91,7 +91,7 @@ fn database_file() {
 
     db.insert_data(
         params.clone(),
-        BenchmarkRecord::FilePath(tmp_file.path().to_owned().to_string_lossy().to_string()),
+        BenchmarkRecord::FilePath(tmp_file.path().to_owned()),
     )
     .unwrap();
 

@@ -1,4 +1,3 @@
-
 use std::io;
 use std::path::PathBuf;
 use std::string::FromUtf8Error;
@@ -45,13 +44,16 @@ impl FlameExecutor {
     pub(crate) fn new(flame_path: PathBuf, run_command: command::Command) -> Self {
         FlameExecutor {
             flame_path,
-            run_command
+            run_command,
         }
     }
 
     fn collect_output(pair: (Option<Vec<u8>>, Option<Vec<u8>>)) -> (Vec<u8>, Vec<u8>) {
         let (stdout, stderr) = pair;
-        (stdout.expect("subscribed to stdout"), stderr.expect("subscribed to stderr"))
+        (
+            stdout.expect("subscribed to stdout"),
+            stderr.expect("subscribed to stderr"),
+        )
     }
 }
 

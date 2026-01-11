@@ -93,7 +93,7 @@ impl BenchmarkRecord {
             BenchmarkRecord::Data(s) => FlatBenchmarkRecord::Data(s),
             BenchmarkRecord::FilePath(path) => {
                 let s = std::fs::read_to_string(&path)
-                    .unwrap_or_else(|_| format!("Failed to read file: {}", path));
+                    .unwrap_or_else(|_| format!("Failed to read file: {}", path.to_string_lossy()));
                 FlatBenchmarkRecord::Data(s)
             }
             BenchmarkRecord::Timeout => FlatBenchmarkRecord::Timeout,

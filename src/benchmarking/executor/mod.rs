@@ -9,17 +9,16 @@ use std::process::Output;
 use std::str::FromStr;
 use std::time::Duration;
 
-
 use crate::benchmarking::executor::command_executor::CommandExecutor;
 use crate::benchmarking::executor::flame_executor::FlameExecutor;
+use crate::command;
 use crate::command::{Command, CommandParsingError, PrintableOutput};
 use crate::database::utilities::BenchmarkRecord;
 use crate::measurement::MeasurementMethod;
 use crate::utilities::BenchmarkPoint;
-use crate::command;
 
-mod flame_executor;
 mod command_executor;
+mod flame_executor;
 
 /// This is a token proving that the code being executed was compiled earlier.
 /// Getting this from outside of this module happens only by invoking `build_source`.
@@ -80,9 +79,10 @@ pub fn execute_all<CallbackType: Callback>(
     match measurement_method {
         MeasurementMethod::Time => callback.call(CommandExecutor::new_time(run_command)),
         MeasurementMethod::Perf => callback.call(CommandExecutor::new_perf(run_command)),
-        MeasurementMethod::Flamegraph(flame_path) => {
-            callback.call(FlameExecutor::new(flame_path.unwrap_or_default(), run_command))
-        }
+        MeasurementMethod::Flamegraph(flame_path) => callback.call(FlameExecutor::new(
+            flame_path.unwrap_or_default(),
+            run_command,
+        )),
         MeasurementMethod::Command(command) => {
             callback.call(CommandExecutor::new(command, run_command))
         }
@@ -98,4 +98,3 @@ pub enum CommandMeasurementError {
     RustFailed(#[from] io::Error),
     WrongOutputFormat(#[from] std::string::FromUtf8Error),
 }
-

@@ -2,6 +2,7 @@ use crate::CommitHash;
 use crate::utilities::BenchmarkPoint;
 
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BenchmarkParams {
@@ -31,7 +32,7 @@ impl BenchmarkParams {
 #[serde(tag = "type", content = "value")]
 pub enum BenchmarkRecord {
     Data(String),
-    FilePath(String),
+    FilePath(PathBuf),
     Timeout,
 }
 
