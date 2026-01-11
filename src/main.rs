@@ -3,7 +3,7 @@ mod repo_with_commits;
 use clap::Parser;
 
 use scylladb_drivers_benchmarker::{
-    OutputFormat, PlotKind,
+    OutputFormat, PlotKind, PlotSettings,
     database::Database,
     measurement::MeasurementMethod,
     utilities::{BenchmarkMode, DatabaseCommand, RepoNameWithTags, RepoPathWithCommits},
@@ -171,16 +171,23 @@ fn main() {
                 .collect::<Result<Vec<RepoPathWithCommits>, _>>()
                 .unwrap_or_else(print_error);
 
-            scylladb_drivers_benchmarker::plot_benchmarks(
+            let plot_settings = PlotSettings::new(
                 plot_kind,
+                format,
+                output
+                    .as_deref()
+                    .and_then(|p| p.to_str())
+                    .unwrap_or("plot.png"),
+            );
+
+            scylladb_drivers_benchmarker::plot_benchmarks(
+                plot_settings,
                 &database,
                 &benchmark_name,
                 &benchmark_config_path,
                 &measurement_method,
                 parsed,
                 resolved,
-                format,
-                output.as_deref(),
             )
             .unwrap_or_else(print_error)
         }

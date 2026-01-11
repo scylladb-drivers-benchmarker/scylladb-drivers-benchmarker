@@ -54,11 +54,27 @@ pub enum OutputFormat {
     Svg,
 }
 
+pub struct PlotSettings<'a> {
+    plot_kind: PlotKind,
+    format: OutputFormat,
+    output: &'a str,
+}
+
 impl OutputFormat {
     pub fn to_string(&self) -> &'static str {
         match self {
             OutputFormat::Png => "png",
             OutputFormat::Svg => "svg",
+        }
+    }
+}
+
+impl<'a> PlotSettings<'a> {
+    pub fn new(plot_kind: PlotKind, format: OutputFormat, output: &'a str) -> Self {
+        PlotSettings {
+            plot_kind,
+            format,
+            output,
         }
     }
 }
@@ -80,16 +96,14 @@ fn plot_on_backend<P: Plot>(plot: P, output: &str, format: OutputFormat) -> Resu
 }
 
 pub fn plot(
-    plot_kind: PlotKind,
+    plot_settings: PlotSettings,
     database: &Database,
     benchmark_config: BenchmarkConfig,
     measurement_method: &MeasurementMethod,
     commit_hashes: impl Iterator<Item = CommitHash>,
     names: &[String],
-    format: OutputFormat,
-    output: &str,
 ) -> Result<(), PlotError> {
-    match plot_kind {
+    match plot_settings.plot_kind {
         PlotKind::Series { visualization_kind } => {
             let plot = SeriesPlot::build(
                 database,
@@ -100,7 +114,7 @@ pub fn plot(
                 visualization_kind,
             )?;
 
-            plot_on_backend(plot, output, format)
+            plot_on_backend(plot, plot_settings.output, plot_settings.format)
         }
 
         PlotKind::Flamegraph => {
@@ -127,7 +141,7 @@ pub fn plot(
                 events,
             )?;
 
-            plot_on_backend(plot, output, format)
+            plot_on_backend(plot, plot_settings.output, plot_settings.format)
         }
     }
 }

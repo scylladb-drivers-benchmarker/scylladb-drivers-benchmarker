@@ -13,7 +13,7 @@ use crate::{
     },
 };
 
-pub use plotting::{OutputFormat, PlotKind, VisKind};
+pub use plotting::{OutputFormat, PlotKind, PlotSettings, VisKind};
 
 mod benchmarking;
 pub mod command;
@@ -68,15 +68,13 @@ pub fn run_benchmarks(
 }
 
 pub fn plot_benchmarks(
-    plot_kind: PlotKind,
+    plot_settings: PlotSettings,
     database: &Database,
     benchmark_name: &str,
     benchmark_config_path: &Path,
     measurement_method: &MeasurementMethod,
     from: Vec<RepoNameWithTags>,
     resolved: Vec<RepoPathWithCommits>,
-    format: OutputFormat,
-    output: Option<&Path>,
 ) -> Result<(), PlotBenchmarksError> {
     let benchmark_config = find_config(benchmark_name, benchmark_config_path)?;
 
@@ -92,14 +90,12 @@ pub fn plot_benchmarks(
     let commit_hashes = resolved.into_iter().flat_map(|repo| repo.git_hashes);
 
     plotting::plot(
-        plot_kind,
+        plot_settings,
         database,
         benchmark_config,
         measurement_method,
         commit_hashes,
         &names,
-        format,
-        output.and_then(|p| p.to_str()).unwrap_or("plot.png"),
     )?;
 
     Ok(())
