@@ -8,7 +8,6 @@ use scylladb_drivers_benchmarker::{
         utilities::{BenchmarkParams, BenchmarkRecord},
     },
 };
-use serial_test::file_serial;
 mod common;
 use crate::common::{run, run_assert_empty, sdb_command};
 use scylladb_drivers_benchmarker::utilities::BenchmarkPoint;
@@ -17,7 +16,8 @@ use std::{
     io::Write,
     path::Path,
 };
-use tempfile::TempDir;
+use tempfile::{NamedTempFile, TempDir};
+use tempfile::Builder;
 
 fn init_git_repo(path: &Path, num_commits: usize) -> Vec<CommitHash> {
     if !path.join(".git").exists() {
@@ -81,7 +81,7 @@ fn check_files_equality(output: &str, expected_output: &str, format: OutputForma
 }
 
 struct TestData {
-    db_path: String,
+    db_file: NamedTempFile,
     repo_dir: TempDir,
     repo_hashes: Vec<CommitHash>,
 }
@@ -101,9 +101,11 @@ fn build_from_arg(path: &TempDir, commits: Vec<CommitHash>) -> String {
 fn setup_initial_data(
     data_generator: fn(usize, &CommitHash, BenchmarkPoint) -> (BenchmarkParams, BenchmarkRecord),
 ) -> TestData {
-    let db_path = "./tests/plot_test/test.db";
-    let db = database::Database::new(Path::new(db_path)).unwrap();
-    db.drop_all_data().unwrap();
+    let db_file =    Builder::new()
+        .suffix(".db")
+        .tempfile().unwrap();
+
+    let db = database::Database::new(db_file.path()).unwrap();
 
     let repo_dir = TempDir::new().unwrap();
     let repo_hashes = init_git_repo(repo_dir.path(), 3);
@@ -117,7 +119,7 @@ fn setup_initial_data(
         }
     }
     TestData {
-        db_path: db_path.to_owned(),
+        db_file,
         repo_dir,
         repo_hashes,
     }
@@ -134,7 +136,7 @@ fn plot_series_generic_test(
     run_assert_empty(
         sdb_command()
             .arg("-d")
-            .arg(&test_data.db_path)
+            .arg(&test_data.db_file.path().to_string_lossy().to_string())
             .arg("plot")
             .arg("test-bench")
             .arg("-b")
@@ -162,7 +164,7 @@ fn plot_perf_generic_test(output: &str, expected_output: &str, format: OutputFor
     run_assert_empty(
         sdb_command()
             .arg("-d")
-            .arg(&test_data.db_path)
+            .arg(&test_data.db_file.path().to_string_lossy().to_string())
             .arg("plot")
             .arg("test-bench")
             .arg("-b")
@@ -187,7 +189,6 @@ fn plot_perf_generic_test(output: &str, expected_output: &str, format: OutputFor
 // We chose to serialize those two tests to avoid unpredictable test failures.
 
 #[test]
-#[file_serial]
 fn plot_series() {
     let output_base = "./tests/plot_test/series";
     let expected_base = "./tests/plot_test/expected_series";
@@ -210,7 +211,6 @@ fn plot_series() {
 }
 
 #[test]
-#[file_serial]
 fn plot_perf() {
     let output_base = "./tests/plot_test/perf";
     let expected_base = "./tests/plot_test/expected_perf";
