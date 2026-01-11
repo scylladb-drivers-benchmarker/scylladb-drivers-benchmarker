@@ -1,4 +1,8 @@
-use std::{fs::File, io::Write, path::Path};
+use std::{
+    fs::File,
+    io::Write,
+    path::Path,
+};
 
 use scylladb_drivers_benchmarker::{
     commit_hash::CommitHash,
@@ -136,4 +140,24 @@ fn aliasing_db() {
         .arg("regex");
 
     CppVsRust::new().run(&mut command);
+}
+
+#[test]
+fn flame_graph() {
+    run(sdb_command()
+        .args(&[
+            "-d",
+            "./test.db",
+            "-a",
+            "./flame-path.yml",
+            "run",
+            "-b",
+            "./bench.yml",
+            "-B",
+            "./back.yml",
+            "-m",
+            "flamegraph",
+            "recurse",
+        ])
+        .current_dir("./tests/flamegraph/"));
 }

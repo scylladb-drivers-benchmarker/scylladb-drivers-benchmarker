@@ -105,6 +105,8 @@ struct AliasingConfig {
     dp_path: Option<PathBuf>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     repo_path: HashMap<String, PathBuf>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    flame_path: Option<PathBuf>,
 }
 
 #[justerror::Error(desc = "Failed reading the main config file")]
@@ -140,18 +142,26 @@ fn main() {
     match args.subcommand {
         AppSubcommand::Run {
             benchmark_name,
-            measurement_method,
+            mut measurement_method,
             benchmark_config_path,
             backend_config_path,
             benchmark_mode,
-        } => scylladb_drivers_benchmarker::run_benchmarks(
-            &database,
-            &benchmark_name,
-            &benchmark_config_path,
-            measurement_method,
-            backend_config_path.as_path(),
-            benchmark_mode,
-        )
+        } => {
+            measurement_method = match measurement_method {
+                MeasurementMethod::Flamegraph(path) => {
+                    MeasurementMethod::Flamegraph(path.or(aliasing_config.flame_path))
+                }
+                _ => measurement_method,
+            };
+            scylladb_drivers_benchmarker::run_benchmarks(
+                &database,
+                &benchmark_name,
+                &benchmark_config_path,
+                measurement_method,
+                backend_config_path.as_path(),
+                benchmark_mode,
+            )
+        }
         .unwrap_or_else(print_error),
 
         AppSubcommand::Plot {

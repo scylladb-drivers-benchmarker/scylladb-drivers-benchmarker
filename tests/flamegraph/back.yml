@@ -1,0 +1,6 @@
+backends:
+  - name: recurse-c
+    benchmark-name: recurse
+    build-command: make
+    run-command: ./main
+

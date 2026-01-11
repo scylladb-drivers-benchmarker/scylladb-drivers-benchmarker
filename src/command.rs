@@ -4,6 +4,7 @@ use std::fmt::Display;
 use std::io::{BufReader, Read};
 use std::process;
 use std::str::FromStr;
+use subprocess::Exec;
 use wait_timeout::ChildExt;
 
 /// Struct used for parsing command from configs
@@ -103,7 +104,6 @@ impl Command {
         self.program.as_str()
     }
 
-    #[cfg(test)]
     pub fn args(&self) -> &Vec<String> {
         &self.arguments
     }
@@ -154,9 +154,10 @@ impl OutputWithTimeout for process::Command {
 /// Utility macro to create an explicit command.
 #[macro_export]
 macro_rules! cmd {
-    ( $program:expr, $( $arg:expr ), *) => {
-        $crate::command::Command::new_args(String::from($program), vec!($(String::from($arg), )*).iter())
-    };
+    ( $program:expr$(, $arg:expr )*) => {{
+        let args: Vec<String> = vec!($(String::from($arg), )*);
+        $crate::command::Command::new_args(String::from($program), args.into_iter())
+    }};
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -181,6 +182,12 @@ impl Display for PrintableOutput {
             "stderr: \n\"\n{}\"\n",
             String::from_utf8_lossy(&self.0.stderr)
         )
+    }
+}
+
+impl From<&Command> for subprocess::Exec {
+    fn from(value: &Command) -> Self {
+        Exec::cmd(value.program()).args(value.args())
     }
 }
 
