@@ -123,7 +123,7 @@ fn flame_graph() {
     let db = open_clean_db(&test_dir.join("test.db"));
 
     run(sdb_command()
-        .args(&[
+        .args([
             "-d",
             "./test.db",
             "-a",
