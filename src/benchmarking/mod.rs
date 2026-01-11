@@ -1,8 +1,10 @@
 mod executor;
 
+use std::error::Error;
 use std::str::FromStr;
+use std::time::Duration;
 
-use crate::benchmarking::executor::{CommandMeasurementError, CompileError, execute_all};
+use crate::benchmarking::executor::{Callback, CommandMeasurementError, CompileError, execute_all};
 use crate::command::{Command, CommandParsingError};
 use crate::commit_hash::CommitHash;
 use crate::database::utilities::BenchmarkFilters;
@@ -19,7 +21,7 @@ pub enum BenchmarkingError {
     Compile(#[from] CompileError),
     Database(#[from] DatabaseError),
     ParsingRun(#[from] CommandParsingError),
-    Measurement(#[from] CommandMeasurementError),
+    Measurement(#[from] Box<dyn Error + 'static>),
 }
 
 fn filter_points(
@@ -46,6 +48,40 @@ fn filter_points(
                 Ok(point)
             })
             .collect::<Result<Vec<BenchmarkPoint>, DatabaseError>>(),
+    }
+}
+
+struct ExecutorCallback<'a, PointsType: Iterator<Item = BenchmarkPoint>> {
+    points: PointsType,
+    timeout: Option<Duration>,
+    database: &'a Database,
+    param_generator: BenchmarkParamsBuilder,
+}
+
+fn helper(err: impl Error + 'static) -> Box<dyn Error> {
+    Box::new(err)
+}
+
+impl<'a, PointsType: Iterator<Item = BenchmarkPoint>> Callback
+    for ExecutorCallback<'a, PointsType>
+{
+    type ReturnType = Result<(), BenchmarkingError>;
+
+    fn call(self, exec: impl executor::MeasuringEquipment) -> Self::ReturnType {
+        let execute = |point| {
+            if let Some(timeout) = self.timeout {
+                exec.execute_with_timeout(point, timeout)
+            } else {
+                exec.execute(point)
+            }
+        };
+
+        for point in self.points {
+            let record = execute(point).map_err(helper)?;
+            self.database
+                .insert_data(self.param_generator.finalize(point), record)?;
+        }
+        Ok(())
     }
 }
 
@@ -82,8 +118,11 @@ pub fn benchmark(
         built_source,
         measurement_method,
         Command::from_str(&backend_config.run_command)?,
-        points.into_iter(),
-        |point, record| database.insert_data(param_generator.finalize(point), record),
-        benchmark_data.timeout,
+        ExecutorCallback {
+            points: points.into_iter(),
+            timeout: benchmark_data.timeout,
+            database,
+            param_generator,
+        },
     )
 }

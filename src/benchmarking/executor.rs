@@ -16,7 +16,6 @@ use subprocess::{CaptureData, Exec, Pipeline, PopenError};
 use crate::command::{Command, CommandParsingError, OutputWithTimeout, PrintableOutput};
 use crate::database::utilities::BenchmarkRecord;
 use crate::measurement::MeasurementMethod;
-use crate::plotting::error;
 use crate::utilities::BenchmarkPoint;
 use crate::{cmd, command};
 
@@ -54,7 +53,7 @@ pub fn build_source(build_command: &str) -> Result<BuiltSource, CompileError> {
 
 /// The executor collects data according to its internals (time, perf, ...)
 pub trait MeasuringEquipment {
-    type MeasurementError: Error;
+    type MeasurementError: Error + 'static;
 
     fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, Self::MeasurementError>;
     fn execute_with_timeout(
@@ -62,51 +61,30 @@ pub trait MeasuringEquipment {
         point: BenchmarkPoint,
         timeout: Duration,
     ) -> Result<BenchmarkRecord, Self::MeasurementError>;
-
-    fn execute_all<CallbackError, ResultingError>(
-        &self,
-        points: impl Iterator<Item = BenchmarkPoint>,
-        mut callback: impl FnMut(BenchmarkPoint, BenchmarkRecord) -> Result<(), CallbackError>,
-        opt_timeout: Option<Duration>,
-    ) -> Result<(), ResultingError>
-    where
-        CallbackError: Error,
-        ResultingError: Error + From<CallbackError> + From<Self::MeasurementError>,
-    {
-        let execute = |point| {
-            if let Some(timeout) = opt_timeout {
-                self.execute_with_timeout(point, timeout)
-            } else {
-                self.execute(point)
-            }
-        };
-        for point in points {
-            let result = execute(point)?;
-            callback(point, result)?;
-        }
-        Ok(())
-    }
 }
 
-pub fn execute_all<CallbackError, ResultingError>(
+pub trait Callback {
+    type ReturnType;
+
+    fn call(self, value: impl MeasuringEquipment) -> Self::ReturnType;
+}
+
+pub fn execute_all<CallbackType: Callback>(
     _: BuiltSource,
     measurement_method: MeasurementMethod,
     run_command: command::Command,
-    points: impl Iterator<Item = BenchmarkPoint>,
-    callback: impl FnMut(BenchmarkPoint, BenchmarkRecord) -> Result<(), CallbackError>,
-    timeout: Option<Duration>,
-) -> Result<(), ResultingError>
-where
-    CallbackError: Error,
-    ResultingError: Error + From<CallbackError> + From<CommandMeasurementError>,
-{
+    callback: CallbackType,
+) -> CallbackType::ReturnType {
     match measurement_method {
-        MeasurementMethod::Time => CommandExecutor::new_time(run_command),
-        MeasurementMethod::Perf => CommandExecutor::new_perf(run_command),
-        MeasurementMethod::Flamegraph(flame_path) => todo!(),
-        MeasurementMethod::Command(command) => CommandExecutor::new(command, run_command),
+        MeasurementMethod::Time => callback.call(CommandExecutor::new_time(run_command)),
+        MeasurementMethod::Perf => callback.call(CommandExecutor::new_perf(run_command)),
+        MeasurementMethod::Flamegraph(flame_path) => {
+            callback.call(FlameExecutor::new(flame_path.unwrap_or_default(), run_command))
+        }
+        MeasurementMethod::Command(command) => {
+            callback.call(CommandExecutor::new(command, run_command))
+        }
     }
-    .execute_all(points, callback, timeout)
 }
 
 #[justerror::Error(desc = "measuring failed")]
@@ -210,24 +188,16 @@ mod test {
 #[derive(Debug)]
 pub(crate) struct FlameExecutor {
     flame_path: PathBuf,
-    run_command: String,
+    run_command: command::Command,
 }
 
 impl FlameExecutor {
     fn build_pipe(&self, point: BenchmarkPoint) -> Pipeline {
-        Exec::from(&cmd!(
-            "perf",
-            "record",
-            "-F",
-            "99",
-            "-a",
-            "-g",
-            "-o",
-            "-",
-            "--",
-            self.run_command.clone(),
-            point.to_string()
-        )) | Exec::from(&cmd!("perf", "script", "-i", "-"))
+        Exec::from(
+            &cmd!("perf", "record", "-F", "99", "-a", "-g", "-o", "-", "--")
+                .with_cmd_arg(self.run_command.clone())
+                .with_arg(point.to_string()),
+        ) | Exec::from(&cmd!("perf", "script", "-i", "-"))
             | Exec::cmd(self.flame_path.join("stackcollapse-perf.pl"))
     }
 }
@@ -237,7 +207,26 @@ pub(crate) enum FlameMeasuringError {
     FailedBuildingTheCommand(#[from] PopenError),
     #[error(fmt = debug)]
     FailedRunningThePipe(CaptureData),
+    #[error(fmt = debug)]
+    FailedRunningThePipeInTimeout {
+        stdout: String,
+        stderr: String,
+    },
     WrongOutputFormat(#[from] FromUtf8Error),
+}
+
+impl FlameExecutor {
+    fn new(flame_path: PathBuf, run_command: command::Command) -> Self {
+        FlameExecutor {
+            flame_path,
+            run_command
+        }
+    }
+
+    fn collect_output(pair: (Option<Vec<u8>>, Option<Vec<u8>>)) -> (Vec<u8>, Vec<u8>) {
+        let (stdout, stderr) = pair;
+        return (stdout.unwrap(), stderr.unwrap());
+    }
 }
 
 impl MeasuringEquipment for FlameExecutor {
@@ -255,6 +244,24 @@ impl MeasuringEquipment for FlameExecutor {
         point: BenchmarkPoint,
         timeout: Duration,
     ) -> Result<BenchmarkRecord, Self::MeasurementError> {
-        todo!()
+        let mut communicator = self.build_pipe(point).communicate()?;
+        communicator = communicator.limit_time(timeout);
+        let captured = match communicator.read() {
+            Err(error) => {
+                let (stdout, stderr) = Self::collect_output(error.capture);
+                return match error.error.kind() {
+                    io::ErrorKind::TimedOut => Ok(BenchmarkRecord::Timeout),
+                    _ => Err(FlameMeasuringError::FailedRunningThePipeInTimeout {
+                        stdout: String::from_utf8_lossy(&stdout).to_string(),
+                        stderr: String::from_utf8_lossy(&stderr).to_string(),
+                    }),
+                };
+            }
+            Ok(val) => val,
+        };
+
+        Ok(BenchmarkRecord::Data(String::from_utf8(
+            captured.0.unwrap(),
+        )?))
     }
 }
