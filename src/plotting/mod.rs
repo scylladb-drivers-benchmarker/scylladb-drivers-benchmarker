@@ -1,8 +1,10 @@
 mod data;
 pub mod error;
+mod perf_stat_plot;
 mod plot;
 mod render;
 mod series;
+mod series_plot;
 
 #[cfg(test)]
 mod data_tests;
@@ -16,8 +18,10 @@ use crate::database::Database;
 use crate::{commit_hash::CommitHash, measurement::MeasurementMethod};
 
 use error::PlotError;
-use plot::{PerfStatPlot, Plot, SeriesPlot};
+use perf_stat_plot::PerfStatPlot;
+use plot::Plot;
 pub use series::VisKind;
+use series_plot::SeriesPlot;
 
 use plotters::backend::{BitMapBackend, SVGBackend};
 

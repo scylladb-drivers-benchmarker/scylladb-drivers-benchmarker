@@ -1,6 +1,8 @@
 use super::data::PlottableValue;
 use super::error::PlotError;
 
+use crate::utilities::calc_min_max;
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy, clap::ValueEnum)]
 pub enum VisKind {
     Linear,
@@ -90,16 +92,6 @@ impl<T: SeriesValue> ValueTransformation<T> {
             ValueTransformation::Log(s) => s.range(),
         }
     }
-}
-
-pub fn calc_min_max(iter: impl Iterator<Item = (f64, f64)>) -> Option<(f64, f64)> {
-    iter.fold(
-        None,
-        |acc: Option<(f64, f64)>, (min, max): (f64, f64)| match acc {
-            Some((acc_min, acc_max)) => Some((acc_min.min(min), acc_max.max(max))),
-            None => Some((min, max)),
-        },
-    )
 }
 
 #[cfg(test)]

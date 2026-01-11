@@ -150,3 +150,14 @@ pub fn format_entry(params: &BenchmarkParams, record: &BenchmarkRecord) -> Strin
 
     out
 }
+
+/// Calculates the minimum and maximum over an iterator of tuples conforming to the (min, max) constraint.
+pub fn calc_min_max(iter: impl Iterator<Item = (f64, f64)>) -> Option<(f64, f64)> {
+    iter.fold(
+        None,
+        |acc: Option<(f64, f64)>, (min, max): (f64, f64)| match acc {
+            Some((acc_min, acc_max)) => Some((acc_min.min(min), acc_max.max(max))),
+            None => Some((min, max)),
+        },
+    )
+}
