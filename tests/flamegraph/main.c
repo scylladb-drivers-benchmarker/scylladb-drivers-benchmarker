@@ -2,9 +2,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int foo(int x);
+__attribute__((noinline)) int goo(int x);
 
-int goo(int x) {
+__attribute__((noinline)) int foo(int x) {
+    return goo(x - 1) + 1;
+}
+
+__attribute__((noinline)) int goo(int x) {
     if (x <= 1) {
         return x;
     }
@@ -19,6 +23,10 @@ int main(int argc, char* argv[]) {
     }
 
     int n = atoi(argv[1]);
-    int result = goo(n);
+    int result = 0;
+    for (int i = 0; i <= n; ++i) {
+        int g = goo(i);
+        result = result < g ? g : result;
+    }
     assert(result == n);
 }
