@@ -106,7 +106,7 @@ where
     match measurement_method {
         MeasurementMethod::Time => CommandExecutor::new_time(run_command),
         MeasurementMethod::Perf => CommandExecutor::new_perf(run_command),
-        MeasurementMethod::Flamegraph => todo!(),
+        MeasurementMethod::Flamegraph(flame_path) => todo!(),
         MeasurementMethod::Command(command) => CommandExecutor::new(command, run_command),
     }
     .execute_all(points, callback, timeout)
