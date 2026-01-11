@@ -2,7 +2,7 @@ mod executor;
 
 use std::str::FromStr;
 
-use crate::benchmarking::executor::{CompileError, MeasurementError, execute_all};
+use crate::benchmarking::executor::{CommandMeasurementError, CompileError, execute_all};
 use crate::command::{Command, CommandParsingError};
 use crate::commit_hash::CommitHash;
 use crate::database::utilities::BenchmarkFilters;
@@ -19,7 +19,7 @@ pub enum BenchmarkingError {
     Compile(#[from] CompileError),
     Database(#[from] DatabaseError),
     ParsingRun(#[from] CommandParsingError),
-    Measurement(#[from] MeasurementError),
+    Measurement(#[from] CommandMeasurementError),
 }
 
 fn filter_points(

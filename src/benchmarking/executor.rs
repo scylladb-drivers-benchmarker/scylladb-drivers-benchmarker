@@ -5,13 +5,18 @@
 
 use std::error::Error;
 use std::io;
+use std::path::PathBuf;
 use std::process::Output;
 use std::str::FromStr;
+use std::string::FromUtf8Error;
 use std::time::Duration;
+
+use subprocess::{CaptureData, Exec, Pipeline, PopenError};
 
 use crate::command::{Command, CommandParsingError, OutputWithTimeout, PrintableOutput};
 use crate::database::utilities::BenchmarkRecord;
 use crate::measurement::MeasurementMethod;
+use crate::plotting::error;
 use crate::utilities::BenchmarkPoint;
 use crate::{cmd, command};
 
@@ -47,24 +52,16 @@ pub fn build_source(build_command: &str) -> Result<BuiltSource, CompileError> {
     }
 }
 
-#[justerror::Error(desc = "measuring failed")]
-pub enum MeasurementError {
-    #[error(fmt = debug)]
-    ExecutionFailed(Output),
-    /// I named it such as no documentation is provided for how and when
-    /// this error is thrown by Command.output.
-    RustFailed(#[from] io::Error),
-    WrongOutputFormat(#[from] std::string::FromUtf8Error),
-}
-
 /// The executor collects data according to its internals (time, perf, ...)
 pub trait MeasuringEquipment {
-    fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, MeasurementError>;
+    type MeasurementError: Error;
+
+    fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, Self::MeasurementError>;
     fn execute_with_timeout(
         &self,
         point: BenchmarkPoint,
         timeout: Duration,
-    ) -> Result<BenchmarkRecord, MeasurementError>;
+    ) -> Result<BenchmarkRecord, Self::MeasurementError>;
 
     fn execute_all<CallbackError, ResultingError>(
         &self,
@@ -74,7 +71,7 @@ pub trait MeasuringEquipment {
     ) -> Result<(), ResultingError>
     where
         CallbackError: Error,
-        ResultingError: Error + From<CallbackError> + From<MeasurementError>,
+        ResultingError: Error + From<CallbackError> + From<Self::MeasurementError>,
     {
         let execute = |point| {
             if let Some(timeout) = opt_timeout {
@@ -101,7 +98,7 @@ pub fn execute_all<CallbackError, ResultingError>(
 ) -> Result<(), ResultingError>
 where
     CallbackError: Error,
-    ResultingError: Error + From<CallbackError> + From<MeasurementError>,
+    ResultingError: Error + From<CallbackError> + From<CommandMeasurementError>,
 {
     match measurement_method {
         MeasurementMethod::Time => CommandExecutor::new_time(run_command),
@@ -110,6 +107,16 @@ where
         MeasurementMethod::Command(command) => CommandExecutor::new(command, run_command),
     }
     .execute_all(points, callback, timeout)
+}
+
+#[justerror::Error(desc = "measuring failed")]
+pub enum CommandMeasurementError {
+    #[error(fmt = debug)]
+    ExecutionFailed(Output),
+    /// I named it such as no documentation is provided for how and when
+    /// this error is thrown by Command.output.
+    RustFailed(#[from] io::Error),
+    WrongOutputFormat(#[from] std::string::FromUtf8Error),
 }
 
 #[derive(Debug)]
@@ -130,7 +137,7 @@ impl CommandExecutor {
 }
 
 impl CommandExecutor {
-    fn handle_output(output: Output) -> Result<BenchmarkRecord, MeasurementError> {
+    fn handle_output(output: Output) -> Result<BenchmarkRecord, CommandMeasurementError> {
         if output.status.success() {
             let str_stdout = String::from_utf8(output.stdout)?;
             let str_stderr = String::from_utf8(output.stderr)?;
@@ -138,13 +145,15 @@ impl CommandExecutor {
                 (str_stdout + &str_stderr).trim_end().to_string(),
             ))
         } else {
-            Err(MeasurementError::ExecutionFailed(output))
+            Err(CommandMeasurementError::ExecutionFailed(output))
         }
     }
 }
 
 impl MeasuringEquipment for CommandExecutor {
-    fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, MeasurementError> {
+    type MeasurementError = CommandMeasurementError;
+
+    fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, CommandMeasurementError> {
         Self::handle_output(
             self.0
                 .clone()
@@ -158,7 +167,7 @@ impl MeasuringEquipment for CommandExecutor {
         &self,
         point: BenchmarkPoint,
         timeout: Duration,
-    ) -> Result<BenchmarkRecord, MeasurementError> {
+    ) -> Result<BenchmarkRecord, CommandMeasurementError> {
         self.0
             .clone()
             .with_arg(point.to_string())
@@ -177,7 +186,7 @@ mod test {
     fn test_execution_error() {
         let executor = CommandExecutor::new_time(cmd!("git", "fail"));
         let error = executor.execute(0).unwrap_err();
-        assert!(matches!(error, MeasurementError::ExecutionFailed(_)));
+        assert!(matches!(error, CommandMeasurementError::ExecutionFailed(_)));
     }
 
     #[test]
@@ -195,5 +204,57 @@ mod test {
             .execute_with_timeout(1, std::time::Duration::from_secs(2))
             .unwrap();
         assert!(!output.is_timeout());
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct FlameExecutor {
+    flame_path: PathBuf,
+    run_command: String,
+}
+
+impl FlameExecutor {
+    fn build_pipe(&self, point: BenchmarkPoint) -> Pipeline {
+        Exec::from(&cmd!(
+            "perf",
+            "record",
+            "-F",
+            "99",
+            "-a",
+            "-g",
+            "-o",
+            "-",
+            "--",
+            self.run_command.clone(),
+            point.to_string()
+        )) | Exec::from(&cmd!("perf", "script", "-i", "-"))
+            | Exec::cmd(self.flame_path.join("stackcollapse-perf.pl"))
+    }
+}
+
+#[justerror::Error]
+pub(crate) enum FlameMeasuringError {
+    FailedBuildingTheCommand(#[from] PopenError),
+    #[error(fmt = debug)]
+    FailedRunningThePipe(CaptureData),
+    WrongOutputFormat(#[from] FromUtf8Error),
+}
+
+impl MeasuringEquipment for FlameExecutor {
+    type MeasurementError = FlameMeasuringError;
+    fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, Self::MeasurementError> {
+        let captured = self.build_pipe(point).capture()?;
+        if !captured.success() {
+            return Err(FlameMeasuringError::FailedRunningThePipe(captured));
+        }
+        Ok(BenchmarkRecord::Data(String::from_utf8(captured.stdout)?))
+    }
+
+    fn execute_with_timeout(
+        &self,
+        point: BenchmarkPoint,
+        timeout: Duration,
+    ) -> Result<BenchmarkRecord, Self::MeasurementError> {
+        todo!()
     }
 }
