@@ -6,8 +6,11 @@ use std::{
 
 use scylladb_drivers_benchmarker::{
     commit_hash::CommitHash,
-    database::{Database, utilities::{BenchmarkParams, BenchmarkRecord}},
-    utilities::BenchmarkParamsBuilder,
+    database::{
+        Database,
+        utilities::{BenchmarkParams, BenchmarkRecord},
+    },
+    utilities::{BenchmarkParamsBuilder, FlatBenchmarkRecord},
 };
 use serial_test::file_serial;
 
@@ -17,14 +20,12 @@ use crate::utilities::{db_utils::open_clean_db, git_utils::setup_git};
 
 mod utilities;
 
-
 fn check_data(
     commit_hash: &CommitHash,
     mut data: impl Iterator<Item = (BenchmarkParams, BenchmarkRecord)>,
 ) {
-    let param_builder = BenchmarkParamsBuilder::new(commit_hash.clone(),
-            "regex".to_owned(),
-            "time".to_owned());
+    let param_builder =
+        BenchmarkParamsBuilder::new(commit_hash.clone(), "regex".to_owned(), "time".to_owned());
 
     assert_eq!(data.by_ref().count(), 8usize);
     for (params, _record) in data {
@@ -43,7 +44,9 @@ impl CppVsRust {
     fn new() -> Self {
         setup_git("./tests/cpp_vs_rust_test/cpp/");
         setup_git("./tests/cpp_vs_rust_test/rust/");
-        CppVsRust { db: open_clean_db(Path::new("./tests/cpp_vs_rust_test/test.db")) }
+        CppVsRust {
+            db: open_clean_db(Path::new("./tests/cpp_vs_rust_test/test.db")),
+        }
     }
 
     fn gather_data(&self, path: &str, command: &mut std::process::Command) -> CommitHash {
@@ -119,6 +122,10 @@ fn aliasing_db() {
 
 #[test]
 fn flame_graph() {
+    let test_dir = Path::new("./tests/flamegraph/");
+    let benchmark_name = "recurse";
+    let db = open_clean_db(&test_dir.join("test.db"));
+
     run(sdb_command()
         .args(&[
             "-d",
@@ -132,7 +139,28 @@ fn flame_graph() {
             "./back.yml",
             "-m",
             "flamegraph",
-            "recurse",
+            benchmark_name,
         ])
-        .current_dir("./tests/flamegraph/"));
+        .current_dir(test_dir));
+
+    let param_builder = BenchmarkParamsBuilder::new(
+        CommitHash::new(test_dir, "HEAD".to_owned()).unwrap(),
+        benchmark_name.to_owned(),
+        "flamegraph".to_owned(),
+    );
+    for (params, record) in db.get_all_data().unwrap() {
+        if params != param_builder.finalize(params.benchmark_point) {
+            println!("{:?}", params);
+            assert!(params == param_builder.finalize(params.benchmark_point));
+        }
+
+        let FlatBenchmarkRecord::Data(record_value) = record.flatten() else {
+            panic!("Unexpected timeout at point: {}", params.benchmark_point);
+        };
+
+        println!("foos: {}", record_value.matches("foo").count());
+        println!("goos: {}", record_value.matches("goo").count());
+        assert!(params.benchmark_point as usize / 100 < record_value.matches("foo").count());
+        assert!(params.benchmark_point as usize / 100 < record_value.matches("goo").count());
+    }
 }
