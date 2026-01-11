@@ -51,7 +51,7 @@ impl FlameExecutor {
 
     fn collect_output(pair: (Option<Vec<u8>>, Option<Vec<u8>>)) -> (Vec<u8>, Vec<u8>) {
         let (stdout, stderr) = pair;
-        return (stdout.unwrap(), stderr.unwrap());
+        (stdout.unwrap(), stderr.unwrap())
     }
 }
 
