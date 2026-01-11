@@ -80,25 +80,47 @@ fn check_files_equality(output: &str, expected_output: &str, format: OutputForma
     assert!(result.score > 0.95, "similarity too low: {}", result.score);
 }
 
+struct TestData {
+    db_path: String,
+    repo_dir: TempDir,
+    repo_hashes: Vec<CommitHash>,
+}
+
+fn build_from_arg(path: &TempDir, commits: Vec<CommitHash>) -> String {
+    format!(
+        "--from={}:{}",
+        path.path().to_str().unwrap(),
+        commits
+            .into_iter()
+            .map(|x| x.as_str().to_owned())
+            .collect::<Vec<_>>()
+            .join(",")
+    )
+}
+
 fn setup_initial_data(
     data_generator: fn(usize, &CommitHash, BenchmarkPoint) -> (BenchmarkParams, BenchmarkRecord),
-) -> (String, TempDir, Vec<CommitHash>) {
+) -> TestData {
     let db_path = "./tests/plot_test/test.db";
     let db = database::Database::new(Path::new(db_path)).unwrap();
     db.drop_all_data().unwrap();
 
-    let tmp_repo = TempDir::new().unwrap();
-    let commits = init_git_repo(tmp_repo.path(), 3);
+    let repo_dir = TempDir::new().unwrap();
+    let repo_hashes = init_git_repo(repo_dir.path(), 3);
 
     let points = 1u64..101u64;
 
-    for (commit_idx, commit) in commits.iter().enumerate() {
+    for (commit_idx, commit) in repo_hashes.iter().enumerate() {
         for point in points.clone() {
             let (params, record) = data_generator(commit_idx, commit, point);
             db.insert_data(params, record).unwrap();
         }
     }
-    (db_path.to_owned(), tmp_repo, commits)
+    TestData {
+        db_path: db_path.to_owned(),
+        repo_dir,
+        repo_hashes,
+    }
 }
 
 fn plot_series_generic_test(
@@ -107,25 +129,17 @@ fn plot_series_generic_test(
     vis_kind: VisKind,
     format: OutputFormat,
 ) {
-    let (db_path, tmp_repo, commits) = setup_initial_data(generate_series_data);
-
-    let from_arg = format!(
-        "--from={}:{},{},{}",
-        tmp_repo.path().to_str().unwrap(),
-        commits[0],
-        commits[1],
-        commits[2]
-    );
+    let test_data = setup_initial_data(generate_series_data);
 
     run_assert_empty(
         sdb_command()
             .arg("-d")
-            .arg(&db_path)
+            .arg(&test_data.db_path)
             .arg("plot")
             .arg("test-bench")
             .arg("-b")
             .arg("./tests/plot_test/config.yml")
-            .arg(from_arg.as_str())
+            .arg(build_from_arg(&test_data.repo_dir, test_data.repo_hashes))
             .arg("-m")
             .arg("time")
             .arg("-o")
@@ -143,25 +157,17 @@ fn plot_series_generic_test(
 }
 
 fn plot_perf_generic_test(output: &str, expected_output: &str, format: OutputFormat) {
-    let (db_path, tmp_repo, commits) = setup_initial_data(generate_perf_data);
-
-    let from_arg = format!(
-        "--from={}:{},{},{}",
-        tmp_repo.path().to_str().unwrap(),
-        commits[0],
-        commits[1],
-        commits[2]
-    );
+    let test_data = setup_initial_data(generate_perf_data);
 
     run_assert_empty(
         sdb_command()
             .arg("-d")
-            .arg(&db_path)
+            .arg(&test_data.db_path)
             .arg("plot")
             .arg("test-bench")
             .arg("-b")
             .arg("./tests/plot_test/config.yml")
-            .arg(from_arg.as_str())
+            .arg(build_from_arg(&test_data.repo_dir, test_data.repo_hashes))
             .arg("-m")
             .arg("perf")
             .arg("-o")
