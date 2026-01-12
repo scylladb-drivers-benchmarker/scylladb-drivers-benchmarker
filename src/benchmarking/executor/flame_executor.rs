@@ -29,23 +29,23 @@ impl FlameExecutor {
 
 #[justerror::Error]
 pub(crate) enum FlameMeasuringError {
-    #[error(fmt = debug)]
-    FailedBuildingTheCommand {
-        error: PopenError,
-        pipe: Pipeline,
-    },
-    #[error(fmt = debug)]
-    FailedRunningThePipe(CaptureData),
-    #[error(fmt = debug)]
-    FailedRunningThePipeInTimeout {
+    FailedBuildingThePipe(#[fmt(debug)] Pipeline, #[source] PopenError),
+    #[error(desc = "failed running\n")]
+    FailedRunningThePipe {
+        #[fmt(debug)]
+        exit_status: subprocess::ExitStatus,
         stdout: String,
         stderr: String,
     },
+    #[error(desc = "capturing timed out")]
+    FailedRunningThePipeInTimeout(),
+    #[error(desc = "the output is not in utf8 format")]
     WrongOutputFormat(#[from] FromUtf8Error),
 }
 
 impl FlameExecutor {
     pub(crate) fn new(flame_path: PathBuf, run_command: command::Command) -> Self {
+        println!("{}", flame_path.display());
         FlameExecutor {
             flame_path,
             run_command,
@@ -59,19 +59,30 @@ impl FlameExecutor {
             stderr.expect("subscribed to stderr"),
         )
     }
+
+    fn wrap_building(
+        &self,
+        point: BenchmarkPoint,
+    ) -> impl FnOnce(PopenError) -> FlameMeasuringError {
+        move |source: PopenError| {
+            FlameMeasuringError::FailedBuildingThePipe(self.build_pipe(point), source)
+        }
+    }
 }
 
 impl MeasuringEquipment for FlameExecutor {
     type MeasurementError = FlameMeasuringError;
     fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, Self::MeasurementError> {
-        let captured = self.build_pipe(point).capture().map_err(|error| {
-            FlameMeasuringError::FailedBuildingTheCommand {
-                error,
-                pipe: self.build_pipe(point),
-            }
-        })?;
+        let captured = self
+            .build_pipe(point)
+            .capture()
+            .map_err(self.wrap_building(point))?;
         if !captured.success() {
-            return Err(FlameMeasuringError::FailedRunningThePipe(captured));
+            return Err(FlameMeasuringError::FailedRunningThePipe {
+                exit_status: captured.exit_status,
+                stdout: captured.stdout_str(),
+                stderr: captured.stderr_str(),
+            });
         }
         Ok(BenchmarkRecord::Data(String::from_utf8(captured.stdout)?))
     }
@@ -81,22 +92,17 @@ impl MeasuringEquipment for FlameExecutor {
         point: BenchmarkPoint,
         timeout: Duration,
     ) -> Result<BenchmarkRecord, Self::MeasurementError> {
-        let mut communicator = self.build_pipe(point).communicate().map_err(|error| {
-            FlameMeasuringError::FailedBuildingTheCommand {
-                error,
-                pipe: self.build_pipe(point),
-            }
-        })?;
+        let mut communicator = self
+            .build_pipe(point)
+            .communicate()
+            .map_err(self.wrap_building(point))?;
         communicator = communicator.limit_time(timeout);
         let captured = match communicator.read() {
             Err(error) => {
                 let (stdout, stderr) = Self::collect_output(error.capture);
                 return match error.error.kind() {
                     io::ErrorKind::TimedOut => Ok(BenchmarkRecord::Timeout),
-                    _ => Err(FlameMeasuringError::FailedRunningThePipeInTimeout {
-                        stdout: String::from_utf8_lossy(&stdout).to_string(),
-                        stderr: String::from_utf8_lossy(&stderr).to_string(),
-                    }),
+                    _ => Err(FlameMeasuringError::FailedRunningThePipeInTimeout()),
                 };
             }
             Ok(val) => val,
