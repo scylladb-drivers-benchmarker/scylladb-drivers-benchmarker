@@ -1,8 +1,8 @@
 use super::*;
 use data::BenchmarkDataset;
+use fs_err as fs;
 use std::str::FromStr;
 use tempfile::NamedTempFile;
-use fs_err as fs;
 
 #[derive(Clone, Debug, PartialOrd, PartialEq)]
 struct Dummy(f64);

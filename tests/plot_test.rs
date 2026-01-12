@@ -14,11 +14,9 @@ use scylladb_drivers_benchmarker::{
     utilities::BenchmarkPoint,
 };
 
-use std::{
-    fs::{self, File},
-    io::Write,
-    path::Path,
-};
+use fs::File;
+use fs_err as fs;
+use std::{io::Write, path::Path};
 use tempfile::{Builder, NamedTempFile, TempDir};
 
 fn init_git_repo(path: &Path, num_commits: usize) -> Vec<CommitHash> {
