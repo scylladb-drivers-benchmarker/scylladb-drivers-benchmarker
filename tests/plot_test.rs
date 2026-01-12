@@ -102,25 +102,24 @@ fn plot_series_generic_test(
 ) {
     let test_data = setup_initial_data(generate_series_data);
 
-    run_no_output(
-        sdb_command()
-            .arg("-d")
-            .arg(test_data.db_file.path().to_string_lossy().to_string())
-            .arg("plot")
-            .arg("test-bench")
-            .arg("-b")
-            .arg("./tests/plot_test/config.yml")
-            .arg(build_from_arg(&test_data.repo_dir, test_data.repo_hashes))
-            .arg("-m")
-            .arg("time")
-            .arg("-o")
-            .arg(output)
-            .arg("-f")
-            .arg(format.to_string())
-            .arg("series")
-            .arg("-v")
-            .arg(vis_kind.to_string()),
-    );
+    run_no_output(sdb_command().args([
+        "-d",
+        &test_data.db_file.path().to_string_lossy(),
+        "plot",
+        "test-bench",
+        "-b",
+        "./tests/plot_test/config.yml",
+        &build_from_arg(&test_data.repo_dir, test_data.repo_hashes),
+        "-m",
+        "-time",
+        "-o",
+        output,
+        "-f",
+        &format.to_string(),
+        "series",
+        "-v",
+        &vis_kind.to_string(),
+    ]));
 
     check_files_equality(output, expected_output, format);
 
@@ -130,25 +129,24 @@ fn plot_series_generic_test(
 fn plot_perf_generic_test(output: &str, expected_output: &str, format: OutputFormat) {
     let test_data = setup_initial_data(generate_perf_data);
 
-    run_no_output(
-        sdb_command()
-            .arg("-d")
-            .arg(test_data.db_file.path().to_string_lossy().to_string())
-            .arg("plot")
-            .arg("test-bench")
-            .arg("-b")
-            .arg("./tests/plot_test/config.yml")
-            .arg(build_from_arg(&test_data.repo_dir, test_data.repo_hashes))
-            .arg("-m")
-            .arg("perf")
-            .arg("-o")
-            .arg(output)
-            .arg("-f")
-            .arg(format.to_string())
-            .arg("perf-stat")
-            .arg("-e")
-            .arg("task-clock,context-switches,page-faults"),
-    );
+    run_no_output(sdb_command().args([
+        "-d",
+        test_data.db_file.path().to_str().unwrap(),
+        "plot",
+        "test-bench",
+        "-b",
+        "./tests/plot_test/config.yml",
+        &build_from_arg(&test_data.repo_dir, test_data.repo_hashes),
+        "-m",
+        "perf",
+        "-o",
+        output,
+        "-f",
+        &format.to_string(),
+        "perf-stat",
+        "-e",
+        "task-clock,context-switches,page-faults",
+    ]));
 
     check_files_equality(output, expected_output, format);
     fs::remove_file(output).unwrap();
