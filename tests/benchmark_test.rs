@@ -132,7 +132,7 @@ fn flame_graph() {
     run(sdb_command()
         .args([
             "-d",
-            "./testdb",
+            "./test.db",
             "-a",
             Path::new("./").join(config_name).to_str().unwrap(),
             "run",
