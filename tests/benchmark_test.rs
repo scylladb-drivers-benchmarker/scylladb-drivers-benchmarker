@@ -120,14 +120,21 @@ fn aliasing_db() {
 fn flame_graph() {
     let test_dir = Path::new("./tests/flamegraph/");
     let benchmark_name = "recurse";
+    let config_name = Path::new("flame-path.yml");
     let db = open_clean_db(&test_dir.join("test.db"));
 
+    println!("This test requires manual setup.");
+    println!(
+        "Make sure you specified the path to the FlameGraph repository in {},\
+        as well as allowed access to performance monitoring (needed by perf to run)",
+        test_dir.join(config_name).display()
+    );
     run(sdb_command()
         .args([
             "-d",
-            "./test.db",
+            "./testdb",
             "-a",
-            "./flame-path.yml",
+            Path::new("./").join(config_name).to_str().unwrap(),
             "run",
             "-b",
             "./bench.yml",
@@ -144,7 +151,10 @@ fn flame_graph() {
         benchmark_name.to_owned(),
         "flamegraph".to_owned(),
     );
-    for (params, record) in db.get_all_data().unwrap() {
+
+    let all_data = db.get_all_data().unwrap();
+    assert!(all_data.len() > 1);
+    for (params, record) in all_data {
         if params != param_builder.finalize(params.benchmark_point) {
             println!("{:?}", params);
             assert!(params == param_builder.finalize(params.benchmark_point));
