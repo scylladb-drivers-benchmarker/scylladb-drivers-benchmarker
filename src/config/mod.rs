@@ -55,12 +55,31 @@ pub fn find_config<ConfigType: Configuration>(
 mod tests {
     use crate::config::backend::BackendConfig;
     use crate::config::{ConfigError, find_config};
+    use std::io::Write;
     use std::path::Path;
+    use tempfile::NamedTempFile;
+
+    fn create_backend_tmp_file() -> NamedTempFile {
+        let mut file = NamedTempFile::with_suffix(".yml").unwrap();
+
+        let yaml = r#"
+backends:
+  - name: scylladb-nodejs-rs-driver
+    benchmark-name: select
+    build-command: npm run build
+    run-command: node benchmark/logic/select.js scylladb-nodejs-rs-driver
+            "#;
+
+        file.write_all(yaml.trim_start().as_bytes()).unwrap();
+        file.flush().unwrap();
+        file
+    }
 
     #[test]
     fn open_config() {
-        let config: BackendConfig =
-            find_config("select", Path::new("./configs/backend_config.yml")).unwrap();
+        let config_file = create_backend_tmp_file();
+
+        let config: BackendConfig = find_config("select", config_file.path()).unwrap();
 
         assert_eq!(config.name, "scylladb-nodejs-rs-driver");
         assert_eq!(config.benchmark_name, "select");
@@ -73,8 +92,10 @@ mod tests {
 
     #[test]
     fn config_error() {
+        let config_file = create_backend_tmp_file();
+
         let benchmark_name = "drop_table";
-        let config_path = Path::new("./configs/backend_config.yml");
+        let config_path = config_file.path();
 
         let error: ConfigError =
             find_config::<BackendConfig>(benchmark_name, config_path).unwrap_err();
