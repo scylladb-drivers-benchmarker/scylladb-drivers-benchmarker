@@ -8,6 +8,8 @@ use plotters::coord::types::RangedCoordu64;
 use crate::commit_hash::CommitHash;
 use crate::database::utilities::{BenchmarkFilters, BenchmarkParams, BenchmarkRecord};
 
+use fs_err as fs;
+
 pub type BenchmarkPoint = u64;
 pub type RangedCoordBenchmarkPoint = RangedCoordu64;
 
@@ -92,7 +94,7 @@ impl BenchmarkRecord {
         match self {
             BenchmarkRecord::Data(s) => FlatBenchmarkRecord::Data(s),
             BenchmarkRecord::FilePath(path) => {
-                let s = std::fs::read_to_string(&path)
+                let s = fs::read_to_string(&path)
                     .unwrap_or_else(|_| format!("Failed to read file: {}", path.to_string_lossy()));
                 FlatBenchmarkRecord::Data(s)
             }

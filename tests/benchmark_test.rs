@@ -1,4 +1,6 @@
-use std::{fs::File, io::Write, path::Path};
+use std::{io::Write, path::Path};
+
+use fs::File;
 
 use scylladb_drivers_benchmarker::{
     commit_hash::CommitHash,
@@ -13,6 +15,8 @@ use serial_test::file_serial;
 use utilities::run_utilities::{run, run_safe, sdb_command};
 
 use crate::utilities::{db_utils::open_clean_db, git_utils::setup_git};
+
+use fs_err as fs;
 
 mod utilities;
 

@@ -1,7 +1,7 @@
 use image::{RgbaImage, open};
 use resvg::{tiny_skia, usvg};
 use scylladb_drivers_benchmarker::OutputFormat;
-use std::fs;
+use fs_err as fs;
 
 fn load_image(path: &str, format: OutputFormat) -> RgbaImage {
     match format {

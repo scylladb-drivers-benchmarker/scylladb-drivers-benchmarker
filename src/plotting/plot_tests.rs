@@ -2,6 +2,7 @@ use super::*;
 use data::BenchmarkDataset;
 use std::str::FromStr;
 use tempfile::NamedTempFile;
+use fs_err as fs;
 
 #[derive(Clone, Debug, PartialOrd, PartialEq)]
 struct Dummy(f64);
@@ -63,13 +64,14 @@ fn series_plot_fails_file_not_found() {
 #[cfg(unix)]
 #[test]
 fn series_plot_fails_on_permission_denied() {
-    use std::fs::{self, File};
+    use fs::{self, File};
+    use std::fs::Permissions;
     use std::os::unix::fs::PermissionsExt;
     use std::path::Path;
     // TODO zmienic na tmp lokalizacje, jesli w trakcje debugu ten plik nie zostanie usuniety, to test failuje
     let path = Path::new("no_write.png");
     File::create(path).unwrap();
-    fs::set_permissions(path, fs::Permissions::from_mode(0o444)).unwrap();
+    fs::set_permissions(path, Permissions::from_mode(0o444)).unwrap();
 
     let plot = setup_test_plot();
 

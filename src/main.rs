@@ -9,9 +9,11 @@ use scylladb_drivers_benchmarker::{
     utilities::{BenchmarkMode, DatabaseCommand, RepoNameWithTags, RepoPathWithCommits},
 };
 use serde::{Deserialize, Serialize};
+use std::path::Path;
 use std::{collections::HashMap, env};
-use std::{fs::File, path::Path};
 use std::{io, path::PathBuf};
+
+use fs_err::File;
 
 use crate::repo_with_commits::{ParsableRepoNameWithTags, resolve_repo_tags};
 

@@ -1,4 +1,4 @@
-use std::fs::OpenOptions;
+use fs::OpenOptions;
 
 use crate::CommitHash;
 use crate::Database;
@@ -11,6 +11,8 @@ use crate::plotting::BenchmarkConfig;
 use crate::plotting::data::BenchmarkDataset;
 use crate::utilities::BenchmarkPoint;
 use tempfile::NamedTempFile;
+
+use fs_err as fs;
 
 // Insert record to database, with provided commit_hash, config, point and result
 // Measurement method is always "time".
