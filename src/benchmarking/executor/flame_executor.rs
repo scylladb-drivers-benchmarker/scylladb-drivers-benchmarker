@@ -29,7 +29,11 @@ impl FlameExecutor {
 
 #[justerror::Error]
 pub(crate) enum FlameMeasuringError {
-    FailedBuildingTheCommand(#[from] PopenError),
+    #[error(fmt = debug)]
+    FailedBuildingTheCommand {
+        error: PopenError,
+        pipe: Pipeline,
+    },
     #[error(fmt = debug)]
     FailedRunningThePipe(CaptureData),
     #[error(fmt = debug)]
@@ -60,7 +64,12 @@ impl FlameExecutor {
 impl MeasuringEquipment for FlameExecutor {
     type MeasurementError = FlameMeasuringError;
     fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, Self::MeasurementError> {
-        let captured = self.build_pipe(point).capture()?;
+        let captured = self.build_pipe(point).capture().map_err(|error| {
+            FlameMeasuringError::FailedBuildingTheCommand {
+                error,
+                pipe: self.build_pipe(point),
+            }
+        })?;
         if !captured.success() {
             return Err(FlameMeasuringError::FailedRunningThePipe(captured));
         }
@@ -72,7 +81,12 @@ impl MeasuringEquipment for FlameExecutor {
         point: BenchmarkPoint,
         timeout: Duration,
     ) -> Result<BenchmarkRecord, Self::MeasurementError> {
-        let mut communicator = self.build_pipe(point).communicate()?;
+        let mut communicator = self.build_pipe(point).communicate().map_err(|error| {
+            FlameMeasuringError::FailedBuildingTheCommand {
+                error,
+                pipe: self.build_pipe(point),
+            }
+        })?;
         communicator = communicator.limit_time(timeout);
         let captured = match communicator.read() {
             Err(error) => {
