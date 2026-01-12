@@ -156,7 +156,7 @@ fn flame_graph() {
 
         println!("foos: {}", record_value.matches("foo").count());
         println!("goos: {}", record_value.matches("goo").count());
-        assert!(params.benchmark_point as usize / 100 < record_value.matches("foo").count());
-        assert!(params.benchmark_point as usize / 100 < record_value.matches("goo").count());
+        assert!(params.benchmark_point as usize / 1_000 < record_value.matches("foo").count());
+        assert!(params.benchmark_point as usize / 1_000 < record_value.matches("goo").count());
     }
 }

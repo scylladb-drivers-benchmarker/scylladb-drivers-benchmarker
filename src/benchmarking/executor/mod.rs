@@ -79,10 +79,9 @@ pub fn execute_all<CallbackType: Callback>(
     match measurement_method {
         MeasurementMethod::Time => callback.call(CommandExecutor::new_time(run_command)),
         MeasurementMethod::Perf => callback.call(CommandExecutor::new_perf(run_command)),
-        MeasurementMethod::Flamegraph(flame_path) => callback.call(FlameExecutor::new(
-            flame_path.unwrap_or_default(),
-            run_command,
-        )),
+        MeasurementMethod::Flamegraph(flame_path, files_path) => {
+            callback.call(FlameExecutor::new(flame_path.unwrap_or_default(), files_path, run_command))
+        }
         MeasurementMethod::Command(command) => {
             callback.call(CommandExecutor::new(command, run_command))
         }

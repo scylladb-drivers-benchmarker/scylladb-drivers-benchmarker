@@ -8,8 +8,14 @@ use crate::command::{self, CommandParsingError};
 pub enum MeasurementMethod {
     Time,
     Perf,
-    Flamegraph(Option<PathBuf>),
+    Flamegraph(Option<PathBuf>, Option<PathBuf>),
     Command(command::Command),
+}
+
+impl MeasurementMethod {
+    fn new_flame(flame_path: Option<PathBuf>) -> Self {
+        MeasurementMethod::Flamegraph(flame_path, None)
+    }
 }
 
 #[justerror::Error]
@@ -23,7 +29,7 @@ pub enum MeasurementMethodParsingError {
 impl Display for MeasurementMethod {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            MeasurementMethod::Flamegraph(_) => write!(f, "flamegraph"),
+            MeasurementMethod::Flamegraph(..) => write!(f, "flamegraph"),
             MeasurementMethod::Perf => write!(f, "perf"),
             MeasurementMethod::Time => write!(f, "time"),
             MeasurementMethod::Command(command) => write!(f, "{command}"),
@@ -42,13 +48,13 @@ impl FromStr for MeasurementMethod {
                     stripped.to_owned(),
                 ));
             } else {
-                return Ok(MeasurementMethod::Flamegraph(Some(stripped.into())));
+                return Ok(MeasurementMethod::new_flame(Some(stripped.into())));
             }
         }
 
         match s {
             "perf" => Ok(MeasurementMethod::Perf),
-            "flamegraph" => Ok(MeasurementMethod::Flamegraph(None)),
+            "flamegraph" => Ok(MeasurementMethod::new_flame(None)),
             "time" => Ok(MeasurementMethod::Time),
             value => Ok(MeasurementMethod::Command(value.parse()?)),
         }

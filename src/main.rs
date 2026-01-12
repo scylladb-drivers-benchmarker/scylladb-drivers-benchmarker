@@ -107,6 +107,8 @@ struct AliasingConfig {
     repo_path: HashMap<String, PathBuf>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     flame_path: Option<PathBuf>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    file_dir: Option<PathBuf>,
 }
 
 #[justerror::Error(desc = "Failed reading the main config file")]
@@ -148,8 +150,13 @@ fn main() {
             benchmark_mode,
         } => {
             measurement_method = match measurement_method {
-                MeasurementMethod::Flamegraph(path) => {
-                    MeasurementMethod::Flamegraph(path.or(aliasing_config.flame_path))
+                MeasurementMethod::Flamegraph(flame_path, files_path) => {
+                    MeasurementMethod::Flamegraph(
+                        flame_path.or(aliasing_config.flame_path),
+                        files_path
+                            .or(aliasing_config.file_dir.map(|path| path.join("flamegraph")))
+                            .or(db_path.parent().map(|dir| dir.join("flamegraph"))),
+                    )
                 }
                 _ => measurement_method,
             };
