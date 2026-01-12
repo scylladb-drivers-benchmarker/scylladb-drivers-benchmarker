@@ -22,6 +22,7 @@ use perf_stat_plot::PerfStatPlot;
 use plot::Plot;
 pub use series::VisKind;
 use series_plot::SeriesPlot;
+use std::fmt;
 
 use plotters::backend::{BitMapBackend, SVGBackend};
 
@@ -54,19 +55,19 @@ pub enum OutputFormat {
     Svg,
 }
 
+impl fmt::Display for OutputFormat {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            OutputFormat::Png => "png",
+            OutputFormat::Svg => "svg",
+        })
+    }
+}
+
 pub struct PlotSettings<'a> {
     plot_kind: PlotKind,
     format: OutputFormat,
     output: &'a str,
-}
-
-impl OutputFormat {
-    pub fn to_string(&self) -> &'static str {
-        match self {
-            OutputFormat::Png => "png",
-            OutputFormat::Svg => "svg",
-        }
-    }
 }
 
 impl<'a> PlotSettings<'a> {

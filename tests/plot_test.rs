@@ -164,7 +164,7 @@ fn plot_series() {
 
     for vis_kind in &vis_kinds {
         for format in &formats {
-            let sufix = format!("_{}.{}", vis_kind.to_string(), format.to_string());
+            let sufix = format!("_{}.{}", vis_kind, format);
 
             plot_series_generic_test(
                 &(output_base.to_owned() + &sufix),
@@ -184,7 +184,7 @@ fn plot_perf() {
     let formats = [OutputFormat::Png, OutputFormat::Svg];
 
     for format in &formats {
-        let sufix = format!(".{}", format.to_string());
+        let sufix = format!(".{}", format);
 
         plot_perf_generic_test(
             &(output_base.to_owned() + &sufix),

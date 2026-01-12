@@ -56,7 +56,6 @@ mod tests {
     use crate::config::backend::BackendConfig;
     use crate::config::{ConfigError, find_config};
     use std::io::Write;
-    use std::path::Path;
     use tempfile::NamedTempFile;
 
     fn create_backend_tmp_file() -> NamedTempFile {
