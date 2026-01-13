@@ -1,9 +1,17 @@
 use std::path::Path;
 
 use crate::{
-    benchmarking::BenchmarkingError, command::CommandParsingError, commit_hash::CommitHash, config::{ConfigError, find_config}, database::{Database, DatabaseError}, flame_graph::BenchMeasure, measurement::MeasurementMethod, plotting::error::PlotError, utilities::{
+    benchmarking::BenchmarkingError,
+    command::CommandParsingError,
+    commit_hash::CommitHash,
+    config::{ConfigError, find_config},
+    database::{Database, DatabaseError},
+    flame_graph::BenchMeasure,
+    measurement::MeasurementMethod,
+    plotting::error::PlotError,
+    utilities::{
         BenchmarkMode, DatabaseCommand, RepoNameWithTags, RepoPathWithCommits, format_entry,
-    }
+    },
 };
 
 pub use plotting::{OutputFormat, PlotKind, PlotSettings, VisKind};
