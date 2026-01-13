@@ -1,5 +1,4 @@
 use std::fmt::{self, Debug, Display};
-use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use crate::command::{self, CommandParsingError};

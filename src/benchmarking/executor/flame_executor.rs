@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::string::FromUtf8Error;
 use std::time::Duration;
 
-use subprocess::{CaptureData, CommunicateError, Exec, Pipeline, PopenError, Redirection};
+use subprocess::{Exec, Pipeline, PopenError};
 use uuid::Uuid;
 
 use crate::benchmarking::executor::MeasuringEquipment;
@@ -115,7 +115,7 @@ impl MeasuringEquipment for FlameExecutor {
         communicator = communicator.limit_time(timeout);
         let captured = match communicator.read() {
             Err(error) => {
-                let (stdout, stderr) = Self::collect_output(error.capture);
+                let (_stdout, _stderr) = Self::collect_output(error.capture);
                 return match error.error.kind() {
                     io::ErrorKind::TimedOut => Ok(BenchmarkRecord::Timeout),
                     _ => Err(FlameMeasuringError::FailedRunningThePipeInTimeout()),

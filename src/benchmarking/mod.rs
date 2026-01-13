@@ -1,7 +1,7 @@
 mod executor;
 
 use std::error::Error;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::str::FromStr;
 use std::time::Duration;
 
