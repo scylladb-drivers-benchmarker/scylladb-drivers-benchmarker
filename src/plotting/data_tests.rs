@@ -47,7 +47,7 @@ fn init_db() -> TestSetup {
 
     let configs = vec![
         BenchmarkConfig {
-            name: "benchmark1".to_string(),
+            name: "benchmark1".to_owned(),
             data: config::benchmark::BenchmarkData {
                 starting_step: 1,
                 no_steps: 3,
@@ -57,7 +57,7 @@ fn init_db() -> TestSetup {
             },
         },
         BenchmarkConfig {
-            name: "benchmark2".to_string(),
+            name: "benchmark2".to_owned(),
             data: config::benchmark::BenchmarkData {
                 starting_step: 10,
                 no_steps: 1,
@@ -69,9 +69,9 @@ fn init_db() -> TestSetup {
     ];
 
     let hashes = vec![
-        CommitHash::new_unchecked("1".to_string()),
-        CommitHash::new_unchecked("2".to_string()),
-        CommitHash::new_unchecked("3".to_string()),
+        CommitHash::new_unchecked("1".to_owned()),
+        CommitHash::new_unchecked("2".to_owned()),
+        CommitHash::new_unchecked("3".to_owned()),
     ];
 
     insert_bench(&db, &hashes[0], &configs[0], 1, "1.5");
@@ -199,7 +199,7 @@ fn extract_perfstat_dataset() {
     };
 
     let config = BenchmarkConfig {
-        name: "benchmark_perf".to_string(),
+        name: "benchmark_perf".to_owned(),
         data: config::benchmark::BenchmarkData {
             starting_step: 1,
             no_steps: 2,
@@ -209,7 +209,7 @@ fn extract_perfstat_dataset() {
         },
     };
 
-    let commit = CommitHash::new_unchecked("abc".to_string());
+    let commit = CommitHash::new_unchecked("abc".to_owned());
 
     let perf_json_1 = r#"
 {"counter-value":"0,374411","unit":"msec","event":"task-clock","event-runtime":374411,"pcnt-running":100.00,"metric-value":"0,000374","metric-unit":"CPUs utilized"}
@@ -229,13 +229,13 @@ fn extract_perfstat_dataset() {
 "#;
 
     db.insert_data(
-        BenchmarkParams::new(commit.clone(), config.name.clone(), 1, "perf".to_string()),
+        BenchmarkParams::new(commit.clone(), config.name.clone(), 1, "perf".to_owned()),
         BenchmarkRecord::Data(perf_json_1.to_string()),
     )
     .unwrap();
 
     db.insert_data(
-        BenchmarkParams::new(commit.clone(), config.name.clone(), 2, "perf".to_string()),
+        BenchmarkParams::new(commit.clone(), config.name.clone(), 2, "perf".to_owned()),
         BenchmarkRecord::Data(perf_json_2.to_string()),
     )
     .unwrap();

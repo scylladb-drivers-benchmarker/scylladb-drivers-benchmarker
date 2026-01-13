@@ -18,20 +18,20 @@ fn database() {
     db.drop_all_data().unwrap();
 
     let commits = [
-        CommitHash::new_unchecked("commit1".to_string()),
-        CommitHash::new_unchecked("commit2".to_string()),
-        CommitHash::new_unchecked("commit3".to_string()),
+        CommitHash::new_unchecked("commit1".to_owned()),
+        CommitHash::new_unchecked("commit2".to_owned()),
+        CommitHash::new_unchecked("commit3".to_owned()),
     ];
 
     for (i, commit) in commits.iter().enumerate() {
         let params = BenchmarkParams::new(
             commit.clone(),
-            "test-bench".to_string(),
+            "test-bench".to_owned(),
             i as u64,
-            "time -f \"%e\"".to_string(),
+            "time -f \"%e\"".to_owned(),
         );
 
-        db.insert_data(params.clone(), BenchmarkRecord::Data("value".to_string()))
+        db.insert_data(params.clone(), BenchmarkRecord::Data("value".to_owned()))
             .unwrap();
     }
 
@@ -80,13 +80,13 @@ fn database_file() {
     let file_content = "hello from file";
     write!(tmp_file, "{}", file_content).unwrap();
 
-    let commit = CommitHash::new_unchecked("commit-file".to_string());
+    let commit = CommitHash::new_unchecked("commit-file".to_owned());
 
     let params = BenchmarkParams::new(
         commit.clone(),
-        "file-bench".to_string(),
+        "file-bench".to_owned(),
         0,
-        "time -f \"%e\"".to_string(),
+        "time -f \"%e\"".to_owned(),
     );
 
     db.insert_data(

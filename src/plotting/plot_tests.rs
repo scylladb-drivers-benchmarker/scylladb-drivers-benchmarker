@@ -30,14 +30,8 @@ fn setup_test_plot() -> SeriesPlot {
             vec![Some(Dummy(5.0)), Some(Dummy(15.0)), Some(Dummy(20.0))],
         ],
     };
-    let names = vec!["first".to_string(), "second".to_string()];
-    SeriesPlot::from_dataset(
-        dataset,
-        "TestBenchmark".to_string(),
-        &names,
-        VisKind::Linear,
-    )
-    .unwrap()
+    let names = vec!["first".to_owned(), "second".to_owned()];
+    SeriesPlot::from_dataset(dataset, "TestBenchmark".to_owned(), &names, VisKind::Linear).unwrap()
 }
 
 #[test]
@@ -147,9 +141,9 @@ fn perf_stat_plot_runs() {
 
     let plot = PerfStatPlot::from_dataset(
         dataset,
-        "TestPerfStat".to_string(),
-        &["prog1".to_string(), "prog2".to_string()],
-        vec!["task-clock".to_string(), "context-switches".to_string()],
+        "TestPerfStat".to_owned(),
+        &["prog1".to_owned(), "prog2".to_owned()],
+        vec!["task-clock".to_owned(), "context-switches".to_owned()],
     )
     .unwrap();
 
@@ -207,9 +201,9 @@ fn invalid_perf_metric() {
 
     let result = PerfStatPlot::from_dataset(
         dataset,
-        "TestPerfStat".to_string(),
-        &["prog1".to_string(), "prog2".to_string()],
-        vec!["incorrect-metric".to_string()],
+        "TestPerfStat".to_owned(),
+        &["prog1".to_owned(), "prog2".to_owned()],
+        vec!["incorrect-metric".to_owned()],
     );
 
     assert!(matches!(

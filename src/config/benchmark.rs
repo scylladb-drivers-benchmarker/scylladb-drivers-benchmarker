@@ -126,7 +126,7 @@ mod tests {
     #[test]
     fn serde_benchmark_config() {
         let config = BenchmarkConfig {
-            name: "benchmark_name".to_string(),
+            name: "benchmark_name".to_owned(),
             data: BenchmarkData {
                 starting_step: 1,
                 no_steps: 5,
@@ -155,7 +155,7 @@ timeout: '3s'
     #[test]
     fn serde_benchmark_config_list() {
         let config1 = BenchmarkConfig {
-            name: "benchmark_name1".to_string(),
+            name: "benchmark_name1".to_owned(),
             data: BenchmarkData {
                 starting_step: 1,
                 no_steps: 5,
@@ -166,7 +166,7 @@ timeout: '3s'
         };
 
         let config2 = BenchmarkConfig {
-            name: "benchmark_name2".to_string(),
+            name: "benchmark_name2".to_owned(),
             data: BenchmarkData {
                 starting_step: 2,
                 no_steps: 6,
