@@ -17,6 +17,7 @@ home = "0.5.12"
 wait-timeout = "0.2.1"
 humantime-serde = "1.1.1"
 subprocess = "0.2.13"
+uuid = { version = "1.19.0", features = ["v4"] }
 fs-err = "3.2.2"
 
 [dev-dependencies]

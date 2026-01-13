@@ -1,18 +1,23 @@
+use std::fs::File;
 use std::io;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::string::FromUtf8Error;
 use std::time::Duration;
 
-use subprocess::{CaptureData, Exec, Pipeline, PopenError};
+use subprocess::{Exec, Pipeline, PopenError};
+use uuid::Uuid;
 
 use crate::benchmarking::executor::MeasuringEquipment;
 use crate::database::utilities::BenchmarkRecord;
+use crate::flame_graph::FlameFrequency;
 use crate::utilities::BenchmarkPoint;
 use crate::{cmd, command};
 
 #[derive(Debug)]
 pub(crate) struct FlameExecutor {
-    flame_path: PathBuf,
+    flame_repo: PathBuf,
+    store_dir: PathBuf,
+    frequency: String,
     run_command: command::Command,
 }
 
@@ -23,7 +28,7 @@ impl FlameExecutor {
                 .with_cmd_arg(self.run_command.clone())
                 .with_arg(point.to_string()),
         ) | Exec::from(&cmd!("perf", "script", "-i", "-"))
-            | Exec::cmd(self.flame_path.join("stackcollapse-perf.pl"))
+            | Exec::cmd(self.flame_repo.join("stackcollapse-perf.pl"))
     }
 }
 
@@ -35,28 +40,33 @@ pub(crate) enum FlameMeasuringError {
         #[fmt(debug)]
         exit_status: subprocess::ExitStatus,
         stdout: String,
-        stderr: String,
     },
     #[error(desc = "capturing timed out")]
     FailedRunningThePipeInTimeout(),
     #[error(desc = "the output is not in utf8 format")]
     WrongOutputFormat(#[from] FromUtf8Error),
+    OutputFileError(#[from] io::Error),
 }
 
 impl FlameExecutor {
-    pub(crate) fn new(flame_path: PathBuf, run_command: command::Command) -> Self {
+    pub(crate) fn new(
+        flame_repo: PathBuf,
+        store_dir: PathBuf,
+        frequency: FlameFrequency,
+        run_command: command::Command,
+    ) -> Self {
         FlameExecutor {
-            flame_path,
+            flame_repo,
+            store_dir,
+            frequency: frequency.to_string(),
             run_command,
         }
     }
 
-    fn collect_output(pair: (Option<Vec<u8>>, Option<Vec<u8>>)) -> (Vec<u8>, Vec<u8>) {
-        let (stdout, stderr) = pair;
-        (
-            stdout.expect("subscribed to stdout"),
-            stderr.expect("subscribed to stderr"),
-        )
+    fn next_file(&self) -> Result<(PathBuf, File), FlameMeasuringError> {
+        let filename = self.store_dir.join(Path::new(&Uuid::new_v4().to_string()));
+        let file = File::options().create(true).write(true).open(&filename)?;
+        Ok((filename, file))
     }
 
     fn wrap_building(
@@ -66,6 +76,14 @@ impl FlameExecutor {
         move |source: PopenError| {
             FlameMeasuringError::FailedBuildingThePipe(self.build_pipe(point), source)
         }
+    }
+
+    fn collect_output(pair: (Option<Vec<u8>>, Option<Vec<u8>>)) -> (Vec<u8>, Vec<u8>) {
+        let (stdout, stderr) = pair;
+        (
+            stdout.expect("subscribed to stdout"),
+            stderr.expect("subscribed to stderr"),
+        )
     }
 }
 
@@ -80,7 +98,6 @@ impl MeasuringEquipment for FlameExecutor {
             return Err(FlameMeasuringError::FailedRunningThePipe {
                 exit_status: captured.exit_status,
                 stdout: captured.stdout_str(),
-                stderr: captured.stderr_str(),
             });
         }
         Ok(BenchmarkRecord::Data(String::from_utf8(captured.stdout)?))
@@ -98,7 +115,7 @@ impl MeasuringEquipment for FlameExecutor {
         communicator = communicator.limit_time(timeout);
         let captured = match communicator.read() {
             Err(error) => {
-                let (stdout, stderr) = Self::collect_output(error.capture);
+                let (_stdout, _stderr) = Self::collect_output(error.capture);
                 return match error.error.kind() {
                     io::ErrorKind::TimedOut => Ok(BenchmarkRecord::Timeout),
                     _ => Err(FlameMeasuringError::FailedRunningThePipeInTimeout()),

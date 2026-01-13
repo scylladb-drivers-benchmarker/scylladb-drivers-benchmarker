@@ -1,6 +1,6 @@
 benchmarks:
   - name: recurse
-    starting-step: 10000
+    starting-step: 20000
     no-steps: 2
     step-progress: 2
     progress-type: multiplicative

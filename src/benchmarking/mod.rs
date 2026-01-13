@@ -1,6 +1,7 @@
 mod executor;
 
 use std::error::Error;
+use std::path::Path;
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -8,6 +9,7 @@ use crate::benchmarking::executor::{Callback, CompileError, execute_all};
 use crate::command::{Command, CommandParsingError};
 use crate::commit_hash::CommitHash;
 use crate::database::utilities::BenchmarkFilters;
+use crate::flame_graph::BenchMeasure;
 use crate::measurement::MeasurementMethod;
 use crate::utilities::{BenchmarkMode, BenchmarkParamsBuilder, BenchmarkPoint};
 use executor::build_source;
@@ -90,14 +92,16 @@ pub fn benchmark(
     commit_hash: CommitHash,
     benchmark_config: BenchmarkConfig,
     backend_config: BackendConfig,
-    measurement_method: MeasurementMethod,
+    bench_measure: BenchMeasure,
     benchmark_mode: BenchmarkMode,
+    store_dir: &Path,
 ) -> Result<(), BenchmarkingError> {
     let BenchmarkConfig {
         name: benchmark_name,
         data: benchmark_data,
     } = benchmark_config;
 
+    let measurement_method: MeasurementMethod = bench_measure.clone().into();
     let param_generator =
         BenchmarkParamsBuilder::new(commit_hash, benchmark_name, measurement_method.to_string());
 
@@ -116,7 +120,8 @@ pub fn benchmark(
 
     execute_all(
         built_source,
-        measurement_method,
+        bench_measure,
+        store_dir.to_owned(),
         Command::from_str(&backend_config.run_command)?,
         ExecutorCallback {
             points: points.into_iter(),

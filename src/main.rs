@@ -3,8 +3,9 @@ mod repo_with_commits;
 use clap::Parser;
 
 use scylladb_drivers_benchmarker::{
-    OutputFormat, PlotKind, PlotSettings,
+    OutputFormat, PlotKind, PlotSettings, command,
     database::Database,
+    flame_graph::{BenchMeasure, FlameFrequency},
     measurement::MeasurementMethod,
     utilities::{BenchmarkMode, DatabaseCommand, RepoNameWithTags, RepoPathWithCommits},
 };
@@ -16,6 +17,21 @@ use std::{io, path::PathBuf};
 use fs_err::File;
 
 use crate::repo_with_commits::{ParsableRepoNameWithTags, resolve_repo_tags};
+
+#[derive(Debug, Clone, clap::Subcommand)]
+enum MeasureSubcommand {
+    Time,
+    PerfStat,
+    FlameGraph {
+        #[arg(short = 'r', long)]
+        flame_repo: Option<PathBuf>,
+        #[arg(short, long, default_value_t = FlameFrequency::Number(99))]
+        frequency: FlameFrequency,
+    },
+    Command {
+        command: command::Command,
+    },
+}
 
 #[derive(Debug, clap::Subcommand)]
 enum AppSubcommand {
@@ -50,8 +66,8 @@ enum AppSubcommand {
     Run {
         benchmark_name: String,
 
-        #[arg(short, long, default_value_t = MeasurementMethod::Time)]
-        measurement_method: MeasurementMethod,
+        #[clap(subcommand)]
+        measure: Option<MeasureSubcommand>,
 
         #[arg(short = 'B', long, default_value = "./config.yml")]
         backend_config_path: PathBuf,
@@ -109,6 +125,8 @@ struct AliasingConfig {
     repo_path: HashMap<String, PathBuf>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     flame_path: Option<PathBuf>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    save_dir: Option<PathBuf>,
 }
 
 #[justerror::Error(desc = "Failed reading the main config file")]
@@ -144,24 +162,34 @@ fn main() {
     match args.subcommand {
         AppSubcommand::Run {
             benchmark_name,
-            mut measurement_method,
+            measure,
             benchmark_config_path,
             backend_config_path,
             benchmark_mode,
         } => {
-            measurement_method = match measurement_method {
-                MeasurementMethod::Flamegraph(path) => {
-                    MeasurementMethod::Flamegraph(path.or(aliasing_config.flame_path))
-                }
-                _ => measurement_method,
+            let bench_measure = match measure.unwrap_or(MeasureSubcommand::Time) {
+                MeasureSubcommand::Time => BenchMeasure::Time,
+                MeasureSubcommand::PerfStat => BenchMeasure::PerfStat,
+                MeasureSubcommand::FlameGraph {
+                    flame_repo,
+                    frequency,
+                } => BenchMeasure::FlameGraph {
+                    flame_repo: flame_repo
+                        .or(aliasing_config.flame_path)
+                        .unwrap_or_default(),
+                    frequency,
+                },
+                MeasureSubcommand::Command { command } => BenchMeasure::Command(command),
             };
+
             scylladb_drivers_benchmarker::run_benchmarks(
                 &database,
                 &benchmark_name,
                 &benchmark_config_path,
-                measurement_method,
+                bench_measure,
                 backend_config_path.as_path(),
                 benchmark_mode,
+                &aliasing_config.save_dir.unwrap_or_default(),
             )
         }
         .unwrap_or_else(print_error),
@@ -227,17 +255,11 @@ mod test {
     fn basic_run() {
         let args = App::parse_from(vec!["scylladb-drivers-benchmarker", "run", "select"]);
 
-        let AppSubcommand::Run {
-            benchmark_name,
-            measurement_method,
-            ..
-        } = args.subcommand
-        else {
+        let AppSubcommand::Run { benchmark_name, .. } = args.subcommand else {
             panic!("Not a run")
         };
 
         assert_eq!(benchmark_name, "select");
-        assert_eq!(measurement_method, MeasurementMethod::Time);
     }
 
     #[test]
