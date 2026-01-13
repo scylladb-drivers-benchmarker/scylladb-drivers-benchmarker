@@ -27,6 +27,9 @@ enum MeasureSubcommand {
         flame_repo: Option<PathBuf>,
         #[arg(short, long, default_value_t = FlameFrequency::Number(99))]
         frequency: FlameFrequency,
+        /// Directory in which to store the results
+        #[arg(short, long)]
+        store_dir: Option<PathBuf>
     },
     Command {
         command: command::Command,
@@ -66,9 +69,6 @@ enum AppSubcommand {
     Run {
         benchmark_name: String,
 
-        #[clap(subcommand)]
-        measure: Option<MeasureSubcommand>,
-
         #[arg(short = 'B', long, default_value = "./config.yml")]
         backend_config_path: PathBuf,
 
@@ -77,6 +77,9 @@ enum AppSubcommand {
 
         #[arg(long, short = 'M', value_enum, default_value_t = BenchmarkMode::UseCached)]
         benchmark_mode: BenchmarkMode,
+
+        #[clap(subcommand)]
+        measure: Option<MeasureSubcommand>,
     },
 
     /// Interact with the underlying db
@@ -126,7 +129,7 @@ struct AliasingConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     flame_path: Option<PathBuf>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    save_dir: Option<PathBuf>,
+    store_dir: Option<PathBuf>,
 }
 
 #[justerror::Error(desc = "Failed reading the main config file")]
@@ -144,7 +147,7 @@ impl AliasingConfig {
 
 fn main() {
     let args = App::parse();
-    let aliasing_config: AliasingConfig = args
+    let mut aliasing_config: AliasingConfig = args
         .aliasing_config_path
         .or_else(|| env::var_os("SDB_CONFIG").map(Into::into))
         .map(|path| AliasingConfig::read_config(&path).unwrap_or_else(print_error))
@@ -173,12 +176,16 @@ fn main() {
                 MeasureSubcommand::FlameGraph {
                     flame_repo,
                     frequency,
-                } => BenchMeasure::FlameGraph {
+                    store_dir,
+                } =>  {
+                    aliasing_config.store_dir = aliasing_config.store_dir.or(store_dir);
+                    BenchMeasure::FlameGraph {
                     flame_repo: flame_repo
                         .or(aliasing_config.flame_path)
                         .unwrap_or_default(),
                     frequency,
-                },
+                }
+            },
                 MeasureSubcommand::Command { command } => BenchMeasure::Command(command),
             };
 
@@ -189,7 +196,7 @@ fn main() {
                 bench_measure,
                 backend_config_path.as_path(),
                 benchmark_mode,
-                &aliasing_config.save_dir.unwrap_or_default(),
+                aliasing_config.store_dir,
             )
         }
         .unwrap_or_else(print_error),

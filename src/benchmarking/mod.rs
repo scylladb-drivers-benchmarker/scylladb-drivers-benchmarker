@@ -1,7 +1,7 @@
 mod executor;
 
 use std::error::Error;
-use std::path::Path;
+use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -23,6 +23,7 @@ pub enum BenchmarkingError {
     Compile(#[from] CompileError),
     Database(#[from] DatabaseError),
     ParsingRun(#[from] CommandParsingError),
+    NoStoreDir { required_by: MeasurementMethod },
     Measurement(#[from] Box<dyn Error + 'static>),
 }
 
@@ -94,7 +95,7 @@ pub fn benchmark(
     backend_config: BackendConfig,
     bench_measure: BenchMeasure,
     benchmark_mode: BenchmarkMode,
-    store_dir: &Path,
+    store_dir: Option<PathBuf>,
 ) -> Result<(), BenchmarkingError> {
     let BenchmarkConfig {
         name: benchmark_name,
@@ -121,7 +122,7 @@ pub fn benchmark(
     execute_all(
         built_source,
         bench_measure,
-        store_dir.to_owned(),
+        store_dir,
         Command::from_str(&backend_config.run_command)?,
         ExecutorCallback {
             points: points.into_iter(),
@@ -129,5 +130,5 @@ pub fn benchmark(
             database,
             param_generator,
         },
-    )
+    )?
 }

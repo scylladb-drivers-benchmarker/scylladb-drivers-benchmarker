@@ -146,6 +146,8 @@ fn flame_graph() {
             "./back.yml",
             benchmark_name,
             "flame-graph",
+            "-s",
+            "./store"
         ])
         .current_dir(test_dir));
 
@@ -166,6 +168,8 @@ fn flame_graph() {
         let FlatBenchmarkRecord::Data(record_value) = record.flatten() else {
             panic!("Unexpected timeout at point: {}", params.benchmark_point);
         };
+
+        println!("{}", record_value);
 
         println!("foos: {}", record_value.matches("foo").count());
         println!("goos: {}", record_value.matches("goo").count());

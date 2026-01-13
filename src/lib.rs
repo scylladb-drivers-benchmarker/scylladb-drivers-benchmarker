@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::{
     benchmarking::BenchmarkingError,
@@ -50,7 +50,7 @@ pub fn run_benchmarks(
     bench_measure: BenchMeasure,
     backend_config_path: &Path,
     benchmark_mode: BenchmarkMode,
-    store_dir: &Path,
+    store_dir: Option<PathBuf>,
 ) -> Result<(), RunBenchmarksError> {
     let benchmark_config = find_config(benchmark_name, benchmark_config_path)
         .map_err(RunBenchmarksError::BenchmarkConfig)?;
