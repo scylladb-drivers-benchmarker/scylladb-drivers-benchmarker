@@ -1,4 +1,6 @@
-use std::{fs::File, io::Write, path::Path};
+use std::{io::Write, path::Path};
+
+use fs::File;
 
 use scylladb_drivers_benchmarker::{
     commit_hash::CommitHash,
@@ -13,6 +15,8 @@ use serial_test::file_serial;
 use utilities::run_utilities::{run, run_safe, sdb_command};
 
 use crate::utilities::{db_utils::open_clean_db, git_utils::setup_git};
+
+use fs_err as fs;
 
 mod utilities;
 
@@ -120,14 +124,21 @@ fn aliasing_db() {
 fn flame_graph() {
     let test_dir = Path::new("./tests/flamegraph/");
     let benchmark_name = "recurse";
+    let config_name = Path::new("flame-path.yml");
     let db = open_clean_db(&test_dir.join("test.db"));
 
+    println!("This test requires manual setup.");
+    println!(
+        "Make sure you specified the path to the FlameGraph repository in {},\
+        as well as allowed access to performance monitoring (needed by perf to run)",
+        test_dir.join(config_name).display()
+    );
     run(sdb_command()
         .args([
             "-d",
             "./test.db",
             "-a",
-            "./flame-path.yml",
+            Path::new("./").join(config_name).to_str().unwrap(),
             "run",
             "-b",
             "./bench.yml",
@@ -143,7 +154,10 @@ fn flame_graph() {
         benchmark_name.to_owned(),
         "flamegraph".to_owned(),
     );
-    for (params, record) in db.get_all_data().unwrap() {
+
+    let all_data = db.get_all_data().unwrap();
+    assert!(all_data.len() > 1);
+    for (params, record) in all_data {
         if params != param_builder.finalize(params.benchmark_point) {
             println!("{:?}", params);
             assert!(params == param_builder.finalize(params.benchmark_point));

@@ -6,6 +6,8 @@ use std::path::{Path, PathBuf};
 
 use config_traits::{Configuration, ConfigurationList};
 
+use fs_err as fs;
+
 #[justerror::Error(desc = "error reading from config")]
 pub enum ConfigError {
     FileOperationError {
@@ -26,11 +28,10 @@ pub enum ConfigError {
 pub fn open_config<ConfigListType: ConfigurationList>(
     config_path: &Path,
 ) -> Result<ConfigListType, ConfigError> {
-    let file =
-        std::fs::File::open(config_path).map_err(|source| ConfigError::FileOperationError {
-            source,
-            path: config_path.to_path_buf(),
-        })?;
+    let file = fs::File::open(config_path).map_err(|source| ConfigError::FileOperationError {
+        source,
+        path: config_path.to_path_buf(),
+    })?;
     serde_yml::from_reader(file).map_err(|source| ConfigError::ParseError {
         source,
         path: config_path.to_path_buf(),
