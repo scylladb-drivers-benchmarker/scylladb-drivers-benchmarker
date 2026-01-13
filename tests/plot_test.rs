@@ -111,7 +111,7 @@ fn plot_series_generic_test(
         "./tests/plot_test/config.yml",
         &build_from_arg(&test_data.repo_dir, test_data.repo_hashes),
         "-m",
-        "-time",
+        "time",
         "-o",
         output,
         "-f",
