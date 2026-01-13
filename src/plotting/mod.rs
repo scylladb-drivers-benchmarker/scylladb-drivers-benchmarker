@@ -23,6 +23,7 @@ use plot::Plot;
 pub use series::VisKind;
 use series_plot::SeriesPlot;
 use std::fmt;
+use std::path::PathBuf;
 
 use plotters::backend::{BitMapBackend, SVGBackend};
 
@@ -39,7 +40,10 @@ pub enum PlotKind {
     },
 
     /// Generate a flamegraph plot
-    Flamegraph,
+    Flamegraph {
+        #[arg(short, long, value_name = "DIR")]
+        artifacts_dir: Option<PathBuf>, 
+    },
 
     /// Generate a perf-stat plot
     PerfStat {
@@ -118,7 +122,7 @@ pub fn plot(
             plot_on_backend(plot, &plot_settings.output, plot_settings.format)
         }
 
-        PlotKind::Flamegraph => {
+        PlotKind::Flamegraph {artifacts_dir} => {
             unimplemented!("Flamegraph plotting is not yet implemented");
             // let plot = FlamegraphPlot::build(
             //     database,
