@@ -1,10 +1,12 @@
+use core::time;
 use std::fs::File;
 use std::io;
+use std::iter::once;
 use std::path::{Path, PathBuf};
 use std::string::FromUtf8Error;
 use std::time::Duration;
 
-use subprocess::{Exec, Pipeline, PopenError};
+use subprocess::{Exec, Pipeline, Popen, PopenError, Redirection};
 use uuid::Uuid;
 
 use crate::benchmarking::executor::MeasuringEquipment;
@@ -22,13 +24,31 @@ pub(crate) struct FlameExecutor {
 }
 
 impl FlameExecutor {
+    fn exec_list(&self, point: BenchmarkPoint) -> impl Iterator<Item = Exec> {
+        let execs = once(Exec::from(
+            &cmd!(
+                "perf",
+                "record",
+                "-F",
+                &self.frequency,
+                "-a",
+                "-g",
+                "-o",
+                "-",
+                "--"
+            )
+            .with_cmd_arg(self.run_command.clone())
+            .with_arg(point.to_string()),
+        ))
+        .chain(once(Exec::from(&cmd!("perf", "script", "-i", "-"))))
+        .chain(once(Exec::cmd(
+            self.flame_repo.join("stackcollapse-perf.pl"),
+        )));
+        return execs.map(|exec| exec.stderr(Redirection::Pipe));
+    }
+
     fn build_pipe(&self, point: BenchmarkPoint) -> Pipeline {
-        Exec::from(
-            &cmd!("perf", "record", "-F", "99", "-a", "-g", "-o", "-", "--")
-                .with_cmd_arg(self.run_command.clone())
-                .with_arg(point.to_string()),
-        ) | Exec::from(&cmd!("perf", "script", "-i", "-"))
-            | Exec::cmd(self.flame_repo.join("stackcollapse-perf.pl"))
+        Pipeline::from_exec_iter(self.exec_list(point))
     }
 }
 
@@ -45,6 +65,12 @@ pub(crate) enum FlameMeasuringError {
     FailedRunningThePipeInTimeout(),
     #[error(desc = "the output is not in utf8 format")]
     WrongOutputFormat(#[from] FromUtf8Error),
+    SubExecStillRunning(),
+    SubExecFailed {
+        #[fmt(debug)]
+        exit_status: subprocess::ExitStatus,
+        stderr: String,
+    },
     OutputFileError(#[from] io::Error),
 }
 
@@ -78,29 +104,40 @@ impl FlameExecutor {
         }
     }
 
-    fn collect_output(pair: (Option<Vec<u8>>, Option<Vec<u8>>)) -> (Vec<u8>, Vec<u8>) {
-        let (stdout, stderr) = pair;
-        (
-            stdout.expect("subscribed to stdout"),
-            stderr.expect("subscribed to stderr"),
-        )
+    fn check_others(&self, sub_execs: Vec<Popen>) -> Result<(), FlameMeasuringError> {
+        for mut sub_exec in sub_execs {
+            let exit_status = match sub_exec.poll() {
+                None => return Err(FlameMeasuringError::SubExecStillRunning()),
+                Some(exit_status) => exit_status,
+            };
+            if !exit_status.success() {
+                let stderr = sub_exec.communicate_bytes(None).unwrap().1.unwrap();
+                return Err(FlameMeasuringError::SubExecFailed {
+                    exit_status,
+                    stderr: String::from_utf8_lossy(&stderr).to_string(),
+                });
+            }
+        }
+        return Ok(());
     }
 }
 
 impl MeasuringEquipment for FlameExecutor {
     type MeasurementError = FlameMeasuringError;
     fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, Self::MeasurementError> {
-        let captured = self
+        let (filepath, file) = self.next_file()?;
+        let mut sub_execs = self
             .build_pipe(point)
-            .capture()
+            .stdout(file)
+            .popen()
             .map_err(self.wrap_building(point))?;
-        if !captured.success() {
-            return Err(FlameMeasuringError::FailedRunningThePipe {
-                exit_status: captured.exit_status,
-                stdout: captured.stdout_str(),
-            });
-        }
-        Ok(BenchmarkRecord::Data(String::from_utf8(captured.stdout)?))
+
+        let mut last_popen = sub_execs.pop().expect("pipe should be not empty");
+        last_popen.wait().map_err(|_err| -> FlameMeasuringError {
+            todo!();
+        })?;
+        self.check_others(sub_execs)?;
+        Ok(BenchmarkRecord::FilePath(filepath))
     }
 
     fn execute_with_timeout(
@@ -108,24 +145,20 @@ impl MeasuringEquipment for FlameExecutor {
         point: BenchmarkPoint,
         timeout: Duration,
     ) -> Result<BenchmarkRecord, Self::MeasurementError> {
-        let mut communicator = self
+        let (filepath, file) = self.next_file()?;
+        let mut sub_execs = self
             .build_pipe(point)
-            .communicate()
+            .stdout(file)
+            .popen()
             .map_err(self.wrap_building(point))?;
-        communicator = communicator.limit_time(timeout);
-        let captured = match communicator.read() {
-            Err(error) => {
-                let (_stdout, _stderr) = Self::collect_output(error.capture);
-                return match error.error.kind() {
-                    io::ErrorKind::TimedOut => Ok(BenchmarkRecord::Timeout),
-                    _ => Err(FlameMeasuringError::FailedRunningThePipeInTimeout()),
-                };
-            }
-            Ok(val) => val,
-        };
 
-        Ok(BenchmarkRecord::Data(String::from_utf8(
-            captured.0.unwrap(),
-        )?))
+        let mut last_popen = sub_execs.pop().expect("pipe should be not empty");
+        last_popen
+            .wait_timeout(timeout)
+            .map_err(|_err| -> FlameMeasuringError {
+                todo!();
+            })?;
+        self.check_others(sub_execs)?;
+        Ok(BenchmarkRecord::FilePath(filepath))
     }
 }
