@@ -70,12 +70,8 @@ impl FlameExecutor {
         Ok((filename, file))
     }
 
-    fn general_execute(
-        &self,
-        point: BenchmarkPoint,
-        last_wait: impl FnOnce(&mut Popen) -> Result<Option<ExitStatus>, FlameMeasuringError>,
-    ) -> Result<BenchmarkRecord, FlameMeasuringError> {
-        let commands = [
+    fn commands(&self, point: BenchmarkPoint) -> [command::Command; 3] {
+        [
             cmd!(
                 "perf",
                 "record",
@@ -96,36 +92,19 @@ impl FlameExecutor {
                     .to_string_lossy()
                     .to_string()
             ),
-        ];
+        ]
+    }
 
-        let (filepath, file) = self.next_file()?;
+    fn make_pipeline<'a>(commands: impl Iterator<Item = &'a command::Command>) -> Pipeline {
+        Pipeline::from_exec_iter(
+            commands.map(|command| Exec::from(command).stderr(Redirection::Pipe)),
+        )
+    }
 
-        let make_pipeline = || {
-            Pipeline::from_exec_iter(
-                commands
-                    .iter()
-                    .map(|command| Exec::from(command).stderr(Redirection::Pipe)),
-            )
-        };
-
-        let pipeline = make_pipeline().stdout(file);
-
-        let mut popens = match pipeline.popen() {
-            Ok(popens) => popens,
-            Err(err) => {
-                return Err(FlameMeasuringError::FailedBuildingThePipe(
-                    make_pipeline(),
-                    err,
-                ));
-            }
-        };
-
-        let mut last_popen = popens.pop().expect("pipe should be not empty");
-
-        let Some(exit_status) = last_wait(&mut last_popen)? else {
-            return Ok(BenchmarkRecord::Timeout);
-        };
-
+    fn validate_pipeline_results(
+        popens: Vec<Popen>,
+        commands: impl Iterator<Item = command::Command>,
+    ) -> Result<(), FlameMeasuringError> {
         for (index, mut popen) in popens.into_iter().enumerate() {
             let Some(exit_status) = popen.poll() else {
                 return Err(FlameMeasuringError::SubExecStillRunning {
@@ -140,6 +119,35 @@ impl FlameExecutor {
                 ));
             }
         }
+        Ok(())
+    }
+
+    fn general_execute(
+        &self,
+        point: BenchmarkPoint,
+        last_wait: impl FnOnce(&mut Popen) -> Result<Option<ExitStatus>, FlameMeasuringError>,
+    ) -> Result<BenchmarkRecord, FlameMeasuringError> {
+        let commands = self.commands(point);
+
+        let (filepath, file) = self.next_file()?;
+
+        let pipeline = Self::make_pipeline(commands.iter()).stdout(file);
+
+        let mut popens = match pipeline.popen() {
+            Ok(popens) => popens,
+            Err(err) => {
+                return Err(FlameMeasuringError::FailedBuildingThePipe(
+                    Self::make_pipeline(commands.iter()),
+                    err,
+                ));
+            }
+        };
+
+        let mut last_popen = popens.pop().expect("pipe should be not empty");
+
+        let Some(exit_status) = last_wait(&mut last_popen)? else {
+            return Ok(BenchmarkRecord::Timeout);
+        };
 
         if !exit_status.success() {
             let [.., last] = commands;
@@ -149,6 +157,9 @@ impl FlameExecutor {
                 last,
             ));
         }
+
+        Self::validate_pipeline_results(popens, commands.into_iter())?;
+
         Ok(BenchmarkRecord::FilePath(filepath))
     }
 }
