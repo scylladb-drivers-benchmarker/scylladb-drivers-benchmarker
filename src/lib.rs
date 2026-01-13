@@ -1,16 +1,9 @@
 use std::path::Path;
 
 use crate::{
-    benchmarking::BenchmarkingError,
-    command::CommandParsingError,
-    commit_hash::CommitHash,
-    config::{ConfigError, find_config},
-    database::{Database, DatabaseError},
-    measurement::MeasurementMethod,
-    plotting::error::PlotError,
-    utilities::{
+    benchmarking::BenchmarkingError, command::CommandParsingError, commit_hash::CommitHash, config::{ConfigError, find_config}, database::{Database, DatabaseError}, flame_graph::BenchMeasure, measurement::MeasurementMethod, plotting::error::PlotError, utilities::{
         BenchmarkMode, DatabaseCommand, RepoNameWithTags, RepoPathWithCommits, format_entry,
-    },
+    }
 };
 
 pub use plotting::{OutputFormat, PlotKind, PlotSettings, VisKind};
@@ -20,6 +13,7 @@ pub mod command;
 pub mod commit_hash;
 mod config;
 pub mod database;
+pub mod flame_graph;
 pub mod measurement;
 mod perf_stat;
 mod plotting;
@@ -45,9 +39,10 @@ pub fn run_benchmarks(
     database: &Database,
     benchmark_name: &str,
     benchmark_config_path: &Path,
-    measurement_method: MeasurementMethod,
+    bench_measure: BenchMeasure,
     backend_config_path: &Path,
     benchmark_mode: BenchmarkMode,
+    store_dir: &Path,
 ) -> Result<(), RunBenchmarksError> {
     let benchmark_config = find_config(benchmark_name, benchmark_config_path)
         .map_err(RunBenchmarksError::BenchmarkConfig)?;
@@ -62,8 +57,9 @@ pub fn run_benchmarks(
         commit_hash,
         benchmark_config,
         backend_config,
-        measurement_method,
+        bench_measure,
         benchmark_mode,
+        store_dir,
     )?)
 }
 

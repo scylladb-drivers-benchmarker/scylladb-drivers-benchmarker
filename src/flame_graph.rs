@@ -1,0 +1,59 @@
+use std::path::PathBuf;
+use std::{fmt::Display, num::ParseIntError, str::FromStr};
+
+use crate::command;
+use crate::measurement::MeasurementMethod;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FlameFrequency {
+    Number(u32),
+    Max,
+}
+
+#[justerror::Error]
+pub struct NotAFlameFrequency(#[from] ParseIntError);
+
+impl FromStr for FlameFrequency {
+    type Err = NotAFlameFrequency;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s == "max" {
+            return Ok(FlameFrequency::Max);
+        }
+        match s.parse() {
+            Ok(number) => Ok(FlameFrequency::Number(number)),
+            Err(error) => Err(NotAFlameFrequency(error)),
+        }
+    }
+}
+
+impl Display for FlameFrequency {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Number(number) => write!(f, "{}", number),
+            Self::Max => write!(f, "max"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum BenchMeasure {
+    Time,
+    PerfStat,
+    FlameGraph {
+        flame_repo: PathBuf,
+        frequency: FlameFrequency,
+    },
+    Command(command::Command),
+}
+
+impl From<BenchMeasure> for MeasurementMethod {
+    fn from(value: BenchMeasure) -> Self {
+        match value {
+            BenchMeasure::Time => MeasurementMethod::Time,
+            BenchMeasure::PerfStat => MeasurementMethod::Perf,
+            BenchMeasure::FlameGraph { .. } => MeasurementMethod::Flamegraph,
+            BenchMeasure::Command(command) => MeasurementMethod::Command(command),
+        }
+    }
+}

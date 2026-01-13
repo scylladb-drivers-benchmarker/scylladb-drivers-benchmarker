@@ -133,9 +133,8 @@ fn flame_graph() {
             "./bench.yml",
             "-B",
             "./back.yml",
-            "-m",
-            "flamegraph",
             benchmark_name,
+            "flame-graph",
         ])
         .current_dir(test_dir));
 

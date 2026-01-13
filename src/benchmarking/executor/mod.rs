@@ -5,6 +5,7 @@
 
 use std::error::Error;
 use std::io;
+use std::path::{Path, PathBuf};
 use std::process::Output;
 use std::str::FromStr;
 use std::time::Duration;
@@ -14,7 +15,7 @@ use crate::benchmarking::executor::flame_executor::FlameExecutor;
 use crate::command;
 use crate::command::{Command, CommandParsingError, PrintableOutput};
 use crate::database::utilities::BenchmarkRecord;
-use crate::measurement::MeasurementMethod;
+use crate::flame_graph::BenchMeasure;
 use crate::utilities::BenchmarkPoint;
 
 mod command_executor;
@@ -72,19 +73,24 @@ pub trait Callback {
 
 pub fn execute_all<CallbackType: Callback>(
     _: BuiltSource,
-    measurement_method: MeasurementMethod,
+    measurement_method: BenchMeasure,
+    store_dir: PathBuf,
     run_command: command::Command,
     callback: CallbackType,
 ) -> CallbackType::ReturnType {
     match measurement_method {
-        MeasurementMethod::Time => callback.call(CommandExecutor::new_time(run_command)),
-        MeasurementMethod::Perf => callback.call(CommandExecutor::new_perf(run_command)),
-        MeasurementMethod::Flamegraph(flame_path, files_path) => {
-            callback.call(FlameExecutor::new(flame_path.unwrap_or_default(), files_path, run_command))
-        }
-        MeasurementMethod::Command(command) => {
-            callback.call(CommandExecutor::new(command, run_command))
-        }
+        BenchMeasure::Time => callback.call(CommandExecutor::new_time(run_command)),
+        BenchMeasure::PerfStat => callback.call(CommandExecutor::new_perf(run_command)),
+        BenchMeasure::FlameGraph {
+            flame_repo,
+            frequency,
+        } => callback.call(FlameExecutor::new(
+            flame_repo,
+            store_dir,
+            frequency,
+            run_command,
+        )),
+        BenchMeasure::Command(command) => callback.call(CommandExecutor::new(command, run_command)),
     }
 }
 

@@ -9,13 +9,15 @@ use uuid::Uuid;
 
 use crate::benchmarking::executor::MeasuringEquipment;
 use crate::database::utilities::BenchmarkRecord;
+use crate::flame_graph::FlameFrequency;
 use crate::utilities::BenchmarkPoint;
 use crate::{cmd, command};
 
 #[derive(Debug)]
 pub(crate) struct FlameExecutor {
-    flame_path: PathBuf,
-    files_path: Option<PathBuf>,
+    flame_repo: PathBuf,
+    store_dir: PathBuf,
+    frequency: String,
     run_command: command::Command,
 }
 
@@ -26,7 +28,7 @@ impl FlameExecutor {
                 .with_cmd_arg(self.run_command.clone())
                 .with_arg(point.to_string()),
         ) | Exec::from(&cmd!("perf", "script", "-i", "-"))
-            | Exec::cmd(self.flame_path.join("stackcollapse-perf.pl"))
+            | Exec::cmd(self.flame_repo.join("stackcollapse-perf.pl"))
     }
 }
 
@@ -44,37 +46,25 @@ pub(crate) enum FlameMeasuringError {
     #[error(desc = "the output is not in utf8 format")]
     WrongOutputFormat(#[from] FromUtf8Error),
     OutputFileError(#[from] io::Error),
-    NotADirectory(PathBuf),
-    NoPathForOutput(),
 }
 
 impl FlameExecutor {
     pub(crate) fn new(
-        flame_path: PathBuf,
-        files_path: Option<PathBuf>,
+        flame_repo: PathBuf,
+        store_dir: PathBuf,
+        frequency: FlameFrequency,
         run_command: command::Command,
     ) -> Self {
         FlameExecutor {
-            flame_path,
-            files_path,
+            flame_repo,
+            store_dir,
+            frequency: frequency.to_string(),
             run_command,
         }
     }
 
-    fn files_path(&self) -> Result<&Path, FlameMeasuringError> {
-        let Some(files_path) = &self.files_path else {
-            return Err(FlameMeasuringError::NoPathForOutput());
-        };
-        if !files_path.is_dir() {
-            return Err(FlameMeasuringError::NotADirectory(files_path.to_owned()));
-        }
-        return Ok(files_path);
-    }
-
     fn next_file(&self) -> Result<(PathBuf, File), FlameMeasuringError> {
-        let filename = self
-            .files_path()?
-            .join(Path::new(&Uuid::new_v4().to_string()));
+        let filename = self.store_dir.join(Path::new(&Uuid::new_v4().to_string()));
         let file = File::options().create(true).write(true).open(&filename)?;
         Ok((filename, file))
     }

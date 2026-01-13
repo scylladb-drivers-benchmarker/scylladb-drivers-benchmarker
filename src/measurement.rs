@@ -8,14 +8,8 @@ use crate::command::{self, CommandParsingError};
 pub enum MeasurementMethod {
     Time,
     Perf,
-    Flamegraph(Option<PathBuf>, Option<PathBuf>),
+    Flamegraph,
     Command(command::Command),
-}
-
-impl MeasurementMethod {
-    fn new_flame(flame_path: Option<PathBuf>) -> Self {
-        MeasurementMethod::Flamegraph(flame_path, None)
-    }
 }
 
 #[justerror::Error]
@@ -29,7 +23,7 @@ pub enum MeasurementMethodParsingError {
 impl Display for MeasurementMethod {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            MeasurementMethod::Flamegraph(..) => write!(f, "flamegraph"),
+            MeasurementMethod::Flamegraph => write!(f, "flamegraph"),
             MeasurementMethod::Perf => write!(f, "perf"),
             MeasurementMethod::Time => write!(f, "time"),
             MeasurementMethod::Command(command) => write!(f, "{command}"),
@@ -41,20 +35,9 @@ impl FromStr for MeasurementMethod {
     type Err = MeasurementMethodParsingError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Some(stripped) = s.strip_prefix("flamegraph:") {
-            let path = Path::new(stripped);
-            if !path.is_dir() {
-                return Err(MeasurementMethodParsingError::FlamegraphNotInADirectory(
-                    stripped.to_owned(),
-                ));
-            } else {
-                return Ok(MeasurementMethod::new_flame(Some(stripped.into())));
-            }
-        }
-
         match s {
             "perf" => Ok(MeasurementMethod::Perf),
-            "flamegraph" => Ok(MeasurementMethod::new_flame(None)),
+            "flamegraph" => Ok(MeasurementMethod::Flamegraph),
             "time" => Ok(MeasurementMethod::Time),
             value => Ok(MeasurementMethod::Command(value.parse()?)),
         }
