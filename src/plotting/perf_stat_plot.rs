@@ -1,14 +1,10 @@
 use std::collections::HashMap;
 
-use super::BenchmarkConfig;
-use super::CommitHash;
 use super::data::BenchmarkDataset;
 use super::error::PlotError;
 use super::plot::*;
 use super::render::{Renderable, RenderablePerfStat};
 
-use crate::Database;
-use crate::measurement::MeasurementMethod;
 use crate::perf_stat::PerfStatData;
 use crate::utilities::calc_min_max;
 

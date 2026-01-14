@@ -1,12 +1,7 @@
-use super::BenchmarkConfig;
-use super::CommitHash;
 use super::data::BenchmarkDataset;
 use super::error::PlotError;
 use super::plot::*;
 use super::render::{Renderable, RenderableFlamegraph};
-
-use crate::Database;
-use crate::measurement::MeasurementMethod;
 
 use std::path::{Path, PathBuf};
 use tempfile::NamedTempFile;
@@ -92,5 +87,17 @@ impl FlamegraphPlot {
             flame_repo,
             artifacts_dir,
         ))
+    }
+}
+
+impl Plot for FlamegraphPlot {
+    fn plot<DB: plotters_backend::DrawingBackend + BackendWithKind>(
+        &self,
+        _: DB,
+    ) -> Result<(), PlotError>
+    where
+        DB::ErrorType: 'static,
+    {
+        Ok(())
     }
 }

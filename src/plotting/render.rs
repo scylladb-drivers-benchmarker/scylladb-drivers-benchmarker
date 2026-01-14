@@ -8,7 +8,6 @@ use plotters::prelude::*;
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
-use std::process::Command;
 
 const LEGEND_LINE_LENGTH: i32 = 20;
 const CROSS_SIZE: u32 = 5;

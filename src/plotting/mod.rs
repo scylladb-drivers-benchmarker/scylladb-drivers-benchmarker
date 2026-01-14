@@ -14,9 +14,10 @@ mod plot_tests;
 #[cfg(test)]
 mod render_tests;
 
-use crate::config::benchmark::BenchmarkConfig;
+use crate::config::benchmark::{self, BenchmarkConfig};
 use crate::database::Database;
 use crate::perf_stat::PerfStatData;
+use crate::plotting::flamegraph_plot::FlamegraphPlot;
 use crate::{commit_hash::CommitHash, measurement::MeasurementMethod};
 
 use data::BenchmarkDataset;
@@ -168,23 +169,29 @@ pub fn plot(
                 });
             }
 
-            if flame_repo.is_none() {
-                return Err(PlotError::InvalidData(
+            let flame_repo = flame_repo.ok_or_else(|| {
+                PlotError::InvalidData(
                     "Flamegraph repository path is missing; please provide `--flame-repo` or configure it in the global config".to_string(),
-                ));
-            }
+                )
+            })?;
 
-            unimplemented!("Flamegraph plotting is not yet implemented");
-            // let plot = FlamegraphPlot::build(
-            //     database,
-            //     benchmark_name,
-            //     benchmark_config,
-            //     measurement_method,
-            //     commit_hashes,
-            //     names,
-            // )?;
+            let dataset: BenchmarkDataset<String> = BenchmarkDataset::new(
+                database,
+                &benchmark_config,
+                commit_hashes,
+                measurement_method,
+            )?;
 
-            // plot_on_backend(plot, output, format)
+            let plot = FlamegraphPlot::from_dataset(
+                dataset,
+                benchmark_config.name,
+                names,
+                PathBuf::from(plot_settings.output.clone()),
+                flame_repo,
+                artifacts_dir,
+            )?;
+
+            plot_on_backend(plot, &plot_settings.output, plot_settings.format)
         }
 
         PlotKind::PerfStat { events } => {

@@ -1,5 +1,3 @@
-use super::BenchmarkConfig;
-use super::CommitHash;
 use super::VisKind;
 use super::data::BenchmarkDataset;
 use super::error::PlotError;
@@ -7,8 +5,6 @@ use super::plot::*;
 use super::render::{Renderable, RenderableSeries};
 use super::series::{LinearSeries, LogSeries, SeriesValue, ValueTransformation};
 
-use crate::Database;
-use crate::measurement::MeasurementMethod;
 use crate::utilities::calc_min_max;
 
 use plotters::drawing::DrawingArea;
