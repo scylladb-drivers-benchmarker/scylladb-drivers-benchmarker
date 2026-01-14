@@ -66,7 +66,7 @@ impl FromStr for ParsableRepoNameWithTags {
 impl PlotCommand {
     pub fn finalize(
         self,
-        aliasing_config: &AliasingConfig,
+        aliasing_config: AliasingConfig,
     ) -> Result<PlotParams, RepoNameWithCommitsParsingError> {
         let parsed: Vec<RepoNameWithTags> = self.from.into_iter().map(Into::into).collect();
 

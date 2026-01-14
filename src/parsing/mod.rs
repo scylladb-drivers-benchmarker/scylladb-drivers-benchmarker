@@ -10,6 +10,7 @@ use crate::PlotParams;
 use crate::parsing::aliasing::AliasingConfig;
 use crate::parsing::aliasing::MainConfigError;
 use crate::parsing::benchmark::BenchmarkCommand;
+use crate::parsing::benchmark::StoreDirError;
 use crate::parsing::database::DatabaseArgs;
 use crate::parsing::database::DbPathError;
 use crate::parsing::database::default_db_path;
@@ -46,7 +47,6 @@ pub enum AppSubcommands {
 
 pub struct ParsedParams {
     pub database: Database,
-    pub aliasing_config: AliasingConfig,
     pub params: Subcommands,
 }
 
@@ -62,6 +62,7 @@ pub enum ParsingError {
     DatabasePathAccess(#[from] DbPathError),
     DatabaseInitialization(#[from] DatabaseError),
     FromClauser(#[from] RepoNameWithCommitsParsingError),
+    FromBenchmark(#[from] StoreDirError),
 }
 
 impl App {
@@ -81,15 +82,12 @@ impl App {
         let database = Database::new(&db_path)?;
 
         let params: Subcommands = match self.subcommand {
-            AppSubcommands::Run(x) => Subcommands::Benchmark(x.finalize()),
-            AppSubcommands::Plot(x) => Subcommands::Plot(x.finalize(&aliasing_config)?),
+            AppSubcommands::Run(x) => Subcommands::Benchmark(x.finalize(aliasing_config)?),
+            AppSubcommands::Plot(x) => Subcommands::Plot(x.finalize(aliasing_config)?),
             AppSubcommands::Database(x) => Subcommands::Database(x.finalize()),
         };
-        Ok(ParsedParams {
-            database,
-            aliasing_config,
-            params,
-        })
+
+        Ok(ParsedParams { database, params })
     }
 }
 

@@ -1,8 +1,11 @@
 use crate::BenchmarkMode;
 use crate::BenchmarkParams;
 use crate::command;
+use crate::parsing::aliasing::AliasingConfig;
 use clap::Args;
+use scylladb_drivers_benchmarker::flame_graph::BenchMeasure;
 use scylladb_drivers_benchmarker::flame_graph::FlameFrequency;
+use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, clap::Subcommand)]
@@ -40,16 +43,52 @@ pub struct BenchmarkCommand {
     pub measure: Option<MeasureSubcommand>,
 }
 
+#[justerror::Error]
+pub enum StoreDirError {
+    NoStoreDir { needed_by: MeasurementMethod },
+}
+
 impl BenchmarkCommand {
-    pub fn finalize(self) -> BenchmarkParams {
+    pub fn finalize(
+        self,
+        aliasing_config: AliasingConfig,
+    ) -> Result<BenchmarkParams, StoreDirError> {
         // TODO IMPROVE, MODIFY bench_params
-        BenchmarkParams {
+
+        let measure = self.measure.unwrap_or(MeasureSubcommand::Time);
+        let bench_measure = match measure {
+            MeasureSubcommand::Time => BenchMeasure::Time,
+            MeasureSubcommand::PerfStat => BenchMeasure::PerfStat,
+            MeasureSubcommand::FlameGraph {
+                flame_repo,
+                frequency,
+                mut store_dir,
+            } => {
+                store_dir = store_dir.or(aliasing_config.store_dir);
+
+                let Some(store_dir) = store_dir else {
+                    return Err(StoreDirError::NoStoreDir {
+                        needed_by: MeasurementMethod::Flamegraph,
+                    });
+                };
+
+                BenchMeasure::FlameGraph {
+                    flame_repo: flame_repo
+                        .or(aliasing_config.flame_path.clone())
+                        .unwrap_or_default(),
+                    frequency,
+                    store_dir,
+                }
+            }
+            MeasureSubcommand::Command { command } => BenchMeasure::Command(command),
+        };
+        Ok(BenchmarkParams {
             benchmark_name: self.benchmark_name,
-            measure: self.measure,
+            bench_measure,
 
             backend_config_path: self.backend_config_path,
             benchmark_config_path: self.benchmark_config_path,
             benchmark_mode: self.benchmark_mode,
-        }
+        })
     }
 }

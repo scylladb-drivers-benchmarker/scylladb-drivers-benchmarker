@@ -1,7 +1,6 @@
 mod executor;
 
 use std::error::Error;
-use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -95,7 +94,6 @@ pub fn benchmark(
     backend_config: BackendConfig,
     bench_measure: BenchMeasure,
     benchmark_mode: BenchmarkMode,
-    store_dir: Option<PathBuf>,
 ) -> Result<(), BenchmarkingError> {
     let BenchmarkConfig {
         name: benchmark_name,
@@ -122,7 +120,6 @@ pub fn benchmark(
     execute_all(
         built_source,
         bench_measure,
-        store_dir,
         Command::from_str(&backend_config.run_command)?,
         ExecutorCallback {
             points: points.into_iter(),

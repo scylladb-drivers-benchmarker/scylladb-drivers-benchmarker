@@ -11,14 +11,12 @@ use scylladb_drivers_benchmarker::{
 use std::path::PathBuf;
 
 mod parsing;
-use crate::parsing::benchmark::MeasureSubcommand;
-
 pub struct BenchmarkParams {
     pub benchmark_name: String,
 
-    pub measure: Option<MeasureSubcommand>,
+    pub bench_measure: BenchMeasure,
 
-    pub backend_config_path: PathBuf,   // TODO unwrap to backendConfig
+    pub backend_config_path: PathBuf, // TODO unwrap to backendConfig
 
     pub benchmark_config_path: PathBuf, // TODO unwrap to iter
 
@@ -44,35 +42,16 @@ fn print_error<T>(err: impl std::error::Error) -> T {
 }
 
 fn main() {
-    let mut input: ParsedParams = parse_all().unwrap_or_else(print_error);
+    let input: ParsedParams = parse_all().unwrap_or_else(print_error);
 
     match input.params {
         crate::parsing::Subcommands::Benchmark(BenchmarkParams {
             benchmark_name,
-            measure,
+            bench_measure,
             backend_config_path,
             benchmark_config_path,
             benchmark_mode,
         }) => {
-            let bench_measure = match measure.unwrap_or(MeasureSubcommand::Time) { 
-                MeasureSubcommand::Time => BenchMeasure::Time,
-                MeasureSubcommand::PerfStat => BenchMeasure::PerfStat,
-                MeasureSubcommand::FlameGraph {
-                    flame_repo,
-                    frequency,
-                    store_dir,
-                } => {
-                    input.aliasing_config.store_dir = input.aliasing_config.store_dir.or(store_dir);
-                    BenchMeasure::FlameGraph {
-                        flame_repo: flame_repo
-                            .or(input.aliasing_config.flame_path)
-                            .unwrap_or_default(),
-                        frequency,
-                    }
-                }
-                MeasureSubcommand::Command { command } => BenchMeasure::Command(command),
-            };
-
             scylladb_drivers_benchmarker::run_benchmarks(
                 &input.database,
                 &benchmark_name,
@@ -80,9 +59,8 @@ fn main() {
                 bench_measure,
                 backend_config_path.as_path(),
                 benchmark_mode,
-                input.aliasing_config.store_dir,
             )
-            .unwrap();
+            .unwrap_or_else(print_error);
         }
         crate::parsing::Subcommands::Plot(PlotParams {
             benchmark_name,

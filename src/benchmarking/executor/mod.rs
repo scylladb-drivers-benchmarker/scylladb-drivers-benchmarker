@@ -5,7 +5,6 @@
 
 use std::error::Error;
 use std::io;
-use std::path::PathBuf;
 use std::process::Output;
 use std::str::FromStr;
 use std::time::Duration;
@@ -17,7 +16,6 @@ use crate::command;
 use crate::command::{Command, CommandParsingError, PrintableOutput};
 use crate::database::utilities::BenchmarkRecord;
 use crate::flame_graph::BenchMeasure;
-use crate::measurement::MeasurementMethod;
 use crate::utilities::BenchmarkPoint;
 
 mod command_executor;
@@ -76,7 +74,6 @@ pub trait Callback {
 pub fn execute_all<CallbackType: Callback>(
     _: BuiltSource,
     measurement_method: BenchMeasure,
-    opt_store_dir: Option<PathBuf>,
     run_command: command::Command,
     callback: CallbackType,
 ) -> Result<CallbackType::ReturnType, BenchmarkingError> {
@@ -86,19 +83,13 @@ pub fn execute_all<CallbackType: Callback>(
         BenchMeasure::FlameGraph {
             flame_repo,
             frequency,
-        } => {
-            let Some(store_dir) = opt_store_dir else {
-                return Err(BenchmarkingError::NoStoreDir {
-                    required_by: MeasurementMethod::Flamegraph,
-                });
-            };
-            Ok(callback.call(FlameExecutor::new(
-                flame_repo,
-                store_dir,
-                frequency,
-                run_command,
-            )))
-        }
+            store_dir,
+        } => Ok(callback.call(FlameExecutor::new(
+            flame_repo,
+            store_dir,
+            frequency,
+            run_command,
+        ))),
         BenchMeasure::Command(command) => {
             Ok(callback.call(CommandExecutor::new(command, run_command)))
         }

@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crate::utilities::DatabaseCommand;
 use crate::{
@@ -48,7 +48,6 @@ pub fn run_benchmarks(
     bench_measure: BenchMeasure,
     backend_config_path: &Path,
     benchmark_mode: BenchmarkMode,
-    store_dir: Option<PathBuf>,
 ) -> Result<(), RunBenchmarksError> {
     let benchmark_config = find_config(benchmark_name, benchmark_config_path)
         .map_err(RunBenchmarksError::BenchmarkConfig)?;
@@ -65,7 +64,6 @@ pub fn run_benchmarks(
         backend_config,
         bench_measure,
         benchmark_mode,
-        store_dir,
     )?)
 }
 
