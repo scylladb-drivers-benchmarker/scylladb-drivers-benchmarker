@@ -6,6 +6,7 @@ use clap::Args;
 use scylladb_drivers_benchmarker::flame_graph::BenchMeasure;
 use scylladb_drivers_benchmarker::flame_graph::FlameFrequency;
 use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
+use std::io;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, clap::Subcommand)]
@@ -46,6 +47,11 @@ pub struct BenchmarkCommand {
 #[justerror::Error]
 pub enum StoreDirError {
     NoStoreDir { needed_by: MeasurementMethod },
+    FailedCanonicalizing(#[from] io::Error),
+    #[error(desc = "Even after canonicalizing, the store directory path is not absolute")]
+    StoreDirNotAbsolute,
+    #[error(desc = "Given path to store is not a directory")]
+    StoreDirNotADir,
 }
 
 impl BenchmarkCommand {
@@ -66,11 +72,23 @@ impl BenchmarkCommand {
             } => {
                 store_dir = store_dir.or(aliasing_config.store_dir);
 
-                let Some(store_dir) = store_dir else {
+                let Some(mut store_dir) = store_dir else {
                     return Err(StoreDirError::NoStoreDir {
                         needed_by: MeasurementMethod::Flamegraph,
                     });
                 };
+
+                if !store_dir.is_absolute() {
+                    store_dir = store_dir.canonicalize()?;
+                }
+
+                if !store_dir.is_absolute() {
+                    return Err(StoreDirError::StoreDirNotAbsolute);
+                }
+
+                if !store_dir.is_dir() {
+                    return Err(StoreDirError::StoreDirNotADir);
+                }
 
                 BenchMeasure::FlameGraph {
                     flame_repo: flame_repo
@@ -82,6 +100,7 @@ impl BenchmarkCommand {
             }
             MeasureSubcommand::Command { command } => BenchMeasure::Command(command),
         };
+
         Ok(BenchmarkParams {
             benchmark_name: self.benchmark_name,
             bench_measure,
