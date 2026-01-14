@@ -1,7 +1,6 @@
 use crate::parsing::ParsedParams;
 use crate::parsing::parse_all;
 use scylladb_drivers_benchmarker::access_database;
-use scylladb_drivers_benchmarker::repo_with_commits::resolve_repo_tags;
 use scylladb_drivers_benchmarker::{
     OutputFormat, PlotKind, PlotSettings, command,
     database::Database,
@@ -26,11 +25,6 @@ pub struct BenchmarkParams {
     pub benchmark_mode: BenchmarkMode,
 }
 
-/*pub enum DatabaseSucommand {
-    Print(BenchmarkFilters),
-    Drop(BenchmarkFilters),
-}*/
-
 pub struct PlotParams {
     pub benchmark_name: String,
 
@@ -38,20 +32,10 @@ pub struct PlotParams {
 
     pub benchmark_config_path: PathBuf,
 
-    pub from: Vec<RepoNameWithTags>,
+    pub from: Vec<RepoNameWithTags>, // TODO 2 separates args for this are bad
+    pub resolved: Vec<RepoPathWithCommits>,
 
     pub plot_settings: PlotSettings,
-    /*
-
-        plot_settings: PlotSettings,
-        database: &Database,
-        benchmark_name: &str,
-        benchmark_config_path: &Path,
-        measurement_method: &MeasurementMethod,
-        from: Vec<RepoNameWithTags>,
-        resolved: Vec<RepoPathWithCommits>,
-
-    */
 }
 
 fn print_error<T>(err: impl std::error::Error) -> T {
@@ -60,7 +44,7 @@ fn print_error<T>(err: impl std::error::Error) -> T {
 }
 
 fn main() {
-    let mut input: ParsedParams = parse_all().unwrap(); // TODO
+    let mut input: ParsedParams = parse_all().unwrap_or_else(print_error);
 
     match input.params {
         crate::parsing::Subcommands::Benchmark(BenchmarkParams {
@@ -105,23 +89,16 @@ fn main() {
             measurement_method,
             benchmark_config_path,
             from,
+            resolved,
             plot_settings,
         }) => {
-            let parsed: Vec<RepoNameWithTags> = from;
-
-            let resolved = parsed
-                .iter()
-                .map(|repo| resolve_repo_tags(repo.clone(), &input.aliasing_config.repo_path))
-                .collect::<Result<Vec<RepoPathWithCommits>, _>>()
-                .unwrap_or_else(print_error);
-
             scylladb_drivers_benchmarker::plot_benchmarks(
                 plot_settings,
                 &input.database,
                 &benchmark_name,
                 &benchmark_config_path,
                 &measurement_method,
-                parsed,
+                from,
                 resolved,
             )
             .unwrap();

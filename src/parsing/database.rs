@@ -51,14 +51,25 @@ impl From<InputDatabaseFilters> for BenchmarkFilters {
 }
 
 impl DatabaseArgs {
-    pub fn finalize(self) -> Result<DatabaseCommand, Box<dyn std::error::Error>> {
+    pub fn finalize(self) -> DatabaseCommand {
         match self.command {
-            DatabaseCommandINPUT::Print { filters } => Ok(DatabaseCommand::Print {
+            DatabaseCommandINPUT::Print { filters } => DatabaseCommand::Print {
                 filters: filters.into(),
-            }),
-            DatabaseCommandINPUT::Drop { filters } => Ok(DatabaseCommand::Drop {
+            },
+            DatabaseCommandINPUT::Drop { filters } => DatabaseCommand::Drop {
                 filters: filters.into(),
-            }),
+            },
         }
     }
+}
+
+#[justerror::Error(desc = "Failed to obtain default database location. Provide one.")]
+pub enum DbPathError {
+    NoHomeDir,
+}
+
+pub fn default_db_path() -> Result<std::path::PathBuf, DbPathError> {
+    Ok(home::home_dir()
+        .ok_or(DbPathError::NoHomeDir)?
+        .join("SDB_benchmarker.db"))
 }

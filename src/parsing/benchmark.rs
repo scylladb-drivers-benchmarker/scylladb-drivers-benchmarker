@@ -41,15 +41,15 @@ pub struct BenchmarkCommand {
 }
 
 impl BenchmarkCommand {
-    pub fn finalize(self) -> Result<BenchmarkParams, Box<dyn std::error::Error>> {
+    pub fn finalize(self) -> BenchmarkParams {
         // TODO IMPROVE, MODIFY bench_params
-        Ok(BenchmarkParams {
+        BenchmarkParams {
             benchmark_name: self.benchmark_name,
             measure: self.measure,
 
             backend_config_path: self.backend_config_path,
             benchmark_config_path: self.benchmark_config_path,
             benchmark_mode: self.benchmark_mode,
-        })
+        }
     }
 }

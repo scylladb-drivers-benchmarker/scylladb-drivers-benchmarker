@@ -6,7 +6,9 @@ use crate::RepoNameWithTags;
 use crate::parsing::aliasing::AliasingConfig;
 use clap::Args;
 use scylladb_drivers_benchmarker::PlotSettings;
-use scylladb_drivers_benchmarker::commit_hash::FailedToRetrieveCommitHash;
+use scylladb_drivers_benchmarker::repo_with_commits::RepoNameWithCommitsParsingError;
+use scylladb_drivers_benchmarker::repo_with_commits::resolve_repo_tags;
+use scylladb_drivers_benchmarker::utilities::RepoPathWithCommits;
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -37,13 +39,6 @@ pub struct PlotCommand {
     pub plot_kind: PlotKind,
 }
 
-#[justerror::Error]
-pub enum RepoNameWithCommitsParsingError {
-    PathNotSupplied,
-    HashResolutionFailed(#[from] Box<FailedToRetrieveCommitHash>),
-    Infallible(#[from] std::convert::Infallible),
-}
-
 #[derive(Debug, Clone)]
 pub struct ParsableRepoNameWithTags(RepoNameWithTags);
 
@@ -71,33 +66,31 @@ impl FromStr for ParsableRepoNameWithTags {
 impl PlotCommand {
     pub fn finalize(
         self,
-        _aliasing_config: &AliasingConfig,
-    ) -> Result<PlotParams, Box<dyn std::error::Error>> {
-        // TODO
-
-        /*let parsed: Vec<RepoNameWithTags> = self.from.into_iter().map(Into::into).collect();
+        aliasing_config: &AliasingConfig,
+    ) -> Result<PlotParams, RepoNameWithCommitsParsingError> {
+        let parsed: Vec<RepoNameWithTags> = self.from.into_iter().map(Into::into).collect();
 
         let resolved = parsed
             .iter()
             .map(|repo| resolve_repo_tags(repo.clone(), &aliasing_config.repo_path))
             .collect::<Result<Vec<RepoPathWithCommits>, _>>()?;
-        */
 
         let plot_settings = PlotSettings::new(
             self.plot_kind,
             self.format,
             self.output
                 .as_deref()
-                .and_then(|p| p.to_str())
+                .and_then(std::path::Path::to_str)
                 .unwrap_or("plot.png")
-                .to_string(),
+                .to_owned(),
         );
 
         Ok(PlotParams {
             benchmark_name: self.benchmark_name,
             measurement_method: self.measurement_method,
             benchmark_config_path: self.benchmark_config_path,
-            from: self.from.into_iter().map(Into::into).collect(),
+            from: parsed,
+            resolved,
             plot_settings,
         })
     }

@@ -8,11 +8,17 @@ use crate::BenchmarkParams;
 use crate::Database;
 use crate::PlotParams;
 use crate::parsing::aliasing::AliasingConfig;
+use crate::parsing::aliasing::MainConfigError;
 use crate::parsing::benchmark::BenchmarkCommand;
 use crate::parsing::database::DatabaseArgs;
+use crate::parsing::database::DbPathError;
+use crate::parsing::database::default_db_path;
 use crate::parsing::plot::PlotCommand;
 use clap::Parser;
+use scylladb_drivers_benchmarker::database::DatabaseError;
+use scylladb_drivers_benchmarker::repo_with_commits::RepoNameWithCommitsParsingError;
 use scylladb_drivers_benchmarker::utilities::DatabaseCommand;
+
 use std::env;
 use std::path::PathBuf;
 
@@ -50,8 +56,16 @@ pub enum Subcommands {
     Database(DatabaseCommand),
 }
 
+#[justerror::Error(desc = "Failed to parse or obtain necessary parameters")]
+pub enum ParsingError {
+    AliasingConfigError(#[from] MainConfigError),
+    DatabaseAccessError(#[from] DbPathError),
+    DatabaseInitializationError(#[from] DatabaseError),
+    FromClauseParsingError(#[from] RepoNameWithCommitsParsingError),
+}
+
 impl App {
-    pub fn finalize(self) -> Result<ParsedParams, Box<dyn std::error::Error>> {
+    pub fn finalize(self) -> Result<ParsedParams, ParsingError> {
         let aliasing_config = self
             .aliasing_config_path
             .or_else(|| env::var_os("SDB_CONFIG").map(Into::into))
@@ -67,9 +81,9 @@ impl App {
         let database = Database::new(&db_path)?;
 
         let params: Subcommands = match self.subcommand {
-            AppSubcommands::Run(x) => Subcommands::Benchmark(x.finalize()?),
+            AppSubcommands::Run(x) => Subcommands::Benchmark(x.finalize()),
             AppSubcommands::Plot(x) => Subcommands::Plot(x.finalize(&aliasing_config)?),
-            AppSubcommands::Database(x) => Subcommands::Database(x.finalize()?),
+            AppSubcommands::Database(x) => Subcommands::Database(x.finalize()),
         };
         Ok(ParsedParams {
             database,
@@ -79,17 +93,6 @@ impl App {
     }
 }
 
-#[justerror::Error(desc = "Failed to obtain default database location. Provide one.")]
-pub enum DbPathError {
-    NoHomeDir,
-}
-
-fn default_db_path() -> Result<std::path::PathBuf, DbPathError> {
-    Ok(home::home_dir()
-        .ok_or(DbPathError::NoHomeDir)?
-        .join("SDB_benchmarker.db"))
-}
-
-pub fn parse_all() -> Result<ParsedParams, Box<dyn std::error::Error>> {
+pub fn parse_all() -> Result<ParsedParams, ParsingError> {
     App::parse().finalize()
 }
