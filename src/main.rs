@@ -134,6 +134,7 @@ fn main() {
 
 #[cfg(test)]
 mod test {
+    // TODO move to parsing folder.
     /*use clap::Parser;
 
     use crate::{App, AppSubcommand, DatabaseCommand};

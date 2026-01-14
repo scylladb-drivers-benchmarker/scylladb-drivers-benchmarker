@@ -29,7 +29,7 @@ struct App {
 
 #[derive(Debug, clap::Subcommand)]
 pub enum AppSubcommands {
-    Benchmark(BenchmarkCommand),
+    Run(BenchmarkCommand), // TODO zmienilbym na benchmark?
 
     Plot(PlotCommand),
 
@@ -65,7 +65,7 @@ impl App {
         let database = Database::new(&db_path)?;
 
         let params: Subcommands = match self.subcommand {
-            AppSubcommands::Benchmark(x) => Subcommands::Benchmark(x.finalize()?),
+            AppSubcommands::Run(x) => Subcommands::Benchmark(x.finalize()?),
             AppSubcommands::Plot(x) => Subcommands::Plot(x.finalize(&aliasing_config)?),
             AppSubcommands::Database(x) => Subcommands::Database(x.finalize()?),
         };
