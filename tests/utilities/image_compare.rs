@@ -7,6 +7,7 @@ fn load_image(path: &str, format: OutputFormat) -> RgbaImage {
     match format {
         OutputFormat::Png => open(path).unwrap().to_rgba8(),
         OutputFormat::Svg => svg_to_rgba(path.as_ref()),
+        OutputFormat::Html => panic!("image from html not implemented or whatever"),
     }
 }
 

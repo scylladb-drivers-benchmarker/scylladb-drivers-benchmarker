@@ -1,5 +1,6 @@
 mod data;
 pub mod error;
+mod flamegraph_plot;
 mod perf_stat_plot;
 mod plot;
 mod render;
@@ -19,7 +20,7 @@ use crate::{commit_hash::CommitHash, measurement::MeasurementMethod};
 
 use error::PlotError;
 use perf_stat_plot::PerfStatPlot;
-use plot::Plot;
+use plot::{NullBackend, Plot};
 pub use series::VisKind;
 use series_plot::SeriesPlot;
 use std::fmt;
@@ -42,7 +43,7 @@ pub enum PlotKind {
     /// Generate a flamegraph plot
     Flamegraph {
         #[arg(short, long, value_name = "DIR")]
-        artifacts_dir: Option<PathBuf>, 
+        artifacts_dir: Option<PathBuf>,
     },
 
     /// Generate a perf-stat plot
@@ -53,10 +54,21 @@ pub enum PlotKind {
     },
 }
 
-#[derive(Debug, Clone, Copy, clap::ValueEnum)]
+impl fmt::Display for PlotKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            PlotKind::Series { .. } => "series",
+            PlotKind::PerfStat { .. } => "perf-stat",
+            PlotKind::Flamegraph { .. } => "flamegraph",
+        })
+    }
+}
+
+#[derive(Debug, Clone, Copy, clap::ValueEnum, PartialEq)]
 pub enum OutputFormat {
     Png,
     Svg,
+    Html,
 }
 
 impl fmt::Display for OutputFormat {
@@ -64,6 +76,7 @@ impl fmt::Display for OutputFormat {
         f.write_str(match self {
             OutputFormat::Png => "png",
             OutputFormat::Svg => "svg",
+            OutputFormat::Html => "html",
         })
     }
 }
@@ -97,6 +110,7 @@ fn plot_on_backend<P: Plot>(plot: P, output: &str, format: OutputFormat) -> Resu
     match format {
         OutputFormat::Png => plot.plot(BitMapBackend::new(output, IMAGE_SIZE)),
         OutputFormat::Svg => plot.plot(SVGBackend::new(output, IMAGE_SIZE)),
+        OutputFormat::Html => plot.plot(NullBackend {}),
     }
 }
 
@@ -110,6 +124,13 @@ pub fn plot(
 ) -> Result<(), PlotError> {
     match plot_settings.plot_kind {
         PlotKind::Series { visualization_kind } => {
+            if plot_settings.format == OutputFormat::Html {
+                return Err(PlotError::IncompatibleOutputFormat {
+                    format: OutputFormat::Html.to_string(),
+                    plot: PlotKind::Series { visualization_kind }.to_string(),
+                });
+            }
+
             let plot = SeriesPlot::build(
                 database,
                 benchmark_config,
@@ -122,7 +143,14 @@ pub fn plot(
             plot_on_backend(plot, &plot_settings.output, plot_settings.format)
         }
 
-        PlotKind::Flamegraph {artifacts_dir} => {
+        PlotKind::Flamegraph { artifacts_dir } => {
+            if plot_settings.format != OutputFormat::Html {
+                return Err(PlotError::IncompatibleOutputFormat {
+                    format: plot_settings.format.to_string(),
+                    plot: PlotKind::Flamegraph { artifacts_dir }.to_string(),
+                });
+            }
+
             unimplemented!("Flamegraph plotting is not yet implemented");
             // let plot = FlamegraphPlot::build(
             //     database,
@@ -137,6 +165,13 @@ pub fn plot(
         }
 
         PlotKind::PerfStat { events } => {
+            if plot_settings.format == OutputFormat::Html {
+                return Err(PlotError::IncompatibleOutputFormat {
+                    format: OutputFormat::Html.to_string(),
+                    plot: PlotKind::PerfStat { events }.to_string(),
+                });
+            }
+
             let plot = PerfStatPlot::build(
                 database,
                 benchmark_config,

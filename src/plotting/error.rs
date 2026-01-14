@@ -29,10 +29,16 @@ pub enum PlotError {
         measurement_method: String,
     },
 
-    #[error(desc = "incompatible file extension for the selected output format", fmt=debug)]
+    #[error(desc = "incompatible file extension for the selected output format", fmt = debug)]
     IncompatibleFileExtension {
         extension: String,
         format: String,
+    },
+
+    #[error(desc = "incompatible output format for the selected plot", fmt = debug)]
+    IncompatibleOutputFormat {
+        format: String,
+        plot: String,
     },
 }
 

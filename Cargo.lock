@@ -1839,6 +1839,7 @@ dependencies = [
  "image-compare",
  "justerror",
  "plotters",
+ "plotters-backend",
  "resvg",
  "serde",
  "serde_json",
