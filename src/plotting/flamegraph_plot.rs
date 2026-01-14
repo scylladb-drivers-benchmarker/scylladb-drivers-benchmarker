@@ -3,7 +3,10 @@ use super::error::PlotError;
 use super::plot::*;
 use super::render::{Renderable, RenderableFlamegraph};
 
+use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 use tempfile::NamedTempFile;
 
 pub(crate) struct ArtifactFile {
@@ -66,9 +69,141 @@ impl FlamegraphPlot {
         let mut results = Vec::new();
 
         for (name, data) in names.iter().zip(dataset.results.into_iter()) {
-            let artifact: ArtifactFile = match &artifacts_dir {
-                Some(path) => ArtifactFile::from_path(path.clone()),
-                None => ArtifactFile::temp(),
+            let artifacts: Vec<ArtifactFile> = match &artifacts_dir {
+                Some(dir) => {
+                    let mut artifacts_result = Vec::new();
+
+                    for (i, folded) in data.iter().enumerate() {
+                        let artifact = match folded {
+                            Some(folded_data) => {
+                                let path = dir.join(format!("{}_{}.svg", name, i));
+                                let artifact = ArtifactFile::from_path(path);
+
+                                let mut child = Command::new(flame_repo.join("flamegraph.pl"))
+                                    .arg("--width")
+                                    .arg("1080") // TODO const
+                                    .stdin(Stdio::piped())
+                                    .stdout(Stdio::piped())
+                                    .spawn()
+                                    .map_err(|e| {
+                                        PlotError::from_io_with_path(
+                                            e,
+                                            artifact.path().to_string_lossy(),
+                                        )
+                                    })?;
+
+                                {
+                                    let stdin = child.stdin.as_mut().ok_or_else(|| {
+                                        PlotError::Internal(
+                                            "Failed to open stdin for flamegraph.pl".into(),
+                                        )
+                                    })?;
+
+                                    stdin.write_all(folded_data.as_bytes()).map_err(|e| {
+                                        PlotError::from_io_with_path(
+                                            e,
+                                            artifact.path().to_string_lossy(),
+                                        )
+                                    })?;
+                                }
+
+                                let output = child.wait_with_output().map_err(|e| {
+                                    PlotError::from_io_with_path(
+                                        e,
+                                        artifact.path().to_string_lossy(),
+                                    )
+                                })?;
+
+                                if !output.status.success() {
+                                    return Err(PlotError::InvalidData(format!(
+                                        "flamegraph.pl failed on data point {}",
+                                        i
+                                    )));
+                                }
+
+                                fs::write(artifact.path(), &output.stdout).map_err(|e| {
+                                    PlotError::from_io_with_path(
+                                        e,
+                                        artifact.path().to_string_lossy(),
+                                    )
+                                })?;
+
+                                artifact
+                            }
+                            None => ArtifactFile::temp(),
+                        };
+
+                        artifacts_result.push(artifact);
+                    }
+
+                    artifacts_result
+                }
+                None => {
+                    let mut artifacts_result = Vec::new();
+
+                    for folded in data.iter() {
+                        let artifact = match folded {
+                            Some(folded_data) => {
+                                let artifact = ArtifactFile::temp();
+
+                                let mut child = Command::new(flame_repo.join("flamegraph.pl"))
+                                    .arg("--width")
+                                    .arg("1080")
+                                    .stdin(Stdio::piped())
+                                    .stdout(Stdio::piped())
+                                    .spawn()
+                                    .map_err(|e| {
+                                        PlotError::from_io_with_path(
+                                            e,
+                                            artifact.path().to_string_lossy(),
+                                        )
+                                    })?;
+
+                                {
+                                    let stdin = child.stdin.as_mut().ok_or_else(|| {
+                                        PlotError::Internal(
+                                            "Failed to open stdin for flamegraph.pl".into(),
+                                        )
+                                    })?;
+
+                                    stdin.write_all(folded_data.as_bytes()).map_err(|e| {
+                                        PlotError::from_io_with_path(
+                                            e,
+                                            artifact.path().to_string_lossy(),
+                                        )
+                                    })?;
+                                }
+
+                                let output = child.wait_with_output().map_err(|e| {
+                                    PlotError::from_io_with_path(
+                                        e,
+                                        artifact.path().to_string_lossy(),
+                                    )
+                                })?;
+
+                                if !output.status.success() {
+                                    return Err(PlotError::InvalidData(
+                                        "flamegraph.pl failed for temp artifact".to_string(),
+                                    ));
+                                }
+
+                                fs::write(artifact.path(), &output.stdout).map_err(|e| {
+                                    PlotError::from_io_with_path(
+                                        e,
+                                        artifact.path().to_string_lossy(),
+                                    )
+                                })?;
+
+                                artifact
+                            }
+                            None => ArtifactFile::temp(),
+                        };
+
+                        artifacts_result.push(artifact);
+                    }
+
+                    artifacts_result
+                }
             };
 
             results.push(RenderableFlamegraph::new(
@@ -76,7 +211,7 @@ impl FlamegraphPlot {
                 dataset.points.clone(),
                 data,
                 output.clone(),
-                artifact,
+                artifacts,
             ));
         }
 

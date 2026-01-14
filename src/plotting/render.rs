@@ -53,7 +53,7 @@ pub(crate) struct RenderableFlamegraph {
     pub name: String,
     data: Vec<Option<String>>,
     output: PathBuf,
-    artifact: ArtifactFile,
+    artifacts: Vec<ArtifactFile>,
 }
 
 impl RenderableSeries {
@@ -213,14 +213,14 @@ impl RenderableFlamegraph {
         points: Vec<BenchmarkPoint>,
         data: Vec<Option<String>>,
         output: PathBuf,
-        artifact: ArtifactFile,
+        artifacts: Vec<ArtifactFile>,
     ) -> Self {
         RenderableFlamegraph {
             name,
             points,
             data,
             output,
-            artifact,
+            artifacts,
         }
     }
 }
@@ -238,26 +238,28 @@ where
             Cartesian2d<RangedCoordBenchmarkPoint, RangedCoordf64>,
         >],
     ) -> Result<(), PlotError> {
-        let flame_svg = fs::read_to_string(self.artifact.path()).map_err(|e| {
-            PlotError::from_io_with_path(e, self.artifact.path().display().to_string())
-        })?;
+        for artifact in &self.artifacts {
+            let flame_svg = fs::read_to_string(artifact.path()).map_err(|e| {
+                PlotError::from_io_with_path(e, artifact.path().display().to_string())
+            })?;
 
-        let escaped = encode_safe(flame_svg.as_str());
+            let escaped = encode_safe(flame_svg.as_str());
 
-        let iframe = format!(
-            r#"<iframe srcdoc='<!DOCTYPE html><html><body>{}</body></html>'
-            style="width:100%; height:1080px; border:none"></iframe>"#,
-            escaped
-        );
+            let iframe = format!(
+                r#"<iframe srcdoc='<!DOCTYPE html><html><body>{}</body></html>'
+                style="width:100%; height:1080px; border:none"></iframe>"#,
+                escaped
+            );
 
-        let mut file = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&self.output)
-            .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
+            let mut file = OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&self.output)
+                .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
 
-        writeln!(file, "{}", iframe)
-            .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
+            writeln!(file, "{}", iframe)
+                .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
+        }
 
         Ok(())
     }

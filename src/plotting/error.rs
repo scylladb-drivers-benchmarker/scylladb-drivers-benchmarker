@@ -51,6 +51,9 @@ pub enum PlotError {
         source: std::io::Error,
         path: Option<String>,
     },
+
+    #[error(desc = "fatal internal error", fmt = debug)]
+    Internal(String),
 }
 
 impl<E> From<DrawingAreaErrorKind<E>> for PlotError
