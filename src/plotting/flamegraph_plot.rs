@@ -3,7 +3,7 @@ use super::error::PlotError;
 use super::plot::*;
 use super::render::{Renderable, RenderableFlamegraph};
 
-use std::fs;
+use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -81,7 +81,7 @@ impl FlamegraphPlot {
 
                                 let mut child = Command::new(flame_repo.join("flamegraph.pl"))
                                     .arg("--width")
-                                    .arg("1080") // TODO const
+                                    .arg("1920") // TODO const
                                     .stdin(Stdio::piped())
                                     .stdout(Stdio::piped())
                                     .spawn()
@@ -148,7 +148,7 @@ impl FlamegraphPlot {
 
                                 let mut child = Command::new(flame_repo.join("flamegraph.pl"))
                                     .arg("--width")
-                                    .arg("1080")
+                                    .arg("1920")
                                     .stdin(Stdio::piped())
                                     .stdout(Stdio::piped())
                                     .spawn()
@@ -233,6 +233,24 @@ impl Plot for FlamegraphPlot {
     where
         DB::ErrorType: 'static,
     {
+        let mut file = OpenOptions::new()
+            .create(true)
+            .write(true) // overwrite if exists
+            .truncate(true)
+            .open(&self.output)
+            .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
+
+        writeln!(file, "<!DOCTYPE html>")?;
+        writeln!(file, "<html>")?;
+        writeln!(file, "<body>")?;
+
+        for renderable in &self.results {
+            <RenderableFlamegraph as Renderable<'_, DB>>::add_to_plot(renderable, &mut [])?;
+        }
+
+        writeln!(file, "</body>")?;
+        writeln!(file, "</html>")?;
+
         Ok(())
     }
 }
