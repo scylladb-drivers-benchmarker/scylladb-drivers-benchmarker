@@ -16,8 +16,10 @@ mod render_tests;
 
 use crate::config::benchmark::BenchmarkConfig;
 use crate::database::Database;
+use crate::perf_stat::PerfStatData;
 use crate::{commit_hash::CommitHash, measurement::MeasurementMethod};
 
+use data::BenchmarkDataset;
 use error::PlotError;
 use perf_stat_plot::PerfStatPlot;
 use plot::{NullBackend, Plot};
@@ -134,11 +136,16 @@ pub fn plot(
                 });
             }
 
-            let plot = SeriesPlot::build(
+            let dataset: BenchmarkDataset<f64> = BenchmarkDataset::new(
                 database,
-                benchmark_config,
-                measurement_method,
+                &benchmark_config,
                 commit_hashes,
+                measurement_method,
+            )?;
+
+            let plot = SeriesPlot::from_dataset(
+                dataset,
+                benchmark_config.name,
                 names,
                 visualization_kind,
             )?;
@@ -188,14 +195,14 @@ pub fn plot(
                 });
             }
 
-            let plot = PerfStatPlot::build(
+            let dataset: BenchmarkDataset<PerfStatData> = BenchmarkDataset::new(
                 database,
-                benchmark_config,
-                measurement_method,
+                &benchmark_config,
                 commit_hashes,
-                names,
-                events,
+                measurement_method,
             )?;
+
+            let plot = PerfStatPlot::from_dataset(dataset, benchmark_config.name, names, events)?;
 
             plot_on_backend(plot, &plot_settings.output, plot_settings.format)
         }

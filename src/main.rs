@@ -96,10 +96,9 @@ fn main() {
                 artifacts_dir: _,
                 flame_repo,
             } = &mut plot_settings.plot_kind
+                && flame_repo.is_none()
             {
-                if flame_repo.is_none() {
-                    *flame_repo = input.aliasing_config.flame_path.clone();
-                }
+                *flame_repo = input.aliasing_config.flame_path.clone();
             }
 
             scylladb_drivers_benchmarker::plot_benchmarks(

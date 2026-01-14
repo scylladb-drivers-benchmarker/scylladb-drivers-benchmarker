@@ -15,9 +15,9 @@ use plotters::drawing::DrawingArea;
 use plotters::prelude::*;
 
 pub(crate) struct SeriesPlot {
-    pub benchmark_name: String,
-    pub results: Vec<RenderableSeries>,
-    pub visualization_kind: VisKind,
+    benchmark_name: String,
+    results: Vec<RenderableSeries>,
+    visualization_kind: VisKind,
 }
 
 impl SeriesPlot {
@@ -63,24 +63,6 @@ impl SeriesPlot {
         }
 
         Ok(SeriesPlot::new(benchmark_name, results, visualization_kind))
-    }
-
-    pub(crate) fn build(
-        database: &Database,
-        benchmark_config: BenchmarkConfig,
-        measurement_method: &MeasurementMethod,
-        commit_hashes: impl Iterator<Item = CommitHash>,
-        names: &[String],
-        vis_kind: VisKind,
-    ) -> Result<Self, PlotError> {
-        let dataset: BenchmarkDataset<f64> = BenchmarkDataset::new(
-            database,
-            &benchmark_config,
-            commit_hashes,
-            measurement_method,
-        )?;
-
-        SeriesPlot::from_dataset(dataset, benchmark_config.name, names, vis_kind)
     }
 }
 
