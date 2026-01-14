@@ -16,6 +16,7 @@ use crate::parsing::database::DbPathError;
 use crate::parsing::database::default_db_path;
 use crate::parsing::plot::PlotCommand;
 use clap::Parser;
+use scylladb_drivers_benchmarker::config::ConfigError;
 use scylladb_drivers_benchmarker::database::DatabaseError;
 use scylladb_drivers_benchmarker::repo_with_commits::RepoNameWithCommitsParsingError;
 use scylladb_drivers_benchmarker::utilities::DatabaseCommand;
@@ -63,6 +64,7 @@ pub enum ParsingError {
     DatabaseInitialization(#[from] DatabaseError),
     FromClauser(#[from] RepoNameWithCommitsParsingError),
     FromBenchmark(#[from] StoreDirError),
+    Config(#[from] ConfigError),
 }
 
 impl App {

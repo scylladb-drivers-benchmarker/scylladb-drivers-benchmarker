@@ -3,9 +3,11 @@ use crate::OutputFormat;
 use crate::PlotKind;
 use crate::PlotParams;
 use crate::RepoNameWithTags;
+use crate::parsing::ParsingError;
 use crate::parsing::aliasing::AliasingConfig;
 use clap::Args;
 use scylladb_drivers_benchmarker::PlotSettings;
+use scylladb_drivers_benchmarker::config::find_config;
 use scylladb_drivers_benchmarker::repo_with_commits::RepoNameWithCommitsParsingError;
 use scylladb_drivers_benchmarker::repo_with_commits::resolve_repo_tags;
 use scylladb_drivers_benchmarker::utilities::RepoPathWithCommits;
@@ -64,10 +66,7 @@ impl FromStr for ParsableRepoNameWithTags {
 }
 
 impl PlotCommand {
-    pub fn finalize(
-        self,
-        aliasing_config: AliasingConfig,
-    ) -> Result<PlotParams, RepoNameWithCommitsParsingError> {
+    pub fn finalize(self, aliasing_config: AliasingConfig) -> Result<PlotParams, ParsingError> {
         let parsed: Vec<RepoNameWithTags> = self.from.into_iter().map(Into::into).collect();
 
         let resolved = parsed
@@ -86,9 +85,8 @@ impl PlotCommand {
         );
 
         Ok(PlotParams {
-            benchmark_name: self.benchmark_name,
             measurement_method: self.measurement_method,
-            benchmark_config_path: self.benchmark_config_path,
+            benchmark_config: find_config(&self.benchmark_name, &self.benchmark_config_path)?,
             from: parsed,
             resolved,
             plot_settings,

@@ -46,7 +46,9 @@ pub struct BenchmarkCommand {
 
 #[justerror::Error]
 pub enum StoreDirError {
-    NoStoreDir { needed_by: MeasurementMethod },
+    NoStoreDir {
+        needed_by: MeasurementMethod,
+    },
     FailedCanonicalizing(#[from] io::Error),
     #[error(desc = "Even after canonicalizing, the store directory path is not absolute")]
     StoreDirNotAbsolute,

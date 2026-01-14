@@ -1,6 +1,7 @@
 use crate::parsing::ParsedParams;
 use crate::parsing::parse_all;
 use scylladb_drivers_benchmarker::access_database;
+use scylladb_drivers_benchmarker::config::benchmark::BenchmarkConfig;
 use scylladb_drivers_benchmarker::{
     OutputFormat, PlotKind, PlotSettings, command,
     database::Database,
@@ -24,11 +25,9 @@ pub struct BenchmarkParams {
 }
 
 pub struct PlotParams {
-    pub benchmark_name: String,
-
     pub measurement_method: MeasurementMethod,
 
-    pub benchmark_config_path: PathBuf, // TODO unwrap to iter
+    pub benchmark_config: BenchmarkConfig,
 
     pub from: Vec<RepoNameWithTags>, // TODO 2 separated args for this are bad IMO
     pub resolved: Vec<RepoPathWithCommits>,
@@ -63,9 +62,8 @@ fn main() {
             .unwrap_or_else(print_error);
         }
         crate::parsing::Subcommands::Plot(PlotParams {
-            benchmark_name,
             measurement_method,
-            benchmark_config_path,
+            benchmark_config,
             from,
             resolved,
             plot_settings,
@@ -73,8 +71,7 @@ fn main() {
             scylladb_drivers_benchmarker::plot_benchmarks(
                 plot_settings,
                 &input.database,
-                &benchmark_name,
-                &benchmark_config_path,
+                benchmark_config,
                 &measurement_method,
                 from,
                 resolved,

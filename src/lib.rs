@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use crate::config::benchmark::BenchmarkConfig;
 use crate::utilities::DatabaseCommand;
 use crate::{
     benchmarking::BenchmarkingError,
@@ -70,14 +71,11 @@ pub fn run_benchmarks(
 pub fn plot_benchmarks(
     plot_settings: PlotSettings,
     database: &Database,
-    benchmark_name: &str,
-    benchmark_config_path: &Path,
+    benchmark_config: BenchmarkConfig,
     measurement_method: &MeasurementMethod,
     from: Vec<RepoNameWithTags>,
     resolved: Vec<RepoPathWithCommits>,
 ) -> Result<(), PlotBenchmarksError> {
-    let benchmark_config = find_config(benchmark_name, benchmark_config_path)?;
-
     let names = from
         .into_iter()
         .flat_map(|repo| {
