@@ -58,10 +58,10 @@ pub enum Subcommands {
 
 #[justerror::Error(desc = "Failed to parse or obtain necessary parameters")]
 pub enum ParsingError {
-    AliasingConfigError(#[from] MainConfigError),
-    DatabaseAccessError(#[from] DbPathError),
-    DatabaseInitializationError(#[from] DatabaseError),
-    FromClauseParsingError(#[from] RepoNameWithCommitsParsingError),
+    AliasingConfig(#[from] MainConfigError),
+    DatabasePathAccess(#[from] DbPathError),
+    DatabaseInitialization(#[from] DatabaseError),
+    FromClauser(#[from] RepoNameWithCommitsParsingError),
 }
 
 impl App {

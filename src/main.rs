@@ -18,9 +18,9 @@ pub struct BenchmarkParams {
 
     pub measure: Option<MeasureSubcommand>,
 
-    pub backend_config_path: PathBuf,
+    pub backend_config_path: PathBuf,   // TODO unwrap to backendConfig
 
-    pub benchmark_config_path: PathBuf,
+    pub benchmark_config_path: PathBuf, // TODO unwrap to iter
 
     pub benchmark_mode: BenchmarkMode,
 }
@@ -30,9 +30,9 @@ pub struct PlotParams {
 
     pub measurement_method: MeasurementMethod,
 
-    pub benchmark_config_path: PathBuf,
+    pub benchmark_config_path: PathBuf, // TODO unwrap to iter
 
-    pub from: Vec<RepoNameWithTags>, // TODO 2 separates args for this are bad
+    pub from: Vec<RepoNameWithTags>, // TODO 2 separated args for this are bad IMO
     pub resolved: Vec<RepoPathWithCommits>,
 
     pub plot_settings: PlotSettings,
@@ -54,7 +54,7 @@ fn main() {
             benchmark_config_path,
             benchmark_mode,
         }) => {
-            let bench_measure = match measure.unwrap_or(MeasureSubcommand::Time) {
+            let bench_measure = match measure.unwrap_or(MeasureSubcommand::Time) { 
                 MeasureSubcommand::Time => BenchMeasure::Time,
                 MeasureSubcommand::PerfStat => BenchMeasure::PerfStat,
                 MeasureSubcommand::FlameGraph {
