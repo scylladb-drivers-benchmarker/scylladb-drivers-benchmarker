@@ -147,7 +147,7 @@ fn flame_graph() {
             benchmark_name,
             "flame-graph",
             "-s",
-            "./store"
+            "./store",
         ])
         .current_dir(test_dir));
 

@@ -66,7 +66,10 @@ impl FlameExecutor {
 
     fn next_file(&self) -> Result<(PathBuf, File), FlameMeasuringError> {
         let filename = self.store_dir.join(Path::new(&Uuid::new_v4().to_string()));
-        let file = fs_err::File::options().create(true).write(true).open(&filename)?;
+        let file = fs_err::File::options()
+            .create(true)
+            .write(true)
+            .open(&filename)?;
         Ok((filename, file.into_file()))
     }
 

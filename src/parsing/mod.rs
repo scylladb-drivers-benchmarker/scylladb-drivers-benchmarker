@@ -2,6 +2,8 @@ pub mod aliasing;
 pub mod benchmark;
 pub mod database;
 pub mod plot;
+#[cfg(test)]
+mod tests;
 use crate::BenchmarkParams;
 use crate::Database;
 use crate::PlotParams;

@@ -1,0 +1,101 @@
+use crate::parsing::App;
+use crate::parsing::AppSubcommands;
+use crate::parsing::BenchmarkCommand;
+use crate::parsing::PlotCommand;
+use crate::parsing::database::DatabaseCommandINPUT;
+use clap::Parser;
+use scylladb_drivers_benchmarker::OutputFormat;
+use scylladb_drivers_benchmarker::PlotKind;
+use scylladb_drivers_benchmarker::VisKind;
+use scylladb_drivers_benchmarker::{measurement::MeasurementMethod, utilities::RepoNameWithTags};
+
+#[test]
+fn basic_run() {
+    let args = App::parse_from(vec!["scylladb-drivers-benchmarker", "run", "select"]);
+
+    let AppSubcommands::Run(BenchmarkCommand { benchmark_name, .. }) = args.subcommand else {
+        panic!("Not a run")
+    };
+    assert_eq!(benchmark_name, "select");
+}
+
+#[test]
+fn advanced_plot() {
+    let args = App::parse_from(vec![
+        "scylladb-drivers-benchmarker",
+        "plot",
+        "select",
+        "--from=repo:branch",
+        "--from",
+        "repo2:commit",
+        "--format=svg",
+        "series",
+    ]);
+
+    let AppSubcommands::Plot(PlotCommand {
+        benchmark_name,
+        measurement_method,
+        benchmark_config_path: _,
+        from,
+        output,
+        format,
+        plot_kind,
+    }) = args.subcommand
+    else {
+        panic!("Not a plot");
+    };
+
+    let from: Vec<RepoNameWithTags> = from.into_iter().map(From::from).collect();
+
+    assert_eq!(benchmark_name, "select");
+    assert_eq!(measurement_method, MeasurementMethod::Time);
+
+    assert!(matches!(plot_kind, PlotKind::Series { .. }));
+    match plot_kind {
+        PlotKind::Series { visualization_kind } => {
+            assert!(matches!(visualization_kind, VisKind::Linear))
+        }
+        _ => panic!("Expected PlotKind::Series"),
+    }
+
+    assert_eq!(
+        from,
+        vec!(
+            RepoNameWithTags {
+                name: "repo".to_owned(),
+                tags: vec!("branch".to_owned())
+            },
+            RepoNameWithTags {
+                name: "repo2".to_owned(),
+                tags: vec!("commit".to_owned())
+            }
+        )
+    );
+    assert_eq!(output, None);
+    assert!(matches!(format, OutputFormat::Svg));
+}
+
+#[test]
+fn advanced_database() {
+    let args = App::parse_from(vec![
+        "scylladb-drivers-benchmarker",
+        "database",
+        "print",
+        "--commit-hash=test:21123123:ff",
+        "--benchmark-name=my:benchmark:",
+        "--benchmark-point=1:2:5:3",
+        "--measurement-method=m1:m2:m4",
+    ]);
+    let AppSubcommands::Database(command) = args.subcommand else {
+        panic!("Expected Database subcommand");
+    };
+
+    let DatabaseCommandINPUT::Print { filters } = command.command else {
+        panic!("Expected DatabaseCommand::Print");
+    };
+
+    assert_eq!(filters.commit_hashes, vec!["test", "21123123", "ff"]);
+    assert_eq!(filters.benchmark_names, vec!["my", "benchmark", ""]);
+    assert_eq!(filters.benchmark_points, vec![1, 2, 5, 3]);
+    assert_eq!(filters.measurement_methods, vec!["m1", "m2", "m4"]);
+}

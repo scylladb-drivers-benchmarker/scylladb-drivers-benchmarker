@@ -109,12 +109,12 @@ pub fn access_database(
 ) -> Result<(), DatabaseError> {
     match operation {
         DatabaseCommand::Print { filters } => {
-            let results = database.get_data(&filters.into())?;
+            let results = database.get_data(&filters)?;
             for (params, result) in results.into_iter() {
                 print!("{}", format_entry(&params, &result));
             }
         }
-        DatabaseCommand::Drop { filters } => database.drop_data(&filters.into())?,
+        DatabaseCommand::Drop { filters } => database.drop_data(&filters)?,
     }
 
     Ok(())

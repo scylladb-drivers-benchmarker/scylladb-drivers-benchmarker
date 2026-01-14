@@ -16,7 +16,7 @@ pub enum MeasureSubcommand {
         frequency: FlameFrequency,
         /// Directory in which to store the results
         #[arg(short, long)]
-        store_dir: Option<PathBuf>
+        store_dir: Option<PathBuf>,
     },
     Command {
         command: command::Command,
