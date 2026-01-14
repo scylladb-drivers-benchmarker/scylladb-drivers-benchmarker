@@ -44,6 +44,9 @@ pub enum PlotKind {
     Flamegraph {
         #[arg(short, long, value_name = "DIR")]
         artifacts_dir: Option<PathBuf>,
+
+        #[arg(short, long, value_name = "DIR")]
+        flame_repo: Option<PathBuf>,
     },
 
     /// Generate a perf-stat plot
@@ -82,7 +85,7 @@ impl fmt::Display for OutputFormat {
 }
 
 pub struct PlotSettings {
-    plot_kind: PlotKind,
+    pub plot_kind: PlotKind,
     format: OutputFormat,
     output: String,
 }
@@ -143,12 +146,25 @@ pub fn plot(
             plot_on_backend(plot, &plot_settings.output, plot_settings.format)
         }
 
-        PlotKind::Flamegraph { artifacts_dir } => {
+        PlotKind::Flamegraph {
+            artifacts_dir,
+            flame_repo,
+        } => {
             if plot_settings.format != OutputFormat::Html {
                 return Err(PlotError::IncompatibleOutputFormat {
                     format: plot_settings.format.to_string(),
-                    plot: PlotKind::Flamegraph { artifacts_dir }.to_string(),
+                    plot: PlotKind::Flamegraph {
+                        artifacts_dir,
+                        flame_repo,
+                    }
+                    .to_string(),
                 });
+            }
+
+            if flame_repo.is_none() {
+                return Err(PlotError::InvalidData(
+                    "Flamegraph repository path is missing; please provide `--flame-repo` or configure it in the global config".to_string(),
+                ));
             }
 
             unimplemented!("Flamegraph plotting is not yet implemented");

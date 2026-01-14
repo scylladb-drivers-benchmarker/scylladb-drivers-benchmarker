@@ -18,7 +18,7 @@ pub struct BenchmarkParams {
 
     pub measure: Option<MeasureSubcommand>,
 
-    pub backend_config_path: PathBuf,   // TODO unwrap to backendConfig
+    pub backend_config_path: PathBuf, // TODO unwrap to backendConfig
 
     pub benchmark_config_path: PathBuf, // TODO unwrap to iter
 
@@ -54,7 +54,7 @@ fn main() {
             benchmark_config_path,
             benchmark_mode,
         }) => {
-            let bench_measure = match measure.unwrap_or(MeasureSubcommand::Time) { 
+            let bench_measure = match measure.unwrap_or(MeasureSubcommand::Time) {
                 MeasureSubcommand::Time => BenchMeasure::Time,
                 MeasureSubcommand::PerfStat => BenchMeasure::PerfStat,
                 MeasureSubcommand::FlameGraph {
@@ -90,8 +90,14 @@ fn main() {
             benchmark_config_path,
             from,
             resolved,
-            plot_settings,
+            mut plot_settings,
         }) => {
+            if let PlotKind::Flamegraph { artifacts_dir: _, flame_repo } = &mut plot_settings.plot_kind {
+                if flame_repo.is_none() {
+                    *flame_repo = input.aliasing_config.flame_path.clone();
+                }
+            }
+
             scylladb_drivers_benchmarker::plot_benchmarks(
                 plot_settings,
                 &input.database,

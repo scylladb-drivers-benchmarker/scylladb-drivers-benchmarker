@@ -40,6 +40,9 @@ pub enum PlotError {
         format: String,
         plot: String,
     },
+
+    #[error(desc = "Flamegraph repository path is missing; provide --flame-repo or configure global path")]
+    MissingFlameRepo,
 }
 
 impl<E> From<DrawingAreaErrorKind<E>> for PlotError

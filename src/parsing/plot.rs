@@ -32,7 +32,7 @@ pub struct PlotCommand {
 
     /// Path to save the plot image
     #[arg(short, long, value_name = "FILE_PATH")]
-    pub output: Option<PathBuf>,
+    pub output: PathBuf,
 
     // Type of plot to generate
     #[clap(subcommand)]
@@ -79,9 +79,8 @@ impl PlotCommand {
             self.plot_kind,
             self.format,
             self.output
-                .as_deref()
-                .and_then(std::path::Path::to_str)
-                .unwrap_or("plot.png")
+                .to_str()
+                .expect("Invalid UTF-8 path") // TODO probably error not panic
                 .to_owned(),
         );
 
