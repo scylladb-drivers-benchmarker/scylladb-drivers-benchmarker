@@ -64,14 +64,14 @@ impl fmt::Display for OutputFormat {
     }
 }
 
-pub struct PlotSettings<'a> {
+pub struct PlotSettings {
     plot_kind: PlotKind,
     format: OutputFormat,
-    output: &'a str,
+    output: String,
 }
 
-impl<'a> PlotSettings<'a> {
-    pub fn new(plot_kind: PlotKind, format: OutputFormat, output: &'a str) -> Self {
+impl PlotSettings {
+    pub fn new(plot_kind: PlotKind, format: OutputFormat, output: String) -> Self {
         PlotSettings {
             plot_kind,
             format,
@@ -115,7 +115,7 @@ pub fn plot(
                 visualization_kind,
             )?;
 
-            plot_on_backend(plot, plot_settings.output, plot_settings.format)
+            plot_on_backend(plot, &plot_settings.output, plot_settings.format)
         }
 
         PlotKind::Flamegraph => {
@@ -142,7 +142,7 @@ pub fn plot(
                 events,
             )?;
 
-            plot_on_backend(plot, plot_settings.output, plot_settings.format)
+            plot_on_backend(plot, &plot_settings.output, plot_settings.format)
         }
     }
 }

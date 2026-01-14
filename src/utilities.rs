@@ -1,55 +1,20 @@
-use clap::Args;
-use clap::Subcommand;
 use clap::ValueEnum;
 use std::path::PathBuf;
 
-use plotters::coord::types::RangedCoordu64;
-
 use crate::commit_hash::CommitHash;
 use crate::database::utilities::{BenchmarkFilters, BenchmarkParams, BenchmarkRecord};
+use plotters::coord::types::RangedCoordu64;
 
 use fs_err as fs;
 
 pub type BenchmarkPoint = u64;
 pub type RangedCoordBenchmarkPoint = RangedCoordu64;
 
-#[derive(Subcommand, Debug)]
+// TODO split into 2 structs IMO
 pub enum DatabaseCommand {
-    Print {
-        #[command(flatten)]
-        filters: InputDatabaseFilters,
-    },
+    Print { filters: BenchmarkFilters },
 
-    Drop {
-        #[command(flatten)]
-        filters: InputDatabaseFilters,
-    },
-}
-
-#[derive(Args, Debug)]
-pub struct InputDatabaseFilters {
-    #[arg(long = "commit-hash", value_delimiter = ':', num_args(1..))]
-    pub commit_hashes: Vec<String>,
-
-    #[arg(long = "benchmark-name", value_delimiter = ':', num_args(1..))]
-    pub benchmark_names: Vec<String>,
-
-    #[arg(long = "benchmark-point", value_delimiter = ':', num_args(1..))]
-    pub benchmark_points: Vec<BenchmarkPoint>,
-
-    #[arg(long = "measurement-method", value_delimiter = ':', num_args(1..))]
-    pub measurement_methods: Vec<String>,
-}
-
-impl From<InputDatabaseFilters> for BenchmarkFilters {
-    fn from(input: InputDatabaseFilters) -> Self {
-        BenchmarkFilters {
-            commit_hashes: input.commit_hashes,
-            benchmark_names: input.benchmark_names,
-            benchmark_points: input.benchmark_points,
-            measurement_methods: input.measurement_methods,
-        }
-    }
+    Drop { filters: BenchmarkFilters },
 }
 
 /// Often BenchmarkParams params differ only by benchmarkPoint.

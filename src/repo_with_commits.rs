@@ -1,14 +1,19 @@
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
-use scylladb_drivers_benchmarker::{
+/*use scylladb_drivers_benchmarker::{
     commit_hash::{self, CommitHash},
     utilities::{RepoNameWithTags, RepoPathWithCommits},
-};
+};*/
+
+use crate::RepoNameWithTags;
+use crate::RepoPathWithCommits;
+use crate::commit_hash::CommitHash;
+use crate::commit_hash::FailedToRetrieveCommitHash;
 
 #[justerror::Error]
 pub enum RepoNameWithCommitsParsingError {
     PathNotSupplied,
-    HashResolutionFailed(#[from] Box<commit_hash::FailedToRetrieveCommitHash>),
+    HashResolutionFailed(#[from] Box<FailedToRetrieveCommitHash>),
     Infallible(#[from] std::convert::Infallible),
 }
 
@@ -49,7 +54,7 @@ pub fn resolve_repo_tags(
         .tags
         .into_iter()
         .map(|commit| CommitHash::new(&repo_path, commit))
-        .collect::<Result<Vec<CommitHash>, Box<commit_hash::FailedToRetrieveCommitHash>>>()?;
+        .collect::<Result<Vec<CommitHash>, Box<FailedToRetrieveCommitHash>>>()?;
 
     Ok(RepoPathWithCommits {
         repo_path,

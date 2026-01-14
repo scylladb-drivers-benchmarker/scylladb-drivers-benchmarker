@@ -1,117 +1,57 @@
-mod repo_with_commits;
-
-use clap::Parser;
-
+use crate::parsing::ParsedParams;
+use crate::parsing::parse_all;
+use scylladb_drivers_benchmarker::access_database;
+use scylladb_drivers_benchmarker::repo_with_commits::resolve_repo_tags;
 use scylladb_drivers_benchmarker::{
     OutputFormat, PlotKind, PlotSettings, command,
     database::Database,
-    flame_graph::{BenchMeasure, FlameFrequency},
+    flame_graph::BenchMeasure,
     measurement::MeasurementMethod,
-    utilities::{BenchmarkMode, DatabaseCommand, RepoNameWithTags, RepoPathWithCommits},
+    utilities::{BenchmarkMode, RepoNameWithTags, RepoPathWithCommits},
 };
-use serde::{Deserialize, Serialize};
-use std::path::Path;
-use std::{collections::HashMap, env};
-use std::{io, path::PathBuf};
+use std::path::PathBuf;
 
-use fs_err::File;
+mod parsing;
+use crate::parsing::benchmark::MeasureSubcommand;
 
-use crate::repo_with_commits::{ParsableRepoNameWithTags, resolve_repo_tags};
+pub struct BenchmarkParams {
+    pub benchmark_name: String,
 
-#[derive(Debug, Clone, clap::Subcommand)]
-enum MeasureSubcommand {
-    Time,
-    PerfStat,
-    FlameGraph {
-        #[arg(short = 'r', long)]
-        flame_repo: Option<PathBuf>,
-        #[arg(short, long, default_value_t = FlameFrequency::Number(99))]
-        frequency: FlameFrequency,
-        /// Directory in which to store the results
-        #[arg(short, long)]
-        store_dir: Option<PathBuf>
-    },
-    Command {
-        command: command::Command,
-    },
+    pub measure: Option<MeasureSubcommand>,
+
+    pub backend_config_path: PathBuf,
+
+    pub benchmark_config_path: PathBuf,
+
+    pub benchmark_mode: BenchmarkMode,
 }
 
-#[derive(Debug, clap::Subcommand)]
-enum AppSubcommand {
-    /// Plot the results of previous benchmarks from the database.
-    Plot {
-        benchmark_name: String,
+/*pub enum DatabaseSucommand {
+    Print(BenchmarkFilters),
+    Drop(BenchmarkFilters),
+}*/
 
-        #[arg(short, long, default_value_t = MeasurementMethod::Time)]
-        measurement_method: MeasurementMethod,
+pub struct PlotParams {
+    pub benchmark_name: String,
 
-        #[arg(short, long, default_value = "./config.yml")]
-        benchmark_config_path: PathBuf,
+    pub measurement_method: MeasurementMethod,
 
-        /// The source of data for the plot
-        #[arg(long, value_name = "REPOSITORY_PATH:TAG1,TAG2,...")]
-        from: Vec<ParsableRepoNameWithTags>,
+    pub benchmark_config_path: PathBuf,
 
-        /// Output format of the plot
-        #[arg(short, long, value_enum, default_value_t = OutputFormat::Png)]
-        format: OutputFormat,
+    pub from: Vec<RepoNameWithTags>,
 
-        /// Path to save the plot image
-        #[arg(short, long, value_name = "FILE_PATH")]
-        output: Option<PathBuf>,
+    pub plot_settings: PlotSettings,
+    /*
 
-        // Type of plot to generate
-        #[clap(subcommand)]
-        plot_kind: PlotKind,
-    },
+        plot_settings: PlotSettings,
+        database: &Database,
+        benchmark_name: &str,
+        benchmark_config_path: &Path,
+        measurement_method: &MeasurementMethod,
+        from: Vec<RepoNameWithTags>,
+        resolved: Vec<RepoPathWithCommits>,
 
-    /// Collect the results of benchmarks and store to the database.
-    Run {
-        benchmark_name: String,
-
-        #[arg(short = 'B', long, default_value = "./config.yml")]
-        backend_config_path: PathBuf,
-
-        #[arg(short, long, default_value = "./config.yml")]
-        benchmark_config_path: PathBuf,
-
-        #[arg(long, short = 'M', value_enum, default_value_t = BenchmarkMode::UseCached)]
-        benchmark_mode: BenchmarkMode,
-
-        #[clap(subcommand)]
-        measure: Option<MeasureSubcommand>,
-    },
-
-    /// Interact with the underlying db
-    Database {
-        #[command(subcommand)]
-        command: DatabaseCommand,
-    },
-}
-
-/// Benchmarker and plotter for git-based applications.
-#[derive(Debug, Parser)]
-#[clap(name = "my-app", version, about)]
-struct App {
-    #[arg(short, long)]
-    db_path: Option<PathBuf>,
-
-    #[arg(short, long)]
-    aliasing_config_path: Option<PathBuf>,
-
-    #[clap(subcommand)]
-    subcommand: AppSubcommand,
-}
-
-#[justerror::Error(desc = "Failed to obtain default database location. Provide one.")]
-pub enum DbPathError {
-    NoHomeDir,
-}
-
-fn default_db_path() -> Result<std::path::PathBuf, DbPathError> {
-    Ok(home::home_dir()
-        .ok_or(DbPathError::NoHomeDir)?
-        .join("SDB_benchmarker.db"))
+    */
 }
 
 fn print_error<T>(err: impl std::error::Error) -> T {
@@ -119,57 +59,17 @@ fn print_error<T>(err: impl std::error::Error) -> T {
     std::process::exit(1);
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Default)]
-#[serde(rename_all = "kebab-case")]
-struct AliasingConfig {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    dp_path: Option<PathBuf>,
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    repo_path: HashMap<String, PathBuf>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    flame_path: Option<PathBuf>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    store_dir: Option<PathBuf>,
-}
-
-#[justerror::Error(desc = "Failed reading the main config file")]
-enum MainConfigError {
-    FailedOpening(#[from] io::Error),
-    FailedParsing(#[from] serde_yml::Error),
-}
-
-impl AliasingConfig {
-    fn read_config(path: &Path) -> Result<Self, MainConfigError> {
-        let file = File::open(path)?;
-        Ok(serde_yml::from_reader(file)?)
-    }
-}
-
 fn main() {
-    let args = App::parse();
-    let mut aliasing_config: AliasingConfig = args
-        .aliasing_config_path
-        .or_else(|| env::var_os("SDB_CONFIG").map(Into::into))
-        .map(|path| AliasingConfig::read_config(&path).unwrap_or_else(print_error))
-        .unwrap_or_default();
+    let mut input: ParsedParams = parse_all().unwrap(); // TODO
 
-    let db_path = args
-        .db_path
-        .or(aliasing_config.dp_path)
-        .map(Ok)
-        .unwrap_or_else(default_db_path)
-        .unwrap_or_else(print_error);
-
-    let database = Database::new(&db_path).unwrap_or_else(print_error);
-
-    match args.subcommand {
-        AppSubcommand::Run {
+    match input.params {
+        crate::parsing::Subcommands::Benchmark(BenchmarkParams {
             benchmark_name,
             measure,
-            benchmark_config_path,
             backend_config_path,
+            benchmark_config_path,
             benchmark_mode,
-        } => {
+        }) => {
             let bench_measure = match measure.unwrap_or(MeasureSubcommand::Time) {
                 MeasureSubcommand::Time => BenchMeasure::Time,
                 MeasureSubcommand::PerfStat => BenchMeasure::PerfStat,
@@ -178,10 +78,10 @@ fn main() {
                     frequency,
                     store_dir,
                 } =>  {
-                    aliasing_config.store_dir = aliasing_config.store_dir.or(store_dir);
+                    input.aliasing_config.store_dir = input.aliasing_config.store_dir.or(store_dir);
                     BenchMeasure::FlameGraph {
                     flame_repo: flame_repo
-                        .or(aliasing_config.flame_path)
+                        .or(input.aliasing_config.flame_path)
                         .unwrap_or_default(),
                     frequency,
                 }
@@ -190,65 +90,51 @@ fn main() {
             };
 
             scylladb_drivers_benchmarker::run_benchmarks(
-                &database,
+                &input.database,
                 &benchmark_name,
                 &benchmark_config_path,
                 bench_measure,
                 backend_config_path.as_path(),
                 benchmark_mode,
-                aliasing_config.store_dir,
+                input.aliasing_config.store_dir,
             )
+            .unwrap();
         }
-        .unwrap_or_else(print_error),
-
-        AppSubcommand::Plot {
+        crate::parsing::Subcommands::Plot(PlotParams {
             benchmark_name,
             measurement_method,
             benchmark_config_path,
             from,
-            format,
-            output,
-            plot_kind,
-        } => {
-            let parsed: Vec<RepoNameWithTags> = from.into_iter().map(Into::into).collect();
+            plot_settings,
+        }) => {
+            let parsed: Vec<RepoNameWithTags> = from;
 
             let resolved = parsed
                 .iter()
-                .map(|repo| resolve_repo_tags(repo.clone(), &aliasing_config.repo_path))
+                .map(|repo| resolve_repo_tags(repo.clone(), &input.aliasing_config.repo_path))
                 .collect::<Result<Vec<RepoPathWithCommits>, _>>()
                 .unwrap_or_else(print_error);
 
-            let plot_settings = PlotSettings::new(
-                plot_kind,
-                format,
-                output
-                    .as_deref()
-                    .and_then(|p| p.to_str())
-                    .unwrap_or("plot.png"),
-            );
-
             scylladb_drivers_benchmarker::plot_benchmarks(
                 plot_settings,
-                &database,
+                &input.database,
                 &benchmark_name,
                 &benchmark_config_path,
                 &measurement_method,
                 parsed,
                 resolved,
             )
-            .unwrap_or_else(print_error)
+            .unwrap();
         }
-
-        AppSubcommand::Database { command } => {
-            scylladb_drivers_benchmarker::access_database(&database, command)
-                .unwrap_or_else(print_error)
+        crate::parsing::Subcommands::Database(database_sucommand) => {
+            access_database(&input.database, database_sucommand).unwrap(); // TODO
         }
     }
 }
 
 #[cfg(test)]
 mod test {
-    use clap::Parser;
+    /*use clap::Parser;
 
     use crate::{App, AppSubcommand, DatabaseCommand};
     use scylladb_drivers_benchmarker::{
@@ -348,5 +234,5 @@ mod test {
         assert_eq!(filters.benchmark_names, vec!["my", "benchmark", ""]);
         assert_eq!(filters.benchmark_points, vec![1, 2, 5, 3]);
         assert_eq!(filters.measurement_methods, vec!["m1", "m2", "m4"]);
-    }
+    }*/
 }

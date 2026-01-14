@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use crate::utilities::DatabaseCommand;
 use crate::{
     benchmarking::BenchmarkingError,
     command::CommandParsingError,
@@ -9,22 +10,19 @@ use crate::{
     flame_graph::BenchMeasure,
     measurement::MeasurementMethod,
     plotting::error::PlotError,
-    utilities::{
-        BenchmarkMode, DatabaseCommand, RepoNameWithTags, RepoPathWithCommits, format_entry,
-    },
+    utilities::{BenchmarkMode, RepoNameWithTags, RepoPathWithCommits, format_entry},
 };
-
 pub use plotting::{OutputFormat, PlotKind, PlotSettings, VisKind};
-
-mod benchmarking;
+pub mod benchmarking;
 pub mod command;
 pub mod commit_hash;
-mod config;
+pub mod config;
 pub mod database;
 pub mod flame_graph;
 pub mod measurement;
-mod perf_stat;
-mod plotting;
+pub mod perf_stat;
+pub mod plotting;
+pub mod repo_with_commits;
 pub mod utilities;
 
 #[justerror::Error]
