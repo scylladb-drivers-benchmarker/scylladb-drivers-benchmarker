@@ -92,7 +92,11 @@ fn main() {
             resolved,
             mut plot_settings,
         }) => {
-            if let PlotKind::Flamegraph { artifacts_dir: _, flame_repo } = &mut plot_settings.plot_kind {
+            if let PlotKind::Flamegraph {
+                artifacts_dir: _,
+                flame_repo,
+            } = &mut plot_settings.plot_kind
+            {
                 if flame_repo.is_none() {
                     *flame_repo = input.aliasing_config.flame_path.clone();
                 }

@@ -20,6 +20,8 @@ humantime-serde = "1.1.1"
 subprocess = "0.2.13"
 uuid = { version = "1.19.0", features = ["v4"] }
 fs-err = "3.2.2"
+tempfile = "3.23.0"
+html-escape = "0.2.13"
 
 [dev-dependencies]
 assert_cmd = "2.1.1"

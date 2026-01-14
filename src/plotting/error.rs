@@ -41,8 +41,16 @@ pub enum PlotError {
         plot: String,
     },
 
-    #[error(desc = "Flamegraph repository path is missing; provide --flame-repo or configure global path")]
+    #[error(
+        desc = "Flamegraph repository path is missing; provide --flame-repo or configure global path"
+    )]
     MissingFlameRepo,
+
+    #[error(desc = "I/O error occurred", fmt = debug)]
+    Io {
+        source: std::io::Error,
+        path: Option<String>,
+    },
 }
 
 impl<E> From<DrawingAreaErrorKind<E>> for PlotError
@@ -51,5 +59,23 @@ where
 {
     fn from(e: DrawingAreaErrorKind<E>) -> Self {
         PlotError::Plotters(e.to_string())
+    }
+}
+
+impl From<std::io::Error> for PlotError {
+    fn from(e: std::io::Error) -> Self {
+        PlotError::Io {
+            source: e,
+            path: None,
+        }
+    }
+}
+
+impl PlotError {
+    pub fn from_io_with_path(e: std::io::Error, path: impl Into<String>) -> Self {
+        PlotError::Io {
+            source: e,
+            path: Some(path.into()),
+        }
     }
 }
