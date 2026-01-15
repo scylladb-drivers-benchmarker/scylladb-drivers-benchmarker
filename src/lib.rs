@@ -1,6 +1,8 @@
 use crate::config::backend::BackendConfig;
 use crate::config::benchmark::BenchmarkConfig;
 use crate::database::utilities::BenchmarkFilters;
+use crate::repo_with_commits::RepoNameWithTags;
+use crate::repo_with_commits::RepoPathWithCommits;
 use crate::{
     benchmarking::BenchmarkingError,
     commit_hash::CommitHash,
@@ -8,7 +10,7 @@ use crate::{
     flame_graph::BenchMeasure,
     measurement::MeasurementMethod,
     plotting::error::PlotError,
-    utilities::{BenchmarkMode, RepoNameWithTags, RepoPathWithCommits, format_entry},
+    utilities::{BenchmarkMode, format_entry},
 };
 pub use plotting::{OutputFormat, PlotKind, PlotSettings, VisKind};
 pub mod benchmarking;

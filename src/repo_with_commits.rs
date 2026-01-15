@@ -1,14 +1,19 @@
-use std::{collections::HashMap, path::PathBuf, str::FromStr};
+use std::{collections::HashMap, path::PathBuf};
 
-/*use scylladb_drivers_benchmarker::{
-    commit_hash::{self, CommitHash},
-    utilities::{RepoNameWithTags, RepoPathWithCommits},
-};*/
-
-use crate::RepoNameWithTags;
-use crate::RepoPathWithCommits;
 use crate::commit_hash::CommitHash;
 use crate::commit_hash::FailedToRetrieveCommitHash;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RepoPathWithCommits {
+    pub repo_path: PathBuf,
+    pub git_hashes: Vec<CommitHash>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RepoNameWithTags {
+    pub name: String,
+    pub tags: Vec<String>,
+}
 
 #[justerror::Error]
 pub enum RepoNameWithCommitsParsingError {

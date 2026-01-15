@@ -1,5 +1,4 @@
 use clap::ValueEnum;
-use std::path::PathBuf;
 
 use crate::commit_hash::CommitHash;
 use crate::database::utilities::{BenchmarkParams, BenchmarkRecord};
@@ -65,18 +64,6 @@ impl BenchmarkRecord {
 pub enum BenchmarkMode {
     UseCached,
     ForceRerun,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RepoPathWithCommits {
-    pub repo_path: PathBuf,
-    pub git_hashes: Vec<CommitHash>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RepoNameWithTags {
-    pub name: String,
-    pub tags: Vec<String>,
 }
 
 pub fn format_entry(params: &BenchmarkParams, record: &BenchmarkRecord) -> String {

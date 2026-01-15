@@ -10,8 +10,8 @@ use clap::Args;
 use scylladb_drivers_benchmarker::PlotSettings;
 use scylladb_drivers_benchmarker::config::find_config;
 use scylladb_drivers_benchmarker::repo_with_commits::RepoNameWithCommitsParsingError;
+use scylladb_drivers_benchmarker::repo_with_commits::RepoPathWithCommits;
 use scylladb_drivers_benchmarker::repo_with_commits::resolve_repo_tags;
-use scylladb_drivers_benchmarker::utilities::RepoPathWithCommits;
 use std::path::PathBuf;
 use std::str::FromStr;
 

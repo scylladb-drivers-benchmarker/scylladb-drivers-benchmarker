@@ -5,9 +5,9 @@ use scylladb_drivers_benchmarker::{
     database::{self},
     utilities::FlatBenchmarkRecord,
 };
+use std::fs::File;
 use std::io::Write;
 use std::path::Path;
-use std::fs::File;
 
 mod utilities;
 use utilities::run_utilities::{run_no_output, run_only_stdout, sdb_command};
@@ -130,8 +130,16 @@ fn database_file() {
                 .arg("test"),
         );
 
-            assert!(print_output.contains("FilePath"));
-            assert!(print_output.contains(&tmp_file_path.canonicalize().unwrap().to_string_lossy().to_string()));
+        assert!(print_output.contains("FilePath"));
+        assert!(
+            print_output.contains(
+                &tmp_file_path
+                    .canonicalize()
+                    .unwrap()
+                    .to_string_lossy()
+                    .to_string()
+            )
+        );
     }
 
     {

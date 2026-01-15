@@ -7,7 +7,9 @@ use clap::Parser;
 use scylladb_drivers_benchmarker::OutputFormat;
 use scylladb_drivers_benchmarker::PlotKind;
 use scylladb_drivers_benchmarker::VisKind;
-use scylladb_drivers_benchmarker::{measurement::MeasurementMethod, utilities::RepoNameWithTags};
+use scylladb_drivers_benchmarker::{
+    measurement::MeasurementMethod, repo_with_commits::RepoNameWithTags,
+};
 
 #[test]
 fn basic_run() {

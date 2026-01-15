@@ -3,12 +3,11 @@ use clap::Parser;
 use scylladb_drivers_benchmarker::config::backend::BackendConfig;
 use scylladb_drivers_benchmarker::config::benchmark::BenchmarkConfig;
 use scylladb_drivers_benchmarker::database::utilities::BenchmarkFilters;
+use scylladb_drivers_benchmarker::repo_with_commits::RepoNameWithTags;
+use scylladb_drivers_benchmarker::repo_with_commits::RepoPathWithCommits;
 use scylladb_drivers_benchmarker::{
-    OutputFormat, PlotKind, PlotSettings, command,
-    database::Database,
-    flame_graph::BenchMeasure,
-    measurement::MeasurementMethod,
-    utilities::{BenchmarkMode, RepoNameWithTags, RepoPathWithCommits},
+    OutputFormat, PlotKind, PlotSettings, command, database::Database, flame_graph::BenchMeasure,
+    measurement::MeasurementMethod, utilities::BenchmarkMode,
 };
 
 mod parsing;
@@ -16,7 +15,6 @@ pub struct BenchmarkParams {
     pub bench_measure: BenchMeasure,
 
     pub backend_config: BackendConfig,
-
     pub benchmark_config: BenchmarkConfig,
 
     pub benchmark_mode: BenchmarkMode,
@@ -27,7 +25,7 @@ pub struct PlotParams {
 
     pub benchmark_config: BenchmarkConfig,
 
-    pub from: Vec<RepoNameWithTags>, // TODO 2 separated args for this are bad IMO
+    pub from: Vec<RepoNameWithTags>,
     pub resolved: Vec<RepoPathWithCommits>,
 
     pub plot_settings: PlotSettings,
