@@ -45,14 +45,11 @@ pub enum PlotBenchmarksError {
 pub fn run_benchmarks(
     database: &Database,
     benchmark_name: &str,
-    benchmark_config_path: &Path,
+    benchmark_config: BenchmarkConfig,
     bench_measure: BenchMeasure,
     backend_config_path: &Path,
     benchmark_mode: BenchmarkMode,
 ) -> Result<(), RunBenchmarksError> {
-    let benchmark_config = find_config(benchmark_name, benchmark_config_path)
-        .map_err(RunBenchmarksError::BenchmarkConfig)?;
-
     let backend_config = find_config(benchmark_name, backend_config_path)
         .map_err(RunBenchmarksError::BackendConfig)?;
 

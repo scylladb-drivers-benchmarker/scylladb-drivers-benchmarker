@@ -19,7 +19,7 @@ pub struct BenchmarkParams {
 
     pub backend_config_path: PathBuf, // TODO unwrap to backendConfig
 
-    pub benchmark_config_path: PathBuf, // TODO unwrap to iter
+    pub benchmark_config: BenchmarkConfig,
 
     pub benchmark_mode: BenchmarkMode,
 }
@@ -48,13 +48,13 @@ fn main() {
             benchmark_name,
             bench_measure,
             backend_config_path,
-            benchmark_config_path,
+            benchmark_config,
             benchmark_mode,
         }) => {
             scylladb_drivers_benchmarker::run_benchmarks(
                 &input.database,
                 &benchmark_name,
-                &benchmark_config_path,
+                benchmark_config,
                 bench_measure,
                 backend_config_path.as_path(),
                 benchmark_mode,

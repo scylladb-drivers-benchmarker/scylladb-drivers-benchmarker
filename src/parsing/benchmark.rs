@@ -1,12 +1,13 @@
 use crate::BenchmarkMode;
 use crate::BenchmarkParams;
 use crate::command;
+use crate::parsing::ParsingError;
 use crate::parsing::aliasing::AliasingConfig;
 use clap::Args;
+use scylladb_drivers_benchmarker::config::find_config;
 use scylladb_drivers_benchmarker::flame_graph::BenchMeasure;
 use scylladb_drivers_benchmarker::flame_graph::FlameFrequency;
 use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
-use std::io;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, clap::Subcommand)]
@@ -44,23 +45,11 @@ pub struct BenchmarkCommand {
     pub measure: Option<MeasureSubcommand>,
 }
 
-#[justerror::Error]
-pub enum StoreDirError {
-    NoStoreDir {
-        needed_by: MeasurementMethod,
-    },
-    FailedCanonicalizing(#[from] io::Error),
-    #[error(desc = "Even after canonicalizing, the store directory path is not absolute")]
-    StoreDirNotAbsolute,
-    #[error(desc = "Given path to store is not a directory")]
-    StoreDirNotADir,
-}
-
 impl BenchmarkCommand {
     pub fn finalize(
         self,
         aliasing_config: AliasingConfig,
-    ) -> Result<BenchmarkParams, StoreDirError> {
+    ) -> Result<BenchmarkParams, ParsingError> {
         // TODO IMPROVE, MODIFY bench_params
 
         let measure = self.measure.unwrap_or(MeasureSubcommand::Time);
@@ -75,7 +64,7 @@ impl BenchmarkCommand {
                 store_dir = store_dir.or(aliasing_config.store_dir);
 
                 let Some(mut store_dir) = store_dir else {
-                    return Err(StoreDirError::NoStoreDir {
+                    return Err(ParsingError::NoStoreDir {
                         needed_by: MeasurementMethod::Flamegraph,
                     });
                 };
@@ -85,11 +74,11 @@ impl BenchmarkCommand {
                 }
 
                 if !store_dir.is_absolute() {
-                    return Err(StoreDirError::StoreDirNotAbsolute);
+                    return Err(ParsingError::StoreDirNotAbsolute);
                 }
 
                 if !store_dir.is_dir() {
-                    return Err(StoreDirError::StoreDirNotADir);
+                    return Err(ParsingError::StoreDirNotADir);
                 }
 
                 BenchMeasure::FlameGraph {
@@ -104,11 +93,11 @@ impl BenchmarkCommand {
         };
 
         Ok(BenchmarkParams {
-            benchmark_name: self.benchmark_name,
+            benchmark_name: self.benchmark_name.clone(),
             bench_measure,
 
             backend_config_path: self.backend_config_path,
-            benchmark_config_path: self.benchmark_config_path,
+            benchmark_config: find_config(&self.benchmark_name, &self.benchmark_config_path)?,
             benchmark_mode: self.benchmark_mode,
         })
     }

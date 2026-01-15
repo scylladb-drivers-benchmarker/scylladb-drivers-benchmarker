@@ -10,7 +10,6 @@ use crate::PlotParams;
 use crate::parsing::aliasing::AliasingConfig;
 use crate::parsing::aliasing::MainConfigError;
 use crate::parsing::benchmark::BenchmarkCommand;
-use crate::parsing::benchmark::StoreDirError;
 use crate::parsing::database::DatabaseArgs;
 use crate::parsing::database::DbPathError;
 use crate::parsing::database::default_db_path;
@@ -18,10 +17,12 @@ use crate::parsing::plot::PlotCommand;
 use clap::Parser;
 use scylladb_drivers_benchmarker::config::ConfigError;
 use scylladb_drivers_benchmarker::database::DatabaseError;
+use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
 use scylladb_drivers_benchmarker::repo_with_commits::RepoNameWithCommitsParsingError;
 use scylladb_drivers_benchmarker::utilities::DatabaseCommand;
 
 use std::env;
+use std::io;
 use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
@@ -63,8 +64,15 @@ pub enum ParsingError {
     DatabasePathAccess(#[from] DbPathError),
     DatabaseInitialization(#[from] DatabaseError),
     FromClauser(#[from] RepoNameWithCommitsParsingError),
-    FromBenchmark(#[from] StoreDirError),
     Config(#[from] ConfigError),
+    NoStoreDir {
+        needed_by: MeasurementMethod,
+    },
+    FailedCanonicalizing(#[from] io::Error),
+    #[error(desc = "Even after canonicalizing, the store directory path is not absolute")]
+    StoreDirNotAbsolute,
+    #[error(desc = "Given path to store is not a directory")]
+    StoreDirNotADir,
 }
 
 impl App {
