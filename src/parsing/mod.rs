@@ -6,7 +6,9 @@ pub mod plot;
 mod tests;
 use crate::BenchmarkParams;
 use crate::Database;
+use crate::DropDatabaseParams;
 use crate::PlotParams;
+use crate::PrintDatabaseParams;
 use crate::parsing::aliasing::AliasingConfig;
 use crate::parsing::aliasing::MainConfigError;
 use crate::parsing::benchmark::BenchmarkCommand;
@@ -19,7 +21,6 @@ use scylladb_drivers_benchmarker::config::ConfigError;
 use scylladb_drivers_benchmarker::database::DatabaseError;
 use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
 use scylladb_drivers_benchmarker::repo_with_commits::RepoNameWithCommitsParsingError;
-use scylladb_drivers_benchmarker::utilities::DatabaseCommand;
 
 use std::env;
 use std::io;
@@ -55,7 +56,8 @@ pub struct ParsedParams {
 pub enum Subcommands {
     Benchmark(BenchmarkParams),
     Plot(PlotParams),
-    Database(DatabaseCommand),
+    PrintDatabase(PrintDatabaseParams),
+    DropDatabase(DropDatabaseParams),
 }
 
 #[justerror::Error(desc = "Failed to parse or obtain necessary parameters")]
@@ -92,9 +94,9 @@ impl App {
         let database = Database::new(&db_path)?;
 
         let params: Subcommands = match self.subcommand {
-            AppSubcommands::Run(x) => Subcommands::Benchmark(x.finalize(aliasing_config)?),
-            AppSubcommands::Plot(x) => Subcommands::Plot(x.finalize(aliasing_config)?),
-            AppSubcommands::Database(x) => Subcommands::Database(x.finalize()),
+            AppSubcommands::Run(x) => x.finalize(aliasing_config)?,
+            AppSubcommands::Plot(x) => x.finalize(aliasing_config)?,
+            AppSubcommands::Database(x) => x.finalize(),
         };
 
         Ok(ParsedParams { database, params })

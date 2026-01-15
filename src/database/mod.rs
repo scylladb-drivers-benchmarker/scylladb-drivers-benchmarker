@@ -206,6 +206,8 @@ impl Database {
         self.get_data(&BenchmarkFilters::all())
     }
 
+    /// Drops data matching filters from database.
+    /// If any of the dropped records is FilePath, also removes the file.
     pub fn drop_data(&self, filters: &BenchmarkFilters) -> Result<(), DatabaseError> {
         let to_be_dropped = self.get_data(filters)?;
         for (_, record) in to_be_dropped {
@@ -222,6 +224,8 @@ impl Database {
         Ok(())
     }
 
+    /// Drops all data from database.
+    /// If any of the dropped records is FilePath, also removes the file.
     pub fn drop_all_data(&self) -> Result<(), DatabaseError> {
         self.drop_data(&BenchmarkFilters::all())
     }

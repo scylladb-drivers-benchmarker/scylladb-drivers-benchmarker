@@ -1,6 +1,6 @@
 use crate::config::backend::BackendConfig;
 use crate::config::benchmark::BenchmarkConfig;
-use crate::utilities::DatabaseCommand;
+use crate::database::utilities::BenchmarkFilters;
 use crate::{
     benchmarking::BenchmarkingError,
     commit_hash::CommitHash,
@@ -48,12 +48,6 @@ pub fn run_benchmarks(
     )?)
 }
 
-#[justerror::Error]
-pub enum PlotBenchmarksError {
-    // TODO
-    Plotting(#[from] PlotError),
-}
-
 pub fn plot_benchmarks(
     plot_settings: PlotSettings,
     database: &Database,
@@ -61,7 +55,7 @@ pub fn plot_benchmarks(
     measurement_method: &MeasurementMethod,
     from: Vec<RepoNameWithTags>,
     resolved: Vec<RepoPathWithCommits>,
-) -> Result<(), PlotBenchmarksError> {
+) -> Result<(), PlotError> {
     let names = from
         .into_iter()
         .flat_map(|repo| {
@@ -85,19 +79,15 @@ pub fn plot_benchmarks(
     Ok(())
 }
 
-pub fn access_database(
-    database: &Database,
-    operation: DatabaseCommand,
-) -> Result<(), DatabaseError> {
-    match operation {
-        DatabaseCommand::Print { filters } => {
-            let results = database.get_data(&filters)?;
-            for (params, result) in results.into_iter() {
-                print!("{}", format_entry(&params, &result));
-            }
-        }
-        DatabaseCommand::Drop { filters } => database.drop_data(&filters)?,
-    }
+pub fn drop_database(database: &Database, filters: BenchmarkFilters) -> Result<(), DatabaseError> {
+    database.drop_data(&filters)?;
+    Ok(())
+}
 
+pub fn print_database(database: &Database, filters: BenchmarkFilters) -> Result<(), DatabaseError> {
+    let results = database.get_data(&filters)?;
+    for (params, result) in results.into_iter() {
+        print!("{}", format_entry(&params, &result));
+    }
     Ok(())
 }

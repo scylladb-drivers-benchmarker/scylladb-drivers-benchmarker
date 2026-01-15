@@ -2,6 +2,7 @@ use crate::BenchmarkMode;
 use crate::BenchmarkParams;
 use crate::command;
 use crate::parsing::ParsingError;
+use crate::parsing::Subcommands;
 use crate::parsing::aliasing::AliasingConfig;
 use clap::Args;
 use scylladb_drivers_benchmarker::config::find_config;
@@ -46,10 +47,7 @@ pub struct BenchmarkCommand {
 }
 
 impl BenchmarkCommand {
-    pub fn finalize(
-        self,
-        aliasing_config: AliasingConfig,
-    ) -> Result<BenchmarkParams, ParsingError> {
+    pub fn finalize(self, aliasing_config: AliasingConfig) -> Result<Subcommands, ParsingError> {
         let measure = self.measure.unwrap_or(MeasureSubcommand::Time);
         let bench_measure = match measure {
             MeasureSubcommand::Time => BenchMeasure::Time,
@@ -90,11 +88,11 @@ impl BenchmarkCommand {
             MeasureSubcommand::Command { command } => BenchMeasure::Command(command),
         };
 
-        Ok(BenchmarkParams {
+        Ok(Subcommands::Benchmark(BenchmarkParams {
             bench_measure,
             backend_config: find_config(&self.benchmark_name, &self.backend_config_path)?,
             benchmark_config: find_config(&self.benchmark_name, &self.benchmark_config_path)?,
             benchmark_mode: self.benchmark_mode,
-        })
+        }))
     }
 }

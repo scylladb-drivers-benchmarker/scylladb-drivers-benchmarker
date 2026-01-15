@@ -2,20 +2,13 @@ use clap::ValueEnum;
 use std::path::PathBuf;
 
 use crate::commit_hash::CommitHash;
-use crate::database::utilities::{BenchmarkFilters, BenchmarkParams, BenchmarkRecord};
+use crate::database::utilities::{BenchmarkParams, BenchmarkRecord};
 use plotters::coord::types::RangedCoordu64;
 
 use fs_err as fs;
 
 pub type BenchmarkPoint = u64;
 pub type RangedCoordBenchmarkPoint = RangedCoordu64;
-
-// TODO split into 2 structs IMO
-pub enum DatabaseCommand {
-    Print { filters: BenchmarkFilters },
-
-    Drop { filters: BenchmarkFilters },
-}
 
 /// Often BenchmarkParams params differ only by benchmarkPoint.
 /// This struct makes it easier to create them.

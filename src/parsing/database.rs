@@ -1,9 +1,12 @@
+use crate::parsing::Subcommands;
+
 use clap::Args;
 use clap::Subcommand;
 
+use crate::DropDatabaseParams;
+use crate::PrintDatabaseParams;
 use scylladb_drivers_benchmarker::database::utilities::BenchmarkFilters;
 use scylladb_drivers_benchmarker::utilities::BenchmarkPoint;
-use scylladb_drivers_benchmarker::utilities::DatabaseCommand;
 
 #[derive(Debug, clap::Args)]
 pub struct DatabaseArgs {
@@ -51,14 +54,18 @@ impl From<InputDatabaseFilters> for BenchmarkFilters {
 }
 
 impl DatabaseArgs {
-    pub fn finalize(self) -> DatabaseCommand {
+    pub fn finalize(self) -> Subcommands {
         match self.command {
-            DatabaseCommandINPUT::Print { filters } => DatabaseCommand::Print {
-                filters: filters.into(),
-            },
-            DatabaseCommandINPUT::Drop { filters } => DatabaseCommand::Drop {
-                filters: filters.into(),
-            },
+            DatabaseCommandINPUT::Print { filters } => {
+                Subcommands::PrintDatabase(PrintDatabaseParams {
+                    filters: (filters.into()),
+                })
+            }
+            DatabaseCommandINPUT::Drop { filters } => {
+                Subcommands::DropDatabase(DropDatabaseParams {
+                    filters: (filters.into()),
+                })
+            }
         }
     }
 }
