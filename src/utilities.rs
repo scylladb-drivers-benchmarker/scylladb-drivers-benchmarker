@@ -60,7 +60,7 @@ impl BenchmarkRecord {
     }
 }
 
-#[derive(Copy, Clone, Debug, ValueEnum)]
+#[derive(Copy, Clone, Debug, ValueEnum)] // TODO again rust idiomatic, input benchmark mode and real
 pub enum BenchmarkMode {
     UseCached,
     ForceRerun,
