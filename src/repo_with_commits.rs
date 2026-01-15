@@ -17,30 +17,6 @@ pub enum RepoNameWithCommitsParsingError {
     Infallible(#[from] std::convert::Infallible),
 }
 
-#[derive(Debug, Clone)]
-pub struct ParsableRepoNameWithTags(RepoNameWithTags);
-
-impl From<ParsableRepoNameWithTags> for RepoNameWithTags {
-    fn from(value: ParsableRepoNameWithTags) -> Self {
-        value.0
-    }
-}
-
-impl FromStr for ParsableRepoNameWithTags {
-    type Err = RepoNameWithCommitsParsingError;
-
-    fn from_str(string: &str) -> Result<Self, Self::Err> {
-        let (repo_names_str, tags_str) = string
-            .split_once(':')
-            .ok_or(RepoNameWithCommitsParsingError::PathNotSupplied)?;
-
-        Ok(ParsableRepoNameWithTags(RepoNameWithTags {
-            name: repo_names_str.to_owned(),
-            tags: tags_str.split(',').map(str::to_owned).collect(),
-        }))
-    }
-}
-
 pub fn resolve_repo_tags(
     name_with_tags: RepoNameWithTags,
     name_path_map: &HashMap<String, PathBuf>,
