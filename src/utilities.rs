@@ -52,7 +52,7 @@ impl BenchmarkRecord {
             BenchmarkRecord::Data(s) => FlatBenchmarkRecord::Data(s),
             BenchmarkRecord::FilePath(path) => {
                 let s = fs::read_to_string(&path)
-                    .unwrap_or_else(|_| format!("Failed to read file: {}", path.to_string_lossy()));
+                    .unwrap_or_else(|_| format!("Failed to read file: {}", path.to_string_lossy())); // TODO error
                 FlatBenchmarkRecord::Data(s)
             }
             BenchmarkRecord::Timeout => FlatBenchmarkRecord::Timeout,

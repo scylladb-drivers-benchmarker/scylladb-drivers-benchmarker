@@ -61,20 +61,20 @@ fn series_plot_fails_on_permission_denied() {
     use fs::{self, File};
     use std::fs::Permissions;
     use std::os::unix::fs::PermissionsExt;
-    use std::path::Path;
-    // TODO zmienic na tmp lokalizacje, jesli w trakcje debugu ten plik nie zostanie usuniety, to test failuje
-    let path = Path::new("no_write.png");
+    use tempfile::Builder;
+
+    let tmp = Builder::new().suffix(".png").tempfile().unwrap();
+    let path = tmp.path();
+
     File::create(path).unwrap();
     fs::set_permissions(path, Permissions::from_mode(0o444)).unwrap();
 
     let plot = setup_test_plot();
 
-    let result = plot_on_backend(plot, "no_write.png", OutputFormat::Png);
+    let result = plot_on_backend(plot, path.to_str().unwrap(), OutputFormat::Png);
 
     assert!(matches!(result.unwrap_err(), PlotError::Plotters(msg)
         if msg == "backend error: Drawing backend error: ImageError(IoError(Os { code: 13, kind: PermissionDenied, message: \"Permission denied\" }))"));
-
-    fs::remove_file(path).unwrap();
 }
 
 #[test]
