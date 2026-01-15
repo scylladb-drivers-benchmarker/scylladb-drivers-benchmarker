@@ -50,8 +50,6 @@ impl BenchmarkCommand {
         self,
         aliasing_config: AliasingConfig,
     ) -> Result<BenchmarkParams, ParsingError> {
-        // TODO IMPROVE, MODIFY bench_params
-
         let measure = self.measure.unwrap_or(MeasureSubcommand::Time);
         let bench_measure = match measure {
             MeasureSubcommand::Time => BenchMeasure::Time,
@@ -93,10 +91,8 @@ impl BenchmarkCommand {
         };
 
         Ok(BenchmarkParams {
-            benchmark_name: self.benchmark_name.clone(),
             bench_measure,
-
-            backend_config_path: self.backend_config_path,
+            backend_config: find_config(&self.benchmark_name, &self.backend_config_path)?,
             benchmark_config: find_config(&self.benchmark_name, &self.benchmark_config_path)?,
             benchmark_mode: self.benchmark_mode,
         })

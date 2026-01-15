@@ -1,12 +1,11 @@
-use std::path::Path;
-
+use crate::config::backend::BackendConfig;
 use crate::config::benchmark::BenchmarkConfig;
 use crate::utilities::DatabaseCommand;
 use crate::{
     benchmarking::BenchmarkingError,
     command::CommandParsingError,
     commit_hash::CommitHash,
-    config::{ConfigError, find_config},
+    config::ConfigError,
     database::{Database, DatabaseError},
     flame_graph::BenchMeasure,
     measurement::MeasurementMethod,
@@ -44,15 +43,11 @@ pub enum PlotBenchmarksError {
 
 pub fn run_benchmarks(
     database: &Database,
-    benchmark_name: &str,
     benchmark_config: BenchmarkConfig,
     bench_measure: BenchMeasure,
-    backend_config_path: &Path,
+    backend_config: BackendConfig,
     benchmark_mode: BenchmarkMode,
 ) -> Result<(), RunBenchmarksError> {
-    let backend_config = find_config(benchmark_name, backend_config_path)
-        .map_err(RunBenchmarksError::BackendConfig)?;
-
     let commit_hash = CommitHash::from_current_repository()?;
 
     Ok(benchmarking::benchmark(

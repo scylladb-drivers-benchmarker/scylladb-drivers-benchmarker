@@ -1,6 +1,7 @@
 use crate::parsing::ParsedParams;
 use crate::parsing::parse_all;
 use scylladb_drivers_benchmarker::access_database;
+use scylladb_drivers_benchmarker::config::backend::BackendConfig;
 use scylladb_drivers_benchmarker::config::benchmark::BenchmarkConfig;
 use scylladb_drivers_benchmarker::{
     OutputFormat, PlotKind, PlotSettings, command,
@@ -9,15 +10,12 @@ use scylladb_drivers_benchmarker::{
     measurement::MeasurementMethod,
     utilities::{BenchmarkMode, RepoNameWithTags, RepoPathWithCommits},
 };
-use std::path::PathBuf;
 
 mod parsing;
 pub struct BenchmarkParams {
-    pub benchmark_name: String,
-
     pub bench_measure: BenchMeasure,
 
-    pub backend_config_path: PathBuf, // TODO unwrap to backendConfig
+    pub backend_config: BackendConfig,
 
     pub benchmark_config: BenchmarkConfig,
 
@@ -45,18 +43,16 @@ fn main() {
 
     match input.params {
         crate::parsing::Subcommands::Benchmark(BenchmarkParams {
-            benchmark_name,
             bench_measure,
-            backend_config_path,
+            backend_config,
             benchmark_config,
             benchmark_mode,
         }) => {
             scylladb_drivers_benchmarker::run_benchmarks(
                 &input.database,
-                &benchmark_name,
                 benchmark_config,
                 bench_measure,
-                backend_config_path.as_path(),
+                backend_config,
                 benchmark_mode,
             )
             .unwrap_or_else(print_error);
