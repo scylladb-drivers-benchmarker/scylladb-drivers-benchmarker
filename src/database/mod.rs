@@ -9,6 +9,7 @@ use sqlite::{Connection, State, Statement};
 
 use crate::CommitHash;
 use crate::database::utilities::*;
+use std::path::PathBuf;
 
 pub struct Database {
     connection: Connection,
@@ -27,6 +28,12 @@ pub enum DatabaseError {
         desc = "Provided database contains table Benchmarks with wrong scheme.\nExpected: {0}.\nFound: {1}."
     )]
     WrongTableExists(String, String),
+
+    #[error(desc = "Failed to remove file at path: {path}")]
+    FileRemovalError {
+        source: std::io::Error,
+        path: PathBuf,
+    },
 }
 
 impl Database {
@@ -199,7 +206,17 @@ impl Database {
         self.get_data(&BenchmarkFilters::all())
     }
 
+    /// Drops data matching filters from database.
+    /// If any of the dropped records is FilePath, also removes the file.
     pub fn drop_data(&self, filters: &BenchmarkFilters) -> Result<(), DatabaseError> {
+        let to_be_dropped = self.get_data(filters)?;
+        for (_, record) in to_be_dropped {
+            if let BenchmarkRecord::FilePath(path) = record {
+                std::fs::remove_file(&path)
+                    .map_err(|e| DatabaseError::FileRemovalError { source: e, path })?;
+            }
+        }
+
         self.connection
             .prepare("DELETE FROM Benchmarks ".to_owned() + &self.data_filtration(filters))?
             .next()?;
@@ -207,6 +224,8 @@ impl Database {
         Ok(())
     }
 
+    /// Drops all data from database.
+    /// If any of the dropped records is FilePath, also removes the file.
     pub fn drop_all_data(&self) -> Result<(), DatabaseError> {
         self.drop_data(&BenchmarkFilters::all())
     }

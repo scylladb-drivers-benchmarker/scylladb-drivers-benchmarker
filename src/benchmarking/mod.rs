@@ -1,7 +1,6 @@
 mod executor;
 
 use std::error::Error;
-use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -61,10 +60,6 @@ struct ExecutorCallback<'a, PointsType: Iterator<Item = BenchmarkPoint>> {
     param_generator: BenchmarkParamsBuilder,
 }
 
-fn helper(err: impl Error + 'static) -> Box<dyn Error> {
-    Box::new(err)
-}
-
 impl<'a, PointsType: Iterator<Item = BenchmarkPoint>> Callback
     for ExecutorCallback<'a, PointsType>
 {
@@ -80,7 +75,7 @@ impl<'a, PointsType: Iterator<Item = BenchmarkPoint>> Callback
         };
 
         for point in self.points {
-            let record = execute(point).map_err(helper)?;
+            let record = execute(point).map_err(|e| BenchmarkingError::Measurement(Box::new(e)))?;
             self.database
                 .insert_data(self.param_generator.finalize(point), record)?;
         }
@@ -95,7 +90,6 @@ pub fn benchmark(
     backend_config: BackendConfig,
     bench_measure: BenchMeasure,
     benchmark_mode: BenchmarkMode,
-    store_dir: Option<PathBuf>,
 ) -> Result<(), BenchmarkingError> {
     let BenchmarkConfig {
         name: benchmark_name,
@@ -122,7 +116,6 @@ pub fn benchmark(
     execute_all(
         built_source,
         bench_measure,
-        store_dir,
         Command::from_str(&backend_config.run_command)?,
         ExecutorCallback {
             points: points.into_iter(),

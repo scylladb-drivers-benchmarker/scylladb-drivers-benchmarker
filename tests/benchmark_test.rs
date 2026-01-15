@@ -176,4 +176,22 @@ fn flame_graph() {
         assert!(params.benchmark_point as usize / 1_000 < record_value.matches("foo").count());
         assert!(params.benchmark_point as usize / 1_000 < record_value.matches("goo").count());
     }
+
+    /*run(sdb_command()
+    .args([
+        "-d",
+        "./test.db",
+        "-a",
+        Path::new("./").join(config_name).to_str().unwrap(),
+        "run",
+        "-b",
+        "./bench.yml",
+        "-B",
+        "./back.yml",
+        benchmark_name,
+        "flame-graph",
+        "-s",
+        "./store",
+    ])
+    .current_dir(test_dir));*/
 }

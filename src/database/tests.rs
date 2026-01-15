@@ -1,4 +1,5 @@
 use crate::{commit_hash::CommitHash, database::*};
+use std::path::PathBuf;
 use tempfile::NamedTempFile;
 
 fn get_db() -> (Database, NamedTempFile) {
@@ -47,11 +48,20 @@ fn simple_insert_get() {
 
 #[test]
 fn insert_get_empty() {
+    let tmp_file = NamedTempFile::new().unwrap();
+    let tmp_path: PathBuf = tmp_file.path().to_path_buf();
+
+    assert!(tmp_path.exists());
     insert_get(vec![
         (example_param("aa"), BenchmarkRecord::Data("".to_owned())),
         (example_param("bbb"), BenchmarkRecord::Timeout),
-        (example_param("cccc"), BenchmarkRecord::FilePath("".into())),
+        (
+            example_param("cccc"),
+            BenchmarkRecord::FilePath(tmp_path.clone()),
+        ),
     ]);
+
+    assert!(!tmp_path.exists());
 }
 
 #[test]

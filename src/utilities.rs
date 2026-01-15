@@ -1,21 +1,13 @@
 use clap::ValueEnum;
-use std::path::PathBuf;
 
 use crate::commit_hash::CommitHash;
-use crate::database::utilities::{BenchmarkFilters, BenchmarkParams, BenchmarkRecord};
+use crate::database::utilities::{BenchmarkParams, BenchmarkRecord};
 use plotters::coord::types::RangedCoordu64;
 
 use fs_err as fs;
 
 pub type BenchmarkPoint = u64;
 pub type RangedCoordBenchmarkPoint = RangedCoordu64;
-
-// TODO split into 2 structs IMO
-pub enum DatabaseCommand {
-    Print { filters: BenchmarkFilters },
-
-    Drop { filters: BenchmarkFilters },
-}
 
 /// Often BenchmarkParams params differ only by benchmarkPoint.
 /// This struct makes it easier to create them.
@@ -60,7 +52,7 @@ impl BenchmarkRecord {
             BenchmarkRecord::Data(s) => FlatBenchmarkRecord::Data(s),
             BenchmarkRecord::FilePath(path) => {
                 let s = fs::read_to_string(&path)
-                    .unwrap_or_else(|_| format!("Failed to read file: {}", path.to_string_lossy()));
+                    .unwrap_or_else(|_| format!("Failed to read file: {}", path.to_string_lossy())); // TODO error
                 FlatBenchmarkRecord::Data(s)
             }
             BenchmarkRecord::Timeout => FlatBenchmarkRecord::Timeout,
@@ -68,22 +60,10 @@ impl BenchmarkRecord {
     }
 }
 
-#[derive(Copy, Clone, Debug, ValueEnum)]
+#[derive(Copy, Clone, Debug, ValueEnum)] // TODO again rust idiomatic, input benchmark mode and real
 pub enum BenchmarkMode {
     UseCached,
     ForceRerun,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RepoPathWithCommits {
-    pub repo_path: PathBuf,
-    pub git_hashes: Vec<CommitHash>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RepoNameWithTags {
-    pub name: String,
-    pub tags: Vec<String>,
 }
 
 pub fn format_entry(params: &BenchmarkParams, record: &BenchmarkRecord) -> String {

@@ -1,41 +1,42 @@
-use crate::parsing::ParsedParams;
-use crate::parsing::parse_all;
-use scylladb_drivers_benchmarker::access_database;
+use crate::parsing::App;
+use clap::Parser;
+use scylladb_drivers_benchmarker::config::backend::BackendConfig;
+use scylladb_drivers_benchmarker::config::benchmark::BenchmarkConfig;
+use scylladb_drivers_benchmarker::database::utilities::BenchmarkFilters;
+use scylladb_drivers_benchmarker::repo_with_commits::RepoNameWithTags;
+use scylladb_drivers_benchmarker::repo_with_commits::RepoPathWithCommits;
 use scylladb_drivers_benchmarker::{
-    OutputFormat, PlotKind, PlotSettings, command,
-    database::Database,
-    flame_graph::BenchMeasure,
-    measurement::MeasurementMethod,
-    utilities::{BenchmarkMode, RepoNameWithTags, RepoPathWithCommits},
+    OutputFormat, PlotKind, PlotSettings, command, database::Database, flame_graph::BenchMeasure,
+    measurement::MeasurementMethod, utilities::BenchmarkMode,
 };
-use std::path::PathBuf;
 
 mod parsing;
-use crate::parsing::benchmark::MeasureSubcommand;
-
 pub struct BenchmarkParams {
-    pub benchmark_name: String,
+    pub bench_measure: BenchMeasure,
 
-    pub measure: Option<MeasureSubcommand>,
-
-    pub backend_config_path: PathBuf, // TODO unwrap to backendConfig
-
-    pub benchmark_config_path: PathBuf, // TODO unwrap to iter
+    pub backend_config: BackendConfig,
+    pub benchmark_config: BenchmarkConfig,
 
     pub benchmark_mode: BenchmarkMode,
 }
 
 pub struct PlotParams {
-    pub benchmark_name: String,
-
     pub measurement_method: MeasurementMethod,
 
-    pub benchmark_config_path: PathBuf, // TODO unwrap to iter
+    pub benchmark_config: BenchmarkConfig,
 
-    pub from: Vec<RepoNameWithTags>, // TODO 2 separated args for this are bad IMO
+    pub from: Vec<RepoNameWithTags>,
     pub resolved: Vec<RepoPathWithCommits>,
 
     pub plot_settings: PlotSettings,
+}
+
+pub struct PrintDatabaseParams {
+    pub filters: BenchmarkFilters,
+}
+
+pub struct DropDatabaseParams {
+    pub filters: BenchmarkFilters,
 }
 
 fn print_error<T>(err: impl std::error::Error) -> T {
@@ -44,50 +45,27 @@ fn print_error<T>(err: impl std::error::Error) -> T {
 }
 
 fn main() {
-    let mut input: ParsedParams = parse_all().unwrap_or_else(print_error);
+    let input = App::parse().finalize().unwrap_or_else(print_error);
 
     match input.params {
         crate::parsing::Subcommands::Benchmark(BenchmarkParams {
-            benchmark_name,
-            measure,
-            backend_config_path,
-            benchmark_config_path,
+            bench_measure,
+            backend_config,
+            benchmark_config,
             benchmark_mode,
         }) => {
-            let bench_measure = match measure.unwrap_or(MeasureSubcommand::Time) {
-                MeasureSubcommand::Time => BenchMeasure::Time,
-                MeasureSubcommand::PerfStat => BenchMeasure::PerfStat,
-                MeasureSubcommand::FlameGraph {
-                    flame_repo,
-                    frequency,
-                    store_dir,
-                } => {
-                    input.aliasing_config.store_dir = input.aliasing_config.store_dir.or(store_dir);
-                    BenchMeasure::FlameGraph {
-                        flame_repo: flame_repo
-                            .or(input.aliasing_config.flame_path)
-                            .unwrap_or_default(),
-                        frequency,
-                    }
-                }
-                MeasureSubcommand::Command { command } => BenchMeasure::Command(command),
-            };
-
             scylladb_drivers_benchmarker::run_benchmarks(
                 &input.database,
-                &benchmark_name,
-                &benchmark_config_path,
+                benchmark_config,
                 bench_measure,
-                backend_config_path.as_path(),
+                backend_config,
                 benchmark_mode,
-                input.aliasing_config.store_dir,
             )
-            .unwrap();
+            .unwrap_or_else(print_error);
         }
         crate::parsing::Subcommands::Plot(PlotParams {
-            benchmark_name,
             measurement_method,
-            benchmark_config_path,
+            benchmark_config,
             from,
             resolved,
             mut plot_settings,
@@ -104,16 +82,20 @@ fn main() {
             scylladb_drivers_benchmarker::plot_benchmarks(
                 plot_settings,
                 &input.database,
-                &benchmark_name,
-                &benchmark_config_path,
+                benchmark_config,
                 &measurement_method,
                 from,
                 resolved,
             )
             .unwrap();
         }
-        crate::parsing::Subcommands::Database(database_sucommand) => {
-            access_database(&input.database, database_sucommand).unwrap(); // TODO
+        crate::parsing::Subcommands::PrintDatabase(PrintDatabaseParams { filters }) => {
+            scylladb_drivers_benchmarker::print_database(&input.database, filters)
+                .unwrap_or_else(print_error);
+        }
+        crate::parsing::Subcommands::DropDatabase(DropDatabaseParams { filters }) => {
+            scylladb_drivers_benchmarker::drop_database(&input.database, filters)
+                .unwrap_or_else(print_error);
         }
     }
 }

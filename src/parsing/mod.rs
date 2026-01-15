@@ -1,12 +1,15 @@
-pub mod aliasing;
-pub mod benchmark;
-pub mod database;
-pub mod plot;
+mod aliasing;
+mod benchmark;
+mod database;
+mod plot;
 #[cfg(test)]
 mod tests;
+
 use crate::BenchmarkParams;
 use crate::Database;
+use crate::DropDatabaseParams;
 use crate::PlotParams;
+use crate::PrintDatabaseParams;
 use crate::parsing::aliasing::AliasingConfig;
 use crate::parsing::aliasing::MainConfigError;
 use crate::parsing::benchmark::BenchmarkCommand;
@@ -15,16 +18,18 @@ use crate::parsing::database::DbPathError;
 use crate::parsing::database::default_db_path;
 use crate::parsing::plot::PlotCommand;
 use clap::Parser;
+use scylladb_drivers_benchmarker::config::ConfigError;
 use scylladb_drivers_benchmarker::database::DatabaseError;
+use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
 use scylladb_drivers_benchmarker::repo_with_commits::RepoNameWithCommitsParsingError;
-use scylladb_drivers_benchmarker::utilities::DatabaseCommand;
 
 use std::env;
+use std::io;
 use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
 #[clap(name = "my-app", version, about)]
-struct App {
+pub struct App {
     #[arg(short, long)]
     db_path: Option<PathBuf>,
 
@@ -37,7 +42,7 @@ struct App {
 
 #[derive(Debug, clap::Subcommand)]
 pub enum AppSubcommands {
-    Run(BenchmarkCommand), // TODO zmienilbym na benchmark?
+    Run(BenchmarkCommand),
 
     Plot(PlotCommand),
 
@@ -46,14 +51,15 @@ pub enum AppSubcommands {
 
 pub struct ParsedParams {
     pub database: Database,
-    pub aliasing_config: AliasingConfig,
+    pub aliasing_config: AliasingConfig, // TODO remove
     pub params: Subcommands,
 }
 
 pub enum Subcommands {
     Benchmark(BenchmarkParams),
     Plot(PlotParams),
-    Database(DatabaseCommand),
+    PrintDatabase(PrintDatabaseParams),
+    DropDatabase(DropDatabaseParams),
 }
 
 #[justerror::Error(desc = "Failed to parse or obtain necessary parameters")]
@@ -62,6 +68,15 @@ pub enum ParsingError {
     DatabasePathAccess(#[from] DbPathError),
     DatabaseInitialization(#[from] DatabaseError),
     FromClauser(#[from] RepoNameWithCommitsParsingError),
+    Config(#[from] ConfigError),
+    NoStoreDir {
+        needed_by: MeasurementMethod,
+    },
+    FailedCanonicalizing(#[from] io::Error),
+    #[error(desc = "Even after canonicalizing, the store directory path is not absolute")]
+    StoreDirNotAbsolute,
+    #[error(desc = "Given path to store is not a directory")]
+    StoreDirNotADir,
 }
 
 impl App {
@@ -81,18 +96,15 @@ impl App {
         let database = Database::new(&db_path)?;
 
         let params: Subcommands = match self.subcommand {
-            AppSubcommands::Run(x) => Subcommands::Benchmark(x.finalize()),
-            AppSubcommands::Plot(x) => Subcommands::Plot(x.finalize(&aliasing_config)?),
-            AppSubcommands::Database(x) => Subcommands::Database(x.finalize()),
+            AppSubcommands::Run(x) => x.finalize(aliasing_config.clone())?,
+            AppSubcommands::Plot(x) => x.finalize(aliasing_config.clone())?,
+            AppSubcommands::Database(x) => x.finalize(),
         };
+
         Ok(ParsedParams {
             database,
             aliasing_config,
             params,
         })
     }
-}
-
-pub fn parse_all() -> Result<ParsedParams, ParsingError> {
-    App::parse().finalize()
 }

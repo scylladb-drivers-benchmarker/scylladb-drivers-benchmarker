@@ -43,6 +43,7 @@ pub enum BenchMeasure {
     FlameGraph {
         flame_repo: PathBuf,
         frequency: FlameFrequency,
+        store_dir: PathBuf,
     },
     Command(command::Command),
 }
