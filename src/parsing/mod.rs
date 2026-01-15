@@ -1,9 +1,10 @@
-pub mod aliasing;
-pub mod benchmark;
-pub mod database;
-pub mod plot;
+mod aliasing;
+mod benchmark;
+mod database;
+mod plot;
 #[cfg(test)]
 mod tests;
+
 use crate::BenchmarkParams;
 use crate::Database;
 use crate::DropDatabaseParams;
