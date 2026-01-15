@@ -60,10 +60,6 @@ struct ExecutorCallback<'a, PointsType: Iterator<Item = BenchmarkPoint>> {
     param_generator: BenchmarkParamsBuilder,
 }
 
-fn helper(err: impl Error + 'static) -> Box<dyn Error> {
-    Box::new(err)
-}
-
 impl<'a, PointsType: Iterator<Item = BenchmarkPoint>> Callback
     for ExecutorCallback<'a, PointsType>
 {
@@ -79,7 +75,7 @@ impl<'a, PointsType: Iterator<Item = BenchmarkPoint>> Callback
         };
 
         for point in self.points {
-            let record = execute(point).map_err(helper)?;
+            let record = execute(point).map_err(|e| BenchmarkingError::Measurement(Box::new(e)))?;
             self.database
                 .insert_data(self.param_generator.finalize(point), record)?;
         }

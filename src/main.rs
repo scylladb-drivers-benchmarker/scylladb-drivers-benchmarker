@@ -1,5 +1,5 @@
-use crate::parsing::ParsedParams;
-use crate::parsing::parse_all;
+use crate::parsing::App;
+use clap::Parser;
 use scylladb_drivers_benchmarker::access_database;
 use scylladb_drivers_benchmarker::config::backend::BackendConfig;
 use scylladb_drivers_benchmarker::config::benchmark::BenchmarkConfig;
@@ -39,7 +39,7 @@ fn print_error<T>(err: impl std::error::Error) -> T {
 }
 
 fn main() {
-    let input: ParsedParams = parse_all().unwrap_or_else(print_error);
+    let input = App::parse().finalize().unwrap_or_else(print_error);
 
     match input.params {
         crate::parsing::Subcommands::Benchmark(BenchmarkParams {

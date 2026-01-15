@@ -3,9 +3,7 @@ use crate::config::benchmark::BenchmarkConfig;
 use crate::utilities::DatabaseCommand;
 use crate::{
     benchmarking::BenchmarkingError,
-    command::CommandParsingError,
     commit_hash::CommitHash,
-    config::ConfigError,
     database::{Database, DatabaseError},
     flame_graph::BenchMeasure,
     measurement::MeasurementMethod,
@@ -28,17 +26,7 @@ pub mod utilities;
 #[justerror::Error]
 pub enum RunBenchmarksError {
     Benchmarking(#[from] BenchmarkingError),
-    BenchmarkConfig(#[source] ConfigError),
-    BackendConfig(#[source] ConfigError),
     CommitHash(#[from] Box<commit_hash::FailedToRetrieveCommitHash>),
-}
-
-#[justerror::Error]
-pub enum PlotBenchmarksError {
-    Plotting(#[from] PlotError),
-    BenchmarkConfig(#[from] ConfigError),
-    CommitHash(#[from] Box<commit_hash::FailedToRetrieveCommitHash>),
-    CommandParsingError(#[from] CommandParsingError),
 }
 
 pub fn run_benchmarks(
@@ -58,6 +46,12 @@ pub fn run_benchmarks(
         bench_measure,
         benchmark_mode,
     )?)
+}
+
+#[justerror::Error]
+pub enum PlotBenchmarksError {
+    // TODO
+    Plotting(#[from] PlotError),
 }
 
 pub fn plot_benchmarks(

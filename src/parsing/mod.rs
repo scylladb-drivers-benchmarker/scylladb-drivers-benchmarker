@@ -27,7 +27,7 @@ use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
 #[clap(name = "my-app", version, about)]
-struct App {
+pub struct App {
     #[arg(short, long)]
     db_path: Option<PathBuf>,
 
@@ -40,7 +40,7 @@ struct App {
 
 #[derive(Debug, clap::Subcommand)]
 pub enum AppSubcommands {
-    Run(BenchmarkCommand), // TODO zmienilbym na benchmark?
+    Run(BenchmarkCommand),
 
     Plot(PlotCommand),
 
@@ -99,8 +99,4 @@ impl App {
 
         Ok(ParsedParams { database, params })
     }
-}
-
-pub fn parse_all() -> Result<ParsedParams, ParsingError> {
-    App::parse().finalize()
 }
