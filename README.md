@@ -109,12 +109,18 @@ The benchmarker accepts following options:
 
 Subcommand should be provided after database:
 
-* `run` — Executes, measures, and stores to the database the results of the measurements. It should be invoked from the inside of the repository holding the application being measured.
-  After `run` benchmark named should be passed.
-  * `-m`, `--measurement-method` — the command to measure the performance of the benchmark (e.g. time).
+* `run` — Executes, measures, and stores to the database the results of the measurements. It should be invoked from the inside of the repository holding the application being measured. After `run`, a benchmark named should be passed.
   * `-b`, `--benchmark-config-path` — the path to the configuration file of the benchmark
   * `-B`, `--backend-config-path` — the path to the configuration file of the backend
   * `-M`, `--benchmark-mode` — `used_cached`(default, uses data from database) or `force-rerun`(overrides database data).
+  * The subcommand used profile should be passed next. We support the following:
+    * time (default) — Measures lapsed  real  (wall clock) time used by the process, in seconds.
+    * perf-stat — Gathers the performance counter statistics.
+    * command - Custom measuring command. Should output exactly one number on either `stdout` or `stderr`.
+    * flame-graph — Captures the data given by `perf record`, processes it and collapses the stack. It can be customized using the following options:
+      * `-r`, `--flame-repo` — the path to the flame-graph repository of Brendan Gregg. 
+      * `-f`, `--frequency` — the frequency at which it the run command be profiled.
+      * `-s`, `--store-dir` — the directory in which to store the folded results.
 
 * `plot` — Visualizes and compares the results of previous `runs`, reading them from the database
   After `plot` benchmark name should be passed. Plot type (subcommand) and its possible flags should be provided after the common options.
