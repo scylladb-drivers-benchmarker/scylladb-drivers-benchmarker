@@ -224,26 +224,40 @@ where
             Cartesian2d<RangedCoordBenchmarkPoint, RangedCoordf64>,
         >],
     ) -> Result<(), PlotError> {
-        let size_re = Regex::new(r#"<svg\s+(version="[^"]+")\s+width="[^"]+"\s+height="[^"]+""#)
-            .expect("Regex creation failed");
+        let size_re =
+            Regex::new(r#"<svg\s+(version="[^"]+")\s+width="([^"]+)"\s+height="([^"]+)""#)
+                .expect("Regex creation failed");
 
         for artifact in &self.artifacts {
             let mut flame_svg = fs::read_to_string(artifact.path()).map_err(|e| {
                 PlotError::from_io_with_path(e, artifact.path().display().to_string())
             })?;
 
+            let mut captured_width = String::new();
+            let mut captured_height = String::new();
+
+            // Replace the svg pixel dimensions with relative iframe percentage size
+            // and save the previous ones, to keep aspect ratio.
             flame_svg = size_re
-                .replace(&flame_svg, |caps: &regex::Captures| {
-                    format!("<svg {} width=\"100%\" height=\"100%\"", &caps[1])
+                .replace(&flame_svg, |captures: &regex::Captures| {
+                    captured_width = captures[2].to_string();
+                    captured_height = captures[3].to_string();
+                    format!("<svg {} width=\"100%\" height=\"100%\"", &captures[1])
                 })
                 .into_owned();
+
+            if captured_width.is_empty() || captured_height.is_empty() {
+                return Err(PlotError::Internal(
+                    "Regex match failed in generated svg".into()
+                ))
+            }
 
             let escaped = encode_safe(flame_svg.as_str());
 
             let iframe = format!(
                 r#"<iframe srcdoc='&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;body&gt;{}&lt;&#47;body&gt;&lt;&#47;html&gt;'
-                style="width:100%; height:1080px; border:none"></iframe>"#,
-                escaped
+                style="width:100%; aspect-ratio:{}/{}; border:none"></iframe>"#,
+                escaped, captured_width, captured_height
             );
 
             let mut file = OpenOptions::new()
