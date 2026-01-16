@@ -14,7 +14,7 @@ use crate::measurement::MeasurementMethod;
 use crate::utilities::{BenchmarkMode, BenchmarkParamsBuilder, BenchmarkPoint};
 use executor::build_source;
 
-use crate::config::{backend::BackendConfig, benchmark::BenchmarkConfig};
+use crate::config::backend::BackendConfig;
 
 use super::database::*;
 

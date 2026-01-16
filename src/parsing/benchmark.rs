@@ -92,7 +92,9 @@ impl BenchmarkCommand {
         Ok(Subcommands::Benchmark(BenchmarkParams {
             bench_measure,
             backend_config: find_config(&self.benchmark_name, &self.backend_config_path)?,
-            benchmark_config: self.benchmark_configuration.to_config(self.benchmark_name)?,
+            benchmark_config: self
+                .benchmark_configuration
+                .to_config(self.benchmark_name)?,
             benchmark_mode: self.benchmark_mode,
         }))
     }

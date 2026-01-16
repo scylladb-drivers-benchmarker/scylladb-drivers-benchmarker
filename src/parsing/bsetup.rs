@@ -1,9 +1,9 @@
-use std::{convert::Infallible, num::ParseIntError, path::PathBuf, str::FromStr};
+use std::{num::ParseIntError, path::PathBuf, str::FromStr};
 
 use scylladb_drivers_benchmarker::{
     config::{
         ConfigError,
-        benchmark::{BenchmarkConfig, BenchmarkConfiguration, BenchmarkData},
+        benchmark::{BenchmarkConfig, BenchmarkData},
         find_config,
     },
     utilities::BenchmarkPoint,
