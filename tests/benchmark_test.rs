@@ -133,6 +133,9 @@ fn flame_graph() {
         as well as allowed access to performance monitoring (needed by perf to run)",
         test_dir.join(config_name).display()
     );
+    println!("It may be necessary to run: ");
+    println!("sudo sh -c 'echo \"-1\" > /proc/sys/kernel/perf_event_paranoid'");
+    println!("sudo sh -c 'echo \"0\" > /proc/sys/kernel/kptr_restrict'");
     run(sdb_command()
         .args([
             "-d",
