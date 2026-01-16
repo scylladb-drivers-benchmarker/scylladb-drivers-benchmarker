@@ -22,6 +22,7 @@ uuid = { version = "1.19.0", features = ["v4"] }
 fs-err = "3.2.2"
 tempfile = "3.23.0"
 html-escape = "0.2.13"
+regex = "1.12.2"
 
 [dev-dependencies]
 assert_cmd = "2.1.1"

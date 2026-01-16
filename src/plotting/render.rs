@@ -5,6 +5,7 @@ use html_escape::encode_safe;
 use plotters::coord::types::RangedCoordf64;
 use plotters::prelude::*;
 
+use regex::Regex;
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
@@ -239,9 +240,19 @@ where
         >],
     ) -> Result<(), PlotError> {
         for artifact in &self.artifacts {
-            let flame_svg = fs::read_to_string(artifact.path()).map_err(|e| {
+            let mut flame_svg = fs::read_to_string(artifact.path()).map_err(|e| {
                 PlotError::from_io_with_path(e, artifact.path().display().to_string())
             })?;
+
+            let size_re =
+                Regex::new(r#"<svg\s+(version="[^"]+")\s+width="[^"]+"\s+height="[^"]+""#)
+                    .expect("Regex creation failed");
+
+            flame_svg = size_re
+                .replace(&flame_svg, |caps: &regex::Captures| {
+                    format!("<svg {} width=\"100%\" height=\"100%\"", &caps[1])
+                })
+                .into_owned();
 
             let escaped = encode_safe(flame_svg.as_str());
 
