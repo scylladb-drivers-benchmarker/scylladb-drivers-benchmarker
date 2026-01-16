@@ -40,7 +40,11 @@ pub(crate) enum FlameMeasuringError {
 
 impl FlameMeasuringError {
     fn new_failure(exit_status: ExitStatus, mut popen: Popen, command: command::Command) -> Self {
-        let stderr = popen.communicate_bytes(None).unwrap().1.unwrap();
+        let stderr = popen
+            .communicate_bytes(None)
+            .ok()
+            .map(|pipes| pipes.1.expect("stderr has to be piped"))
+            .unwrap_or_default();
         FlameMeasuringError::SubExecFailed {
             exit_status,
             stderr: String::from_utf8_lossy(&stderr).into(),
