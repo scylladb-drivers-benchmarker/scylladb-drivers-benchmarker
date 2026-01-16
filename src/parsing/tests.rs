@@ -4,7 +4,6 @@ use crate::parsing::BenchmarkCommand;
 use crate::parsing::PlotCommand;
 use crate::parsing::database::DatabaseCommandINPUT;
 use clap::Parser;
-use scylladb_drivers_benchmarker::OutputFormat;
 use scylladb_drivers_benchmarker::PlotKind;
 use scylladb_drivers_benchmarker::VisKind;
 use scylladb_drivers_benchmarker::{
@@ -34,8 +33,6 @@ fn advanced_plot() {
         "-o",
         "plot.svg",
         "series",
-        "-f",
-        "svg"
     ]);
 
     let AppSubcommands::Plot(PlotCommand {
@@ -55,9 +52,11 @@ fn advanced_plot() {
 
     assert!(matches!(plot_kind, PlotKind::Series { .. }));
     match plot_kind {
-        PlotKind::Series { measurement_method, format, visualization_kind } => {
+        PlotKind::Series {
+            measurement_method,
+            visualization_kind,
+        } => {
             assert!(matches!(measurement_method, MeasurementMethod::Time));
-            assert!(matches!(format, OutputFormat::Svg));
             assert!(matches!(visualization_kind, VisKind::Linear));
         }
         _ => panic!("Expected PlotKind::Series"),

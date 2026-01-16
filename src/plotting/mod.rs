@@ -17,16 +17,15 @@ mod render_tests;
 use crate::config::benchmark::BenchmarkConfig;
 use crate::database::Database;
 use crate::perf_stat::PerfStatData;
-use crate::plotting::flamegraph_plot::FlamegraphPlot;
 use crate::{commit_hash::CommitHash, measurement::MeasurementMethod};
 
 use data::BenchmarkDataset;
 use error::PlotError;
+use flamegraph_plot::FlamegraphPlot;
 use perf_stat_plot::PerfStatPlot;
 use plot::{NullBackend, Plot};
 pub use series::VisKind;
 use series_plot::SeriesPlot;
-use std::fmt;
 use std::path::PathBuf;
 
 use plotters::backend::{BitMapBackend, SVGBackend};
@@ -41,10 +40,6 @@ pub enum PlotKind {
     Series {
         #[arg(short, long, default_value_t = MeasurementMethod::Time)]
         measurement_method: MeasurementMethod,
-    
-        /// Output format of the plot
-        #[arg(short, long, value_enum, default_value_t = OutputFormat::Png)]
-        format: OutputFormat,
 
         #[arg(short, long, value_enum, default_value_t = VisKind::Linear)]
         visualization_kind: VisKind,
@@ -61,41 +56,10 @@ pub enum PlotKind {
 
     /// Generate a perf-stat plot
     PerfStat {
-        /// Output format of the plot
-        #[arg(short, long, value_enum, default_value_t = OutputFormat::Png)]
-        format: OutputFormat,
-
         #[arg(short, long)]
         #[clap(value_delimiter=',', num_args(1..))]
         events: Vec<String>,
     },
-}
-
-impl fmt::Display for PlotKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            PlotKind::Series { .. } => "series",
-            PlotKind::PerfStat { .. } => "perf-stat",
-            PlotKind::Flamegraph { .. } => "flamegraph",
-        })
-    }
-}
-
-#[derive(Debug, Clone, Copy, clap::ValueEnum, PartialEq)]
-pub enum OutputFormat {
-    Png,
-    Svg,
-    Html,
-}
-
-impl fmt::Display for OutputFormat {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            OutputFormat::Png => "png",
-            OutputFormat::Svg => "svg",
-            OutputFormat::Html => "html",
-        })
-    }
 }
 
 pub struct PlotSettings {
@@ -105,27 +69,21 @@ pub struct PlotSettings {
 
 impl PlotSettings {
     pub fn new(plot_kind: PlotKind, output: String) -> Self {
-        PlotSettings {
-            plot_kind,
-            output,
-        }
+        PlotSettings { plot_kind, output }
     }
 }
 
-fn plot_on_backend<P: Plot>(plot: P, output: &str, format: OutputFormat) -> Result<(), PlotError> {
+fn plot_on_backend(plot: impl Plot, output: &str) -> Result<(), PlotError> {
     let extension = output.rsplit('.').next().unwrap_or("").to_string();
 
-    if format.to_string() != extension {
-        return Err(PlotError::IncompatibleFileExtension {
-            extension,
-            format: format.to_string().to_owned(),
-        });
-    }
-
-    match format {
-        OutputFormat::Png => plot.plot(BitMapBackend::new(output, IMAGE_SIZE)),
-        OutputFormat::Svg => plot.plot(SVGBackend::new(output, IMAGE_SIZE)),
-        OutputFormat::Html => plot.plot(NullBackend {}),
+    match extension.as_str() {
+        "png" => plot.plot(BitMapBackend::new(output, IMAGE_SIZE)),
+        "svg" => plot.plot(SVGBackend::new(output, IMAGE_SIZE)),
+        "html" => plot.plot(NullBackend {}),
+        _ => Err(PlotError::IncompatibleOutputFormat {
+            format: extension,
+            plot: plot.name().to_owned(),
+        }),
     }
 }
 
@@ -137,14 +95,10 @@ pub fn plot(
     names: &[String],
 ) -> Result<(), PlotError> {
     match plot_settings.plot_kind {
-        PlotKind::Series { measurement_method, format, visualization_kind } => {
-            if format == OutputFormat::Html {
-                return Err(PlotError::IncompatibleOutputFormat {
-                    format: OutputFormat::Html.to_string(),
-                    plot: PlotKind::Series { measurement_method, format, visualization_kind }.to_string(),
-                });
-            }
-
+        PlotKind::Series {
+            measurement_method,
+            visualization_kind,
+        } => {
             let dataset: BenchmarkDataset<f64> = BenchmarkDataset::new(
                 database,
                 &benchmark_config,
@@ -159,7 +113,7 @@ pub fn plot(
                 visualization_kind,
             )?;
 
-            plot_on_backend(plot, &plot_settings.output, format)
+            plot_on_backend(plot, &plot_settings.output)
         }
 
         PlotKind::Flamegraph {
@@ -188,17 +142,10 @@ pub fn plot(
                 artifacts_dir,
             )?;
 
-            plot_on_backend(plot, &plot_settings.output,OutputFormat::Html)
+            plot_on_backend(plot, &plot_settings.output)
         }
 
-        PlotKind::PerfStat { format, events } => {
-            if format == OutputFormat::Html {
-                return Err(PlotError::IncompatibleOutputFormat {
-                    format: OutputFormat::Html.to_string(),
-                    plot: PlotKind::PerfStat { format, events }.to_string(),
-                });
-            }
-
+        PlotKind::PerfStat { events } => {
             let dataset: BenchmarkDataset<PerfStatData> = BenchmarkDataset::new(
                 database,
                 &benchmark_config,
@@ -208,7 +155,7 @@ pub fn plot(
 
             let plot = PerfStatPlot::from_dataset(dataset, benchmark_config.name, names, events)?;
 
-            plot_on_backend(plot, &plot_settings.output, format)
+            plot_on_backend(plot, &plot_settings.output)
         }
     }
 }

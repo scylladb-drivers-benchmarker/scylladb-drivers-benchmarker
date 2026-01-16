@@ -201,4 +201,8 @@ impl Plot for FlamegraphPlot {
 
         Ok(())
     }
+
+    fn name(&self) -> &'static str {
+        "flamegraph plot"
+    }
 }

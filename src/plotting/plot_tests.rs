@@ -39,17 +39,13 @@ fn series_plot_runs() {
     let plot = setup_test_plot();
 
     let path = NamedTempFile::new().unwrap().path().with_extension("png");
-    let result = plot_on_backend(plot, path.to_str().unwrap(), OutputFormat::Png);
+    let result = plot_on_backend(plot, path.to_str().unwrap());
     assert!(result.is_ok());
 }
 
 #[test]
 fn series_plot_fails_file_not_found() {
-    let result = plot_on_backend(
-        setup_test_plot(),
-        "/this/path/should/not/exist/lmao.png",
-        OutputFormat::Png,
-    );
+    let result = plot_on_backend(setup_test_plot(), "/this/path/should/not/exist/lmao.png");
 
     assert!(matches!(result.unwrap_err(), PlotError::Plotters(problem)
         if problem == "backend error: Drawing backend error: ImageError(IoError(Os { code: 2, kind: NotFound, message: \"No such file or directory\" }))"));
@@ -71,7 +67,7 @@ fn series_plot_fails_on_permission_denied() {
 
     let plot = setup_test_plot();
 
-    let result = plot_on_backend(plot, path.to_str().unwrap(), OutputFormat::Png);
+    let result = plot_on_backend(plot, path.to_str().unwrap());
 
     assert!(matches!(result.unwrap_err(), PlotError::Plotters(msg)
         if msg == "backend error: Drawing backend error: ImageError(IoError(Os { code: 13, kind: PermissionDenied, message: \"Permission denied\" }))"));
@@ -85,12 +81,12 @@ fn series_plot_fails_incompatible_file_extension() {
         .unwrap()
         .path()
         .to_path_buf()
-        .with_extension("svg");
-    let result = plot_on_backend(plot, path.to_str().unwrap(), OutputFormat::Png);
+        .with_extension("exe");
+    let result = plot_on_backend(plot, path.to_str().unwrap());
 
     assert!(
-        matches!(result.unwrap_err(), PlotError::IncompatibleFileExtension { extension, format}
-            if extension == "svg" && format == "png")
+        matches!(result.unwrap_err(), PlotError::IncompatibleOutputFormat { format, plot}
+            if format == "exe" && plot == "series plot")
     );
 }
 
@@ -150,7 +146,7 @@ fn perf_stat_plot_runs() {
     let mut tmp_path = NamedTempFile::new().unwrap().path().to_path_buf();
     tmp_path.set_extension("png");
     let path_png = tmp_path.to_str().unwrap();
-    let result = plot_on_backend(plot, path_png, OutputFormat::Png);
+    let result = plot_on_backend(plot, path_png);
     assert!(result.is_ok());
 }
 

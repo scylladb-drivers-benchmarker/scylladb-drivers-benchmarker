@@ -1,13 +1,15 @@
 use fs_err as fs;
 use image::{RgbaImage, open};
 use resvg::{tiny_skia, usvg};
-use scylladb_drivers_benchmarker::OutputFormat;
 
-fn load_image(path: &str, format: OutputFormat) -> RgbaImage {
-    match format {
-        OutputFormat::Png => open(path).unwrap().to_rgba8(),
-        OutputFormat::Svg => svg_to_rgba(path.as_ref()),
-        OutputFormat::Html => panic!("image from html not implemented or whatever"),
+fn load_image(path: &str) -> RgbaImage {
+    let extension = path.rsplit('.').next().unwrap_or("").to_string();
+
+    match extension.as_str() {
+        "png" => open(path).unwrap().to_rgba8(),
+        "svg" => svg_to_rgba(path.as_ref()),
+        "html" => panic!("image from html not implemented or whatever"),
+        _ => panic!("unknown extension/format type"),
     }
 }
 
@@ -24,11 +26,9 @@ fn svg_to_rgba(path: &std::path::Path) -> RgbaImage {
     RgbaImage::from_raw(pixmap.width(), pixmap.height(), pixmap.data().to_vec()).unwrap()
 }
 
-pub fn check_files_equality(output: &str, expected_output: &str, format: OutputFormat) {
-    let result = image_compare::rgba_hybrid_compare(
-        &load_image(output, format),
-        &load_image(expected_output, format),
-    )
-    .expect("Images had different dimensions");
+pub fn check_files_equality(output: &str, expected_output: &str) {
+    let result =
+        image_compare::rgba_hybrid_compare(&load_image(output), &load_image(expected_output))
+            .expect("Images had different dimensions");
     assert!(result.score > 0.95, "similarity too low: {}", result.score);
 }

@@ -5,7 +5,7 @@ use utilities::{
 };
 
 use scylladb_drivers_benchmarker::{
-    OutputFormat, VisKind,
+    VisKind,
     commit_hash::CommitHash,
     database::{
         self,
@@ -94,12 +94,7 @@ fn setup_initial_data(
     }
 }
 
-fn plot_series_generic_test(
-    output: &str,
-    expected_output: &str,
-    vis_kind: VisKind,
-    format: OutputFormat,
-) {
+fn plot_series_generic_test(output: &str, expected_output: &str, vis_kind: VisKind) {
     let test_data = setup_initial_data(generate_series_data);
 
     run_no_output(sdb_command().args([
@@ -117,16 +112,14 @@ fn plot_series_generic_test(
         &vis_kind.to_string(),
         "-m",
         "time",
-        "-f",
-        &format.to_string(),
     ]));
 
-    check_files_equality(output, expected_output, format);
+    check_files_equality(output, expected_output);
 
     fs::remove_file(output).unwrap();
 }
 
-fn plot_perf_generic_test(output: &str, expected_output: &str, format: OutputFormat) {
+fn plot_perf_generic_test(output: &str, expected_output: &str) {
     let test_data = setup_initial_data(generate_perf_data);
 
     run_no_output(sdb_command().args([
@@ -140,13 +133,11 @@ fn plot_perf_generic_test(output: &str, expected_output: &str, format: OutputFor
         "-o",
         output,
         "perf-stat",
-        "-f",
-        &format.to_string(),
         "-e",
         "task-clock,context-switches,page-faults",
     ]));
 
-    check_files_equality(output, expected_output, format);
+    check_files_equality(output, expected_output);
     fs::remove_file(output).unwrap();
 }
 
@@ -156,7 +147,7 @@ fn plot_series() {
     let expected_base = "./tests/plot_test/expected_series";
 
     let vis_kinds = [VisKind::Linear, VisKind::Log];
-    let formats = [OutputFormat::Png, OutputFormat::Svg];
+    let formats = ["png", "svg"];
 
     for vis_kind in &vis_kinds {
         for format in &formats {
@@ -166,7 +157,6 @@ fn plot_series() {
                 &(output_base.to_owned() + &sufix),
                 &(expected_base.to_owned() + &sufix),
                 *vis_kind,
-                *format,
             );
         }
     }
@@ -177,7 +167,7 @@ fn plot_perf() {
     let output_base = "./tests/plot_test/perf";
     let expected_base = "./tests/plot_test/expected_perf";
 
-    let formats = [OutputFormat::Png, OutputFormat::Svg];
+    let formats = ["png", "svg"];
 
     for format in &formats {
         let sufix = format!(".{}", format);
@@ -185,7 +175,6 @@ fn plot_perf() {
         plot_perf_generic_test(
             &(output_base.to_owned() + &sufix),
             &(expected_base.to_owned() + &sufix),
-            *format,
         );
     }
 }

@@ -299,4 +299,8 @@ impl Plot for PerfStatPlot {
         root.present()?;
         Ok(())
     }
+
+    fn name(&self) -> &'static str {
+        "perf-stat plot"
+    }
 }

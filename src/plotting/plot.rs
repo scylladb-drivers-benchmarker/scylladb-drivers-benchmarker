@@ -25,6 +25,8 @@ pub(crate) trait Plot {
     fn plot<DB: DrawingBackend + BackendWithKind>(&self, backend: DB) -> Result<(), PlotError>
     where
         DB::ErrorType: 'static;
+
+    fn name(&self) -> &'static str;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

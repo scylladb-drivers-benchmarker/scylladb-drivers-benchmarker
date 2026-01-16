@@ -2,11 +2,11 @@ use fs::OpenOptions;
 
 use crate::CommitHash;
 use crate::Database;
-use crate::measurement::MeasurementMethod;
 use crate::PlotError;
 use crate::config;
 use crate::database::utilities::BenchmarkParams;
 use crate::database::utilities::{BenchmarkFilters, BenchmarkRecord};
+use crate::measurement::MeasurementMethod;
 use crate::plotting::BenchmarkConfig;
 use crate::plotting::data::BenchmarkDataset;
 use crate::utilities::BenchmarkPoint;

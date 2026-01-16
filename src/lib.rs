@@ -11,7 +11,7 @@ use crate::{
     plotting::error::PlotError,
     utilities::{BenchmarkMode, format_entry},
 };
-pub use plotting::{OutputFormat, PlotKind, PlotSettings, VisKind};
+pub use plotting::{PlotKind, PlotSettings, VisKind};
 pub mod benchmarking;
 pub mod command;
 pub mod commit_hash;

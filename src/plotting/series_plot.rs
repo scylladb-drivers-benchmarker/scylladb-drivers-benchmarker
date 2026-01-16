@@ -124,4 +124,8 @@ impl Plot for SeriesPlot {
 
         Ok(())
     }
+
+    fn name(&self) -> &'static str {
+        "series plot"
+    }
 }
