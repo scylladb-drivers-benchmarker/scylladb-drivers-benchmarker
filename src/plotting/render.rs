@@ -247,7 +247,6 @@ where
             );
 
             let mut file = OpenOptions::new()
-                .write(true)
                 .append(true)
                 .open(&self.output)
                 .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
