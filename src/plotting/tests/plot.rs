@@ -1,5 +1,10 @@
-use super::*;
-use data::BenchmarkDataset;
+use crate::plotting::data::BenchmarkDataset;
+use crate::plotting::VisKind;
+use crate::plotting::series_plot::SeriesPlot;
+use crate::plotting::perf_stat_plot::PerfStatPlot;
+use crate::plotting::plot_on_backend;
+use crate::plotting::PlotError;
+
 use fs_err as fs;
 use std::str::FromStr;
 use tempfile::NamedTempFile;

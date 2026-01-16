@@ -8,11 +8,7 @@ mod series;
 mod series_plot;
 
 #[cfg(test)]
-mod data_tests;
-#[cfg(test)]
-mod plot_tests;
-#[cfg(test)]
-mod render_tests;
+mod tests;
 
 use crate::config::benchmark::BenchmarkConfig;
 use crate::database::Database;
@@ -73,7 +69,7 @@ impl PlotSettings {
     }
 }
 
-fn plot_on_backend(plot: impl Plot, output: &str) -> Result<(), PlotError> {
+pub(crate) fn plot_on_backend(plot: impl Plot, output: &str) -> Result<(), PlotError> {
     let extension = output.rsplit('.').next().unwrap_or("").to_string();
 
     match extension.as_str() {
