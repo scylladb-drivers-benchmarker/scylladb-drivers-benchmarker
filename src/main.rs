@@ -40,7 +40,7 @@ pub struct DropDatabaseParams {
 }
 
 fn print_error<T>(err: impl std::error::Error) -> T {
-    println!("{}", err);
+    eprintln!("{}", err);
     std::process::exit(1);
 }
 
@@ -53,16 +53,14 @@ fn main() {
             backend_config,
             benchmark_config,
             benchmark_mode,
-        }) => {
-            scylladb_drivers_benchmarker::run_benchmarks(
-                &input.database,
-                benchmark_config,
-                bench_measure,
-                backend_config,
-                benchmark_mode,
-            )
-            .unwrap_or_else(print_error);
-        }
+        }) => scylladb_drivers_benchmarker::run_benchmarks(
+            &input.database,
+            benchmark_config,
+            bench_measure,
+            backend_config,
+            benchmark_mode,
+        )
+        .unwrap_or_else(print_error),
         crate::parsing::Subcommands::Plot(PlotParams {
             measurement_method,
             benchmark_config,
@@ -87,15 +85,15 @@ fn main() {
                 from,
                 resolved,
             )
-            .unwrap_or_else(print_error)
         }
+        .unwrap_or_else(print_error),
         crate::parsing::Subcommands::PrintDatabase(PrintDatabaseParams { filters }) => {
             scylladb_drivers_benchmarker::print_database(&input.database, filters)
-                .unwrap_or_else(print_error);
+                .unwrap_or_else(print_error)
         }
         crate::parsing::Subcommands::DropDatabase(DropDatabaseParams { filters }) => {
             scylladb_drivers_benchmarker::drop_database(&input.database, filters)
-                .unwrap_or_else(print_error);
+                .unwrap_or_else(print_error)
         }
     }
 }
