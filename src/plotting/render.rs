@@ -50,9 +50,6 @@ pub(crate) struct RenderablePerfStat {
 }
 
 pub(crate) struct RenderableFlamegraph {
-    pub points: Vec<BenchmarkPoint>,
-    pub name: String,
-    data: Vec<Option<String>>,
     output: PathBuf,
     artifacts: Vec<ArtifactFile>,
 }
@@ -209,20 +206,8 @@ where
 }
 
 impl RenderableFlamegraph {
-    pub(crate) fn new(
-        name: String,
-        points: Vec<BenchmarkPoint>,
-        data: Vec<Option<String>>,
-        output: PathBuf,
-        artifacts: Vec<ArtifactFile>,
-    ) -> Self {
-        RenderableFlamegraph {
-            name,
-            points,
-            data,
-            output,
-            artifacts,
-        }
+    pub(crate) fn new(output: PathBuf, artifacts: Vec<ArtifactFile>) -> Self {
+        RenderableFlamegraph { output, artifacts }
     }
 }
 
@@ -239,14 +224,13 @@ where
             Cartesian2d<RangedCoordBenchmarkPoint, RangedCoordf64>,
         >],
     ) -> Result<(), PlotError> {
+        let size_re = Regex::new(r#"<svg\s+(version="[^"]+")\s+width="[^"]+"\s+height="[^"]+""#)
+            .expect("Regex creation failed");
+
         for artifact in &self.artifacts {
             let mut flame_svg = fs::read_to_string(artifact.path()).map_err(|e| {
                 PlotError::from_io_with_path(e, artifact.path().display().to_string())
             })?;
-
-            let size_re =
-                Regex::new(r#"<svg\s+(version="[^"]+")\s+width="[^"]+"\s+height="[^"]+""#)
-                    .expect("Regex creation failed");
 
             flame_svg = size_re
                 .replace(&flame_svg, |caps: &regex::Captures| {
@@ -268,7 +252,7 @@ where
                 .open(&self.output)
                 .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
 
-            writeln!(file, "{}", iframe)
+            writeln!(file, "{iframe}")
                 .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
         }
 
