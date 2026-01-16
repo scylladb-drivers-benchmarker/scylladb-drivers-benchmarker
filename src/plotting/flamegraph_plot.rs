@@ -262,7 +262,6 @@ impl Plot for FlamegraphPlot {
             let mut file = OpenOptions::new()
                 .create(true)
                 .write(true)
-                .append(true)
                 .truncate(true)
                 .open(&self.output)
                 .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
