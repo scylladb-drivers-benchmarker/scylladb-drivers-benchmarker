@@ -238,12 +238,10 @@ where
             Cartesian2d<RangedCoordBenchmarkPoint, RangedCoordf64>,
         >],
     ) -> Result<(), PlotError> {
-        for (i, artifact) in self.artifacts.iter().enumerate() {
-            let mut flame_svg = fs::read_to_string(artifact.path()).map_err(|e| {
+        for artifact in &self.artifacts {
+            let flame_svg = fs::read_to_string(artifact.path()).map_err(|e| {
                 PlotError::from_io_with_path(e, artifact.path().display().to_string())
             })?;
-
-            flame_svg = flame_svg.replace(">Flame Graph<", format!(">{} at {}<", self.name, self.points[i]).as_str());
 
             let escaped = encode_safe(flame_svg.as_str());
 

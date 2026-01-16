@@ -115,13 +115,21 @@ impl FlamegraphPlot {
                                 })?;
 
                                 if !output.status.success() {
-                                    return Err(PlotError::InvalidData(format!(
-                                        "flamegraph.pl failed on data point {}",
+                                    return Err(PlotError::Internal(format!(
+                                        "flamegraph.pl failed on {} data point {}",
+                                        name,
                                         i
                                     )));
                                 }
 
-                                fs::write(artifact.path(), &output.stdout).map_err(|e| {
+                                let mut stdout_str = String::from_utf8(output.stdout.to_vec())
+                                    .map_err(|_| PlotError::Internal(
+                                        "stdout UTF-8 parsing failed".into()
+                                    ))?;
+
+                                stdout_str = stdout_str.replace(">Flame Graph<", format!("{} at {}", name, i).as_str());
+
+                                fs::write(artifact.path(), &stdout_str).map_err(|e| {
                                     PlotError::from_io_with_path(
                                         e,
                                         artifact.path().to_string_lossy(),
