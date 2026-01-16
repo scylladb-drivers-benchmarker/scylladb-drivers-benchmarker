@@ -133,7 +133,7 @@ impl FlamegraphPlot {
 
                                 stdout_str = stdout_str.replace(
                                     ">Flame Graph<",
-                                    format!("{} at {}", name, i).as_str(),
+                                    format!(">{} at {}<", name, i).as_str(),
                                 );
 
                                 fs::write(artifact.path(), &stdout_str).map_err(|e| {
@@ -209,7 +209,7 @@ impl FlamegraphPlot {
 
                                 stdout_str = stdout_str.replace(
                                     ">Flame Graph<",
-                                    format!("{} at {}", name, i).as_str(),
+                                    format!(">{} at {}<", name, i).as_str(),
                                 );
 
                                 fs::write(artifact.path(), stdout_str).map_err(|e| {
