@@ -182,23 +182,22 @@ impl Plot for FlamegraphPlot {
                 self.benchmark_name, self.benchmark_name
             );
 
-            writeln!(file, "{header}")?;
+            writeln!(file, "{header}")
+                .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
         }
 
         for renderable in &self.results {
             <RenderableFlamegraph as Renderable<'_, DB>>::add_to_plot(renderable, &mut [])?;
         }
 
-        {
-            let mut file = OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(&self.output)
-                .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
+        let mut file = OpenOptions::new()
+            .append(true)
+            .open(&self.output)
+            .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
 
-            let footer = r#"</body></html>"#;
-            writeln!(file, "{footer}")?;
-        }
+        let footer = r#"</body></html>"#;
+        writeln!(file, "{footer}")
+            .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
 
         Ok(())
     }
