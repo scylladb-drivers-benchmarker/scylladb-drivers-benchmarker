@@ -40,10 +40,10 @@ mod tests {
     #[test]
     fn serialize_benchmark_config() {
         let config = BackendConfig {
-            name: "scylladb-nodejs-rs-driver".to_string(),
-            benchmark_name: "select".to_string(),
-            build_command: "npm run build".to_string(),
-            run_command: "node benchmark/logic/select.js scylladb-nodejs-rs-driver".to_string(),
+            name: "scylladb-nodejs-rs-driver".to_owned(),
+            benchmark_name: "select".to_owned(),
+            build_command: "npm run build".to_owned(),
+            run_command: "node benchmark/logic/select.js scylladb-nodejs-rs-driver".to_owned(),
         };
 
         let serialized: String = serde_yml::to_string(&config).unwrap();
@@ -59,10 +59,10 @@ run-command: node benchmark/logic/select.js scylladb-nodejs-rs-driver
     #[test]
     fn find_config() {
         let config = |name| BackendConfig {
-            name: "name: ".to_string() + name,
-            benchmark_name: "benchmark_".to_string() + name,
-            build_command: "build_cmd_".to_string() + name,
-            run_command: "run_cmd_".to_string() + name,
+            name: "name: ".to_owned() + name,
+            benchmark_name: "benchmark_".to_owned() + name,
+            build_command: "build_cmd_".to_owned() + name,
+            run_command: "run_cmd_".to_owned() + name,
         };
 
         let backend_config_list = BackendConfigList {

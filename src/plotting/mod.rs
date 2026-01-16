@@ -171,7 +171,7 @@ pub fn plot(
 
             let flame_repo = flame_repo.ok_or_else(|| {
                 PlotError::InvalidData(
-                    "Flamegraph repository path is missing; please provide `--flame-repo` or configure it in the global config".to_string(),
+                    "Flamegraph repository path is missing; please provide `--flame-repo` or configure it in the global config".to_owned(),
                 )
             })?;
 

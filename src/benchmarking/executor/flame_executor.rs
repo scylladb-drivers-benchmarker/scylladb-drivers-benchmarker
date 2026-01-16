@@ -43,7 +43,7 @@ impl FlameMeasuringError {
         let stderr = popen.communicate_bytes(None).unwrap().1.unwrap();
         FlameMeasuringError::SubExecFailed {
             exit_status,
-            stderr: String::from_utf8_lossy(&stderr).to_string(),
+            stderr: String::from_utf8_lossy(&stderr).into(),
             command,
         }
     }
@@ -93,7 +93,6 @@ impl FlameExecutor {
                 self.flame_repo
                     .join("stackcollapse-perf.pl")
                     .to_string_lossy()
-                    .to_string()
             ),
         ]
     }

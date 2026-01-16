@@ -62,7 +62,7 @@ impl Command {
 
     pub fn from_command_lossy(command: &process::Command) -> Self {
         Command {
-            program: command.get_program().to_string_lossy().to_string(),
+            program: command.get_program().to_string_lossy().into(),
             arguments: command
                 .get_args()
                 .map(OsStr::to_string_lossy)
