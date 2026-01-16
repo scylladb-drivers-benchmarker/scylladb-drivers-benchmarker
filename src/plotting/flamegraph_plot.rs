@@ -149,7 +149,7 @@ impl FlamegraphPlot {
                 None => {
                     let mut artifacts_result = Vec::new();
 
-                    for folded in data.iter() {
+                    for (i, folded) in data.iter().enumerate() {
                         let artifact = match folded {
                             Some(folded_data) => {
                                 let artifact = ArtifactFile::temp();
@@ -190,12 +190,19 @@ impl FlamegraphPlot {
                                 })?;
 
                                 if !output.status.success() {
-                                    return Err(PlotError::InvalidData(
+                                    return Err(PlotError::Internal(
                                         "flamegraph.pl failed for temp artifact".to_string(),
                                     ));
                                 }
+                                
+                                let mut stdout_str = String::from_utf8(output.stdout.to_vec())
+                                    .map_err(|_| PlotError::Internal(
+                                        "stdout UTF-8 parsing failed".into()
+                                    ))?;
 
-                                fs::write(artifact.path(), &output.stdout).map_err(|e| {
+                                stdout_str = stdout_str.replace(">Flame Graph<", format!("{} at {}", name, i).as_str());
+
+                                fs::write(artifact.path(), stdout_str).map_err(|e| {
                                     PlotError::from_io_with_path(
                                         e,
                                         artifact.path().to_string_lossy(),
