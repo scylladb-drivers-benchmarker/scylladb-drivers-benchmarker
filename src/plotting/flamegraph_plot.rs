@@ -240,16 +240,9 @@ impl Plot for FlamegraphPlot {
             .open(&self.output)
             .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
 
-        writeln!(file, "<!DOCTYPE html>")?;
-        writeln!(file, "<html>")?;
-        writeln!(file, "<body>")?;
-
         for renderable in &self.results {
             <RenderableFlamegraph as Renderable<'_, DB>>::add_to_plot(renderable, &mut [])?;
         }
-
-        writeln!(file, "</body>")?;
-        writeln!(file, "</html>")?;
 
         Ok(())
     }
