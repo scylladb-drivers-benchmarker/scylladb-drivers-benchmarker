@@ -48,7 +48,7 @@ fn init_db() -> TestSetup {
     let configs = vec![
         BenchmarkConfig {
             name: "benchmark1".to_owned(),
-            data: config::benchmark::BenchmarkData {
+            data: config::benchmark::BenchmarkConfiguration {
                 starting_step: 1,
                 no_steps: 3,
                 step_progress: 1,
@@ -58,7 +58,7 @@ fn init_db() -> TestSetup {
         },
         BenchmarkConfig {
             name: "benchmark2".to_owned(),
-            data: config::benchmark::BenchmarkData {
+            data: config::benchmark::BenchmarkConfiguration {
                 starting_step: 10,
                 no_steps: 1,
                 step_progress: 1,
@@ -200,7 +200,7 @@ fn extract_perfstat_dataset() {
 
     let config = BenchmarkConfig {
         name: "benchmark_perf".to_owned(),
-        data: config::benchmark::BenchmarkData {
+        data: config::benchmark::BenchmarkConfiguration {
             starting_step: 1,
             no_steps: 2,
             step_progress: 1,

@@ -2,6 +2,7 @@ mod aliasing;
 mod benchmark;
 mod database;
 mod plot;
+mod bsetup;
 #[cfg(test)]
 mod tests;
 

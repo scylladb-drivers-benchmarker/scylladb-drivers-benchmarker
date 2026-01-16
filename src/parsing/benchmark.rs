@@ -4,6 +4,7 @@ use crate::command;
 use crate::parsing::ParsingError;
 use crate::parsing::Subcommands;
 use crate::parsing::aliasing::AliasingConfig;
+use crate::parsing::bsetup::BenchmarkSetup;
 use clap::Args;
 use scylladb_drivers_benchmarker::config::find_config;
 use scylladb_drivers_benchmarker::flame_graph::BenchMeasure;
@@ -36,8 +37,8 @@ pub struct BenchmarkCommand {
     #[arg(short = 'B', long, default_value = "./config.yml")]
     pub backend_config_path: PathBuf,
 
-    #[arg(short, long, default_value = "./config.yml")]
-    pub benchmark_config_path: PathBuf,
+    #[arg(short = 'b', long, default_value = "./config.yml")]
+    pub benchmark_configuration: BenchmarkSetup,
 
     #[arg(long, short = 'M', value_enum, default_value_t = BenchmarkMode::UseCached)]
     pub benchmark_mode: BenchmarkMode,
@@ -91,7 +92,7 @@ impl BenchmarkCommand {
         Ok(Subcommands::Benchmark(BenchmarkParams {
             bench_measure,
             backend_config: find_config(&self.benchmark_name, &self.backend_config_path)?,
-            benchmark_config: find_config(&self.benchmark_name, &self.benchmark_config_path)?,
+            benchmark_config: self.benchmark_configuration.to_config(self.benchmark_name)?,
             benchmark_mode: self.benchmark_mode,
         }))
     }

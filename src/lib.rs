@@ -1,5 +1,6 @@
 use crate::config::backend::BackendConfig;
 use crate::config::benchmark::BenchmarkConfig;
+use crate::config::benchmark::BenchmarkData;
 use crate::database::utilities::BenchmarkFilters;
 use crate::repo_with_commits::RepoNameWithTags;
 use crate::repo_with_commits::RepoPathWithCommits;
@@ -32,7 +33,7 @@ pub enum RunBenchmarksError {
 
 pub fn run_benchmarks(
     database: &Database,
-    benchmark_config: BenchmarkConfig,
+    benchmark_config: BenchmarkData,
     bench_measure: BenchMeasure,
     backend_config: BackendConfig,
     benchmark_mode: BenchmarkMode,

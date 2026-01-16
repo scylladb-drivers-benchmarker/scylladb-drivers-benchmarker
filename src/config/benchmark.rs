@@ -14,7 +14,7 @@ pub enum ProgressType {
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
-pub struct BenchmarkData {
+pub struct BenchmarkConfiguration {
     pub starting_step: BenchmarkPoint,
     pub no_steps: BenchmarkPoint,
     pub step_progress: BenchmarkPoint,
@@ -27,7 +27,7 @@ pub struct BenchmarkData {
     pub timeout: Option<Duration>,
 }
 
-impl BenchmarkData {
+impl BenchmarkConfiguration {
     pub fn benchmark_points(&self) -> impl Iterator<Item = BenchmarkPoint> {
         struct ReturnIterator {
             pub starting_step: BenchmarkPoint,
@@ -66,7 +66,23 @@ pub struct BenchmarkConfig {
     pub name: String,
 
     #[serde(flatten)]
-    pub data: BenchmarkData,
+    pub data: BenchmarkConfiguration,
+}
+
+pub struct BenchmarkData {
+    pub name: String,
+    pub points: Vec<BenchmarkPoint>,
+    pub timeout: Option<Duration>,
+}
+
+impl From<BenchmarkConfig> for BenchmarkData {
+    fn from(value: BenchmarkConfig) -> Self {
+        BenchmarkData {
+            name: value.name,
+            points: value.data.benchmark_points().collect(),
+            timeout: value.data.timeout,
+        }
+    }
 }
 
 impl Configuration for BenchmarkConfig {
@@ -99,7 +115,7 @@ mod tests {
 
     #[test]
     fn points_additive() {
-        let data = BenchmarkData {
+        let data = BenchmarkConfiguration {
             starting_step: 7,
             no_steps: 3,
             step_progress: 2,
@@ -112,7 +128,7 @@ mod tests {
 
     #[test]
     fn points_multiplicative() {
-        let data = BenchmarkData {
+        let data = BenchmarkConfiguration {
             starting_step: 3,
             no_steps: 3,
             step_progress: 2,
@@ -127,7 +143,7 @@ mod tests {
     fn serde_benchmark_config() {
         let config = BenchmarkConfig {
             name: "benchmark_name".to_owned(),
-            data: BenchmarkData {
+            data: BenchmarkConfiguration {
                 starting_step: 1,
                 no_steps: 5,
                 step_progress: 2,
@@ -156,7 +172,7 @@ timeout: '3s'
     fn serde_benchmark_config_list() {
         let config1 = BenchmarkConfig {
             name: "benchmark_name1".to_owned(),
-            data: BenchmarkData {
+            data: BenchmarkConfiguration {
                 starting_step: 1,
                 no_steps: 5,
                 step_progress: 2,
@@ -167,7 +183,7 @@ timeout: '3s'
 
         let config2 = BenchmarkConfig {
             name: "benchmark_name2".to_owned(),
-            data: BenchmarkData {
+            data: BenchmarkConfiguration {
                 starting_step: 2,
                 no_steps: 6,
                 step_progress: 3,

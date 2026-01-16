@@ -7,6 +7,7 @@ use std::time::Duration;
 use crate::benchmarking::executor::{Callback, CompileError, execute_all};
 use crate::command::{Command, CommandParsingError};
 use crate::commit_hash::CommitHash;
+use crate::config::benchmark::BenchmarkData;
 use crate::database::utilities::BenchmarkFilters;
 use crate::flame_graph::BenchMeasure;
 use crate::measurement::MeasurementMethod;
@@ -86,14 +87,15 @@ impl<'a, PointsType: Iterator<Item = BenchmarkPoint>> Callback
 pub fn benchmark(
     database: &Database,
     commit_hash: CommitHash,
-    benchmark_config: BenchmarkConfig,
+    benchmark_config: BenchmarkData,
     backend_config: BackendConfig,
     bench_measure: BenchMeasure,
     benchmark_mode: BenchmarkMode,
 ) -> Result<(), BenchmarkingError> {
-    let BenchmarkConfig {
+    let BenchmarkData {
         name: benchmark_name,
-        data: benchmark_data,
+        points,
+        timeout,
     } = benchmark_config;
 
     let measurement_method: MeasurementMethod = bench_measure.clone().into();
@@ -102,7 +104,7 @@ pub fn benchmark(
 
     let points = filter_points(
         database,
-        benchmark_data.benchmark_points(),
+        points.into_iter(),
         &param_generator,
         benchmark_mode,
     )?;
@@ -119,7 +121,7 @@ pub fn benchmark(
         Command::from_str(&backend_config.run_command)?,
         ExecutorCallback {
             points: points.into_iter(),
-            timeout: benchmark_data.timeout,
+            timeout,
             database,
             param_generator,
         },

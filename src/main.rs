@@ -2,6 +2,7 @@ use crate::parsing::App;
 use clap::Parser;
 use scylladb_drivers_benchmarker::config::backend::BackendConfig;
 use scylladb_drivers_benchmarker::config::benchmark::BenchmarkConfig;
+use scylladb_drivers_benchmarker::config::benchmark::BenchmarkData;
 use scylladb_drivers_benchmarker::database::utilities::BenchmarkFilters;
 use scylladb_drivers_benchmarker::repo_with_commits::RepoNameWithTags;
 use scylladb_drivers_benchmarker::repo_with_commits::RepoPathWithCommits;
@@ -15,7 +16,7 @@ pub struct BenchmarkParams {
     pub bench_measure: BenchMeasure,
 
     pub backend_config: BackendConfig,
-    pub benchmark_config: BenchmarkConfig,
+    pub benchmark_config: BenchmarkData,
 
     pub benchmark_mode: BenchmarkMode,
 }
