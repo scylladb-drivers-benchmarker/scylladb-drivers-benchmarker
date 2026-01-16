@@ -2,7 +2,7 @@ use fs::OpenOptions;
 
 use crate::CommitHash;
 use crate::Database;
-use crate::MeasurementMethod;
+use crate::measurement::MeasurementMethod;
 use crate::PlotError;
 use crate::config;
 use crate::database::utilities::BenchmarkParams;

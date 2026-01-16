@@ -8,7 +8,6 @@ use crate::{
     commit_hash::CommitHash,
     database::{Database, DatabaseError},
     flame_graph::BenchMeasure,
-    measurement::MeasurementMethod,
     plotting::error::PlotError,
     utilities::{BenchmarkMode, format_entry},
 };
@@ -54,7 +53,6 @@ pub fn plot_benchmarks(
     plot_settings: PlotSettings,
     database: &Database,
     benchmark_config: BenchmarkConfig,
-    measurement_method: &MeasurementMethod,
     from: Vec<RepoNameWithTags>,
     resolved: Vec<RepoPathWithCommits>,
 ) -> Result<(), PlotError> {
@@ -73,7 +71,6 @@ pub fn plot_benchmarks(
         plot_settings,
         database,
         benchmark_config,
-        measurement_method,
         commit_hashes,
         &names,
     )?;

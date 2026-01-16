@@ -39,6 +39,13 @@ pub(crate) const IMAGE_SIZE: (u32, u32) = (IMAGE_WIDTH, IMAGE_HEIGHT);
 pub enum PlotKind {
     /// Generate a series plot
     Series {
+        #[arg(short, long, default_value_t = MeasurementMethod::Time)]
+        measurement_method: MeasurementMethod,
+    
+        /// Output format of the plot
+        #[arg(short, long, value_enum, default_value_t = OutputFormat::Png)]
+        format: OutputFormat,
+
         #[arg(short, long, value_enum, default_value_t = VisKind::Linear)]
         visualization_kind: VisKind,
     },
@@ -54,6 +61,10 @@ pub enum PlotKind {
 
     /// Generate a perf-stat plot
     PerfStat {
+        /// Output format of the plot
+        #[arg(short, long, value_enum, default_value_t = OutputFormat::Png)]
+        format: OutputFormat,
+
         #[arg(short, long)]
         #[clap(value_delimiter=',', num_args(1..))]
         events: Vec<String>,
@@ -89,15 +100,13 @@ impl fmt::Display for OutputFormat {
 
 pub struct PlotSettings {
     pub plot_kind: PlotKind,
-    format: OutputFormat,
     output: String,
 }
 
 impl PlotSettings {
-    pub fn new(plot_kind: PlotKind, format: OutputFormat, output: String) -> Self {
+    pub fn new(plot_kind: PlotKind, output: String) -> Self {
         PlotSettings {
             plot_kind,
-            format,
             output,
         }
     }
@@ -124,16 +133,15 @@ pub fn plot(
     plot_settings: PlotSettings,
     database: &Database,
     benchmark_config: BenchmarkConfig,
-    measurement_method: &MeasurementMethod,
     commit_hashes: impl Iterator<Item = CommitHash>,
     names: &[String],
 ) -> Result<(), PlotError> {
     match plot_settings.plot_kind {
-        PlotKind::Series { visualization_kind } => {
-            if plot_settings.format == OutputFormat::Html {
+        PlotKind::Series { measurement_method, format, visualization_kind } => {
+            if format == OutputFormat::Html {
                 return Err(PlotError::IncompatibleOutputFormat {
                     format: OutputFormat::Html.to_string(),
-                    plot: PlotKind::Series { visualization_kind }.to_string(),
+                    plot: PlotKind::Series { measurement_method, format, visualization_kind }.to_string(),
                 });
             }
 
@@ -141,7 +149,7 @@ pub fn plot(
                 database,
                 &benchmark_config,
                 commit_hashes,
-                measurement_method,
+                &measurement_method,
             )?;
 
             let plot = SeriesPlot::from_dataset(
@@ -151,24 +159,13 @@ pub fn plot(
                 visualization_kind,
             )?;
 
-            plot_on_backend(plot, &plot_settings.output, plot_settings.format)
+            plot_on_backend(plot, &plot_settings.output, format)
         }
 
         PlotKind::Flamegraph {
             artifacts_dir,
             flame_repo,
         } => {
-            if plot_settings.format != OutputFormat::Html {
-                return Err(PlotError::IncompatibleOutputFormat {
-                    format: plot_settings.format.to_string(),
-                    plot: PlotKind::Flamegraph {
-                        artifacts_dir,
-                        flame_repo,
-                    }
-                    .to_string(),
-                });
-            }
-
             let flame_repo = flame_repo.ok_or_else(|| {
                 PlotError::InvalidData(
                     "Flamegraph repository path is missing; please provide `--flame-repo` or configure it in the global config".to_owned(),
@@ -179,7 +176,7 @@ pub fn plot(
                 database,
                 &benchmark_config,
                 commit_hashes,
-                measurement_method,
+                &MeasurementMethod::Flamegraph,
             )?;
 
             let plot = FlamegraphPlot::from_dataset(
@@ -191,14 +188,14 @@ pub fn plot(
                 artifacts_dir,
             )?;
 
-            plot_on_backend(plot, &plot_settings.output, plot_settings.format)
+            plot_on_backend(plot, &plot_settings.output,OutputFormat::Html)
         }
 
-        PlotKind::PerfStat { events } => {
-            if plot_settings.format == OutputFormat::Html {
+        PlotKind::PerfStat { format, events } => {
+            if format == OutputFormat::Html {
                 return Err(PlotError::IncompatibleOutputFormat {
                     format: OutputFormat::Html.to_string(),
-                    plot: PlotKind::PerfStat { events }.to_string(),
+                    plot: PlotKind::PerfStat { format, events }.to_string(),
                 });
             }
 
@@ -206,12 +203,12 @@ pub fn plot(
                 database,
                 &benchmark_config,
                 commit_hashes,
-                measurement_method,
+                &MeasurementMethod::Perf,
             )?;
 
             let plot = PerfStatPlot::from_dataset(dataset, benchmark_config.name, names, events)?;
 
-            plot_on_backend(plot, &plot_settings.output, plot_settings.format)
+            plot_on_backend(plot, &plot_settings.output, format)
         }
     }
 }

@@ -31,19 +31,18 @@ fn advanced_plot() {
         "--from=repo:branch",
         "--from",
         "repo2:commit",
-        "--format=svg",
         "-o",
         "plot.svg",
         "series",
+        "-f",
+        "svg"
     ]);
 
     let AppSubcommands::Plot(PlotCommand {
         benchmark_name,
-        measurement_method,
         benchmark_config_path: _,
         from,
         output,
-        format,
         plot_kind,
     }) = args.subcommand
     else {
@@ -53,12 +52,13 @@ fn advanced_plot() {
     let from: Vec<RepoNameWithTags> = from.into_iter().map(From::from).collect();
 
     assert_eq!(benchmark_name, "select");
-    assert_eq!(measurement_method, MeasurementMethod::Time);
 
     assert!(matches!(plot_kind, PlotKind::Series { .. }));
     match plot_kind {
-        PlotKind::Series { visualization_kind } => {
-            assert!(matches!(visualization_kind, VisKind::Linear))
+        PlotKind::Series { measurement_method, format, visualization_kind } => {
+            assert!(matches!(measurement_method, MeasurementMethod::Time));
+            assert!(matches!(format, OutputFormat::Svg));
+            assert!(matches!(visualization_kind, VisKind::Linear));
         }
         _ => panic!("Expected PlotKind::Series"),
     }
@@ -77,7 +77,6 @@ fn advanced_plot() {
         )
     );
     assert_eq!(output, PathBuf::from("plot.svg".to_owned()));
-    assert!(matches!(format, OutputFormat::Svg));
 }
 
 #[test]

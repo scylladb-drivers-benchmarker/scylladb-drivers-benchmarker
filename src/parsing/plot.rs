@@ -1,5 +1,3 @@
-use crate::MeasurementMethod;
-use crate::OutputFormat;
 use crate::PlotKind;
 use crate::PlotParams;
 use crate::RepoNameWithTags;
@@ -19,19 +17,12 @@ use std::str::FromStr;
 pub struct PlotCommand {
     pub benchmark_name: String,
 
-    #[arg(short, long, default_value_t = MeasurementMethod::Time)]
-    pub measurement_method: MeasurementMethod,
-
     #[arg(short, long, default_value = "./config.yml")]
     pub benchmark_config_path: PathBuf,
 
     /// The source of data for the plot
     #[arg(long, value_name = "REPOSITORY_PATH:TAG1,TAG2,...")]
     pub from: Vec<ParsableRepoNameWithTags>,
-
-    /// Output format of the plot
-    #[arg(short, long, value_enum, default_value_t = OutputFormat::Png)]
-    pub format: OutputFormat,
 
     /// Path to save the plot image
     #[arg(short, long, value_name = "FILE_PATH")]
@@ -77,7 +68,6 @@ impl PlotCommand {
 
         let plot_settings = PlotSettings::new(
             self.plot_kind,
-            self.format,
             self.output
                 .to_str()
                 .expect("Invalid UTF-8 path") // TODO probably error not panic
@@ -85,7 +75,6 @@ impl PlotCommand {
         );
 
         Ok(Subcommands::Plot(PlotParams {
-            measurement_method: self.measurement_method,
             benchmark_config: find_config(&self.benchmark_name, &self.benchmark_config_path)?,
             from: parsed,
             resolved,

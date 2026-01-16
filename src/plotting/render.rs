@@ -248,8 +248,8 @@ where
 
             if captured_width.is_empty() || captured_height.is_empty() {
                 return Err(PlotError::Internal(
-                    "Regex match failed in generated svg".into()
-                ))
+                    "Regex match failed in generated svg".into(),
+                ));
             }
 
             let escaped = encode_safe(flame_svg.as_str());

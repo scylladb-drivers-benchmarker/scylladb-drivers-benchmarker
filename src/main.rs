@@ -6,8 +6,8 @@ use scylladb_drivers_benchmarker::database::utilities::BenchmarkFilters;
 use scylladb_drivers_benchmarker::repo_with_commits::RepoNameWithTags;
 use scylladb_drivers_benchmarker::repo_with_commits::RepoPathWithCommits;
 use scylladb_drivers_benchmarker::{
-    OutputFormat, PlotKind, PlotSettings, command, database::Database, flame_graph::BenchMeasure,
-    measurement::MeasurementMethod, utilities::BenchmarkMode,
+    PlotKind, PlotSettings, command, database::Database, flame_graph::BenchMeasure,
+    utilities::BenchmarkMode,
 };
 
 mod parsing;
@@ -21,8 +21,6 @@ pub struct BenchmarkParams {
 }
 
 pub struct PlotParams {
-    pub measurement_method: MeasurementMethod,
-
     pub benchmark_config: BenchmarkConfig,
 
     pub from: Vec<RepoNameWithTags>,
@@ -62,7 +60,6 @@ fn main() {
         )
         .unwrap_or_else(print_error),
         crate::parsing::Subcommands::Plot(PlotParams {
-            measurement_method,
             benchmark_config,
             from,
             resolved,
@@ -81,7 +78,6 @@ fn main() {
                 plot_settings,
                 &input.database,
                 benchmark_config,
-                &measurement_method,
                 from,
                 resolved,
             )
