@@ -29,11 +29,31 @@ pub enum PlotError {
         measurement_method: String,
     },
 
-    #[error(desc = "incompatible file extension for the selected output format", fmt=debug)]
+    #[error(desc = "incompatible file extension for the selected output format", fmt = debug)]
     IncompatibleFileExtension {
         extension: String,
         format: String,
     },
+
+    #[error(desc = "incompatible output format for the selected plot", fmt = debug)]
+    IncompatibleOutputFormat {
+        format: String,
+        plot: String,
+    },
+
+    #[error(
+        desc = "Flamegraph repository path is missing; provide --flame-repo or configure global path"
+    )]
+    MissingFlameRepo,
+
+    #[error(desc = "I/O error occurred", fmt = debug)]
+    Io {
+        source: std::io::Error,
+        path: Option<String>,
+    },
+
+    #[error(desc = "fatal internal error", fmt = debug)]
+    Internal(String),
 }
 
 impl<E> From<DrawingAreaErrorKind<E>> for PlotError
@@ -42,5 +62,23 @@ where
 {
     fn from(e: DrawingAreaErrorKind<E>) -> Self {
         PlotError::Plotters(e.to_string())
+    }
+}
+
+impl From<std::io::Error> for PlotError {
+    fn from(e: std::io::Error) -> Self {
+        PlotError::Io {
+            source: e,
+            path: None,
+        }
+    }
+}
+
+impl PlotError {
+    pub fn from_io_with_path(e: std::io::Error, path: impl Into<String>) -> Self {
+        PlotError::Io {
+            source: e,
+            path: Some(path.into()),
+        }
     }
 }

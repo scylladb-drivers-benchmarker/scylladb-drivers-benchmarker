@@ -1,5 +1,8 @@
 use super::error::PlotError;
+
+use plotters::backend::DrawingBackend;
 use plotters::prelude::*;
+use plotters_backend::DrawingErrorKind;
 
 pub(crate) const MARGIN_SIZE: u32 = 20;
 pub(crate) const X_LABEL_AREA_SIZE: u32 = 40;
@@ -28,6 +31,33 @@ pub(crate) trait Plot {
 pub(crate) enum BackendKind {
     Bitmap,
     Svg,
+    Html,
+}
+
+pub(crate) struct NullBackend;
+
+impl DrawingBackend for NullBackend {
+    type ErrorType = std::convert::Infallible;
+
+    fn get_size(&self) -> (u32, u32) {
+        (0, 0)
+    }
+
+    fn ensure_prepared(&mut self) -> Result<(), DrawingErrorKind<Self::ErrorType>> {
+        Ok(())
+    }
+
+    fn present(&mut self) -> Result<(), DrawingErrorKind<Self::ErrorType>> {
+        Ok(())
+    }
+
+    fn draw_pixel(
+        &mut self,
+        _point: plotters_backend::BackendCoord,
+        _color: plotters_backend::BackendColor,
+    ) -> Result<(), DrawingErrorKind<Self::ErrorType>> {
+        Ok(())
+    }
 }
 
 // A very hacky way to differentiate backends, necessary as text has different pixel size.
@@ -44,5 +74,11 @@ impl<'a> BackendWithKind for BitMapBackend<'a> {
 impl<'a> BackendWithKind for SVGBackend<'a> {
     fn kind(&self) -> BackendKind {
         BackendKind::Svg
+    }
+}
+
+impl BackendWithKind for NullBackend {
+    fn kind(&self) -> BackendKind {
+        BackendKind::Html
     }
 }

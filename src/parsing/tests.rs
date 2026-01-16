@@ -10,6 +10,7 @@ use scylladb_drivers_benchmarker::VisKind;
 use scylladb_drivers_benchmarker::{
     measurement::MeasurementMethod, repo_with_commits::RepoNameWithTags,
 };
+use std::path::PathBuf;
 
 #[test]
 fn basic_run() {
@@ -31,6 +32,8 @@ fn advanced_plot() {
         "--from",
         "repo2:commit",
         "--format=svg",
+        "-o",
+        "plot.svg",
         "series",
     ]);
 
@@ -73,7 +76,7 @@ fn advanced_plot() {
             }
         )
     );
-    assert_eq!(output, None);
+    assert_eq!(output, PathBuf::from("plot.svg".to_owned()));
     assert!(matches!(format, OutputFormat::Svg));
 }
 

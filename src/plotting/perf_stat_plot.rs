@@ -1,14 +1,10 @@
 use std::collections::HashMap;
 
-use super::BenchmarkConfig;
-use super::CommitHash;
 use super::data::BenchmarkDataset;
 use super::error::PlotError;
 use super::plot::*;
 use super::render::{Renderable, RenderablePerfStat};
 
-use crate::Database;
-use crate::measurement::MeasurementMethod;
 use crate::perf_stat::PerfStatData;
 use crate::utilities::calc_min_max;
 
@@ -17,10 +13,10 @@ use plotters::drawing::DrawingArea;
 use plotters::prelude::*;
 
 pub(crate) struct PerfStatPlot {
-    pub benchmark_name: String,
-    pub events: Vec<String>,
-    pub units: Vec<String>,
-    pub results: Vec<RenderablePerfStat>,
+    benchmark_name: String,
+    events: Vec<String>,
+    units: Vec<String>,
+    results: Vec<RenderablePerfStat>,
 }
 
 impl PerfStatPlot {
@@ -138,24 +134,6 @@ impl PerfStatPlot {
             units_per_event,
             results,
         ))
-    }
-
-    pub(crate) fn build(
-        database: &Database,
-        benchmark_config: BenchmarkConfig,
-        measurement_method: &MeasurementMethod,
-        commit_hashes: impl Iterator<Item = CommitHash>,
-        names: &[String],
-        events: Vec<String>,
-    ) -> Result<Self, PlotError> {
-        let dataset: BenchmarkDataset<PerfStatData> = BenchmarkDataset::new(
-            database,
-            &benchmark_config,
-            commit_hashes,
-            measurement_method,
-        )?;
-
-        PerfStatPlot::from_dataset(dataset, benchmark_config.name, names, events)
     }
 
     fn add_legend<DB: BackendWithKind + DrawingBackend>(

@@ -1,5 +1,6 @@
 mod data;
 pub mod error;
+mod flamegraph_plot;
 mod perf_stat_plot;
 mod plot;
 mod render;
@@ -15,14 +16,18 @@ mod render_tests;
 
 use crate::config::benchmark::BenchmarkConfig;
 use crate::database::Database;
+use crate::perf_stat::PerfStatData;
+use crate::plotting::flamegraph_plot::FlamegraphPlot;
 use crate::{commit_hash::CommitHash, measurement::MeasurementMethod};
 
+use data::BenchmarkDataset;
 use error::PlotError;
 use perf_stat_plot::PerfStatPlot;
-use plot::Plot;
+use plot::{NullBackend, Plot};
 pub use series::VisKind;
 use series_plot::SeriesPlot;
 use std::fmt;
+use std::path::PathBuf;
 
 use plotters::backend::{BitMapBackend, SVGBackend};
 
@@ -39,7 +44,13 @@ pub enum PlotKind {
     },
 
     /// Generate a flamegraph plot
-    Flamegraph,
+    Flamegraph {
+        #[arg(short, long, value_name = "DIR")]
+        artifacts_dir: Option<PathBuf>,
+
+        #[arg(short, long, value_name = "DIR")]
+        flame_repo: Option<PathBuf>,
+    },
 
     /// Generate a perf-stat plot
     PerfStat {
@@ -49,10 +60,21 @@ pub enum PlotKind {
     },
 }
 
-#[derive(Debug, Clone, Copy, clap::ValueEnum)]
+impl fmt::Display for PlotKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            PlotKind::Series { .. } => "series",
+            PlotKind::PerfStat { .. } => "perf-stat",
+            PlotKind::Flamegraph { .. } => "flamegraph",
+        })
+    }
+}
+
+#[derive(Debug, Clone, Copy, clap::ValueEnum, PartialEq)]
 pub enum OutputFormat {
     Png,
     Svg,
+    Html,
 }
 
 impl fmt::Display for OutputFormat {
@@ -60,12 +82,13 @@ impl fmt::Display for OutputFormat {
         f.write_str(match self {
             OutputFormat::Png => "png",
             OutputFormat::Svg => "svg",
+            OutputFormat::Html => "html",
         })
     }
 }
 
 pub struct PlotSettings {
-    plot_kind: PlotKind,
+    pub plot_kind: PlotKind,
     format: OutputFormat,
     output: String,
 }
@@ -93,6 +116,7 @@ fn plot_on_backend<P: Plot>(plot: P, output: &str, format: OutputFormat) -> Resu
     match format {
         OutputFormat::Png => plot.plot(BitMapBackend::new(output, IMAGE_SIZE)),
         OutputFormat::Svg => plot.plot(SVGBackend::new(output, IMAGE_SIZE)),
+        OutputFormat::Html => plot.plot(NullBackend {}),
     }
 }
 
@@ -106,11 +130,23 @@ pub fn plot(
 ) -> Result<(), PlotError> {
     match plot_settings.plot_kind {
         PlotKind::Series { visualization_kind } => {
-            let plot = SeriesPlot::build(
+            if plot_settings.format == OutputFormat::Html {
+                return Err(PlotError::IncompatibleOutputFormat {
+                    format: OutputFormat::Html.to_string(),
+                    plot: PlotKind::Series { visualization_kind }.to_string(),
+                });
+            }
+
+            let dataset: BenchmarkDataset<f64> = BenchmarkDataset::new(
                 database,
-                benchmark_config,
-                measurement_method,
+                &benchmark_config,
                 commit_hashes,
+                measurement_method,
+            )?;
+
+            let plot = SeriesPlot::from_dataset(
+                dataset,
+                benchmark_config.name,
                 names,
                 visualization_kind,
             )?;
@@ -118,29 +154,62 @@ pub fn plot(
             plot_on_backend(plot, &plot_settings.output, plot_settings.format)
         }
 
-        PlotKind::Flamegraph => {
-            unimplemented!("Flamegraph plotting is not yet implemented");
-            // let plot = FlamegraphPlot::build(
-            //     database,
-            //     benchmark_name,
-            //     benchmark_config,
-            //     measurement_method,
-            //     commit_hashes,
-            //     names,
-            // )?;
+        PlotKind::Flamegraph {
+            artifacts_dir,
+            flame_repo,
+        } => {
+            if plot_settings.format != OutputFormat::Html {
+                return Err(PlotError::IncompatibleOutputFormat {
+                    format: plot_settings.format.to_string(),
+                    plot: PlotKind::Flamegraph {
+                        artifacts_dir,
+                        flame_repo,
+                    }
+                    .to_string(),
+                });
+            }
 
-            // plot_on_backend(plot, output, format)
+            let flame_repo = flame_repo.ok_or_else(|| {
+                PlotError::InvalidData(
+                    "Flamegraph repository path is missing; please provide `--flame-repo` or configure it in the global config".to_string(),
+                )
+            })?;
+
+            let dataset: BenchmarkDataset<String> = BenchmarkDataset::new(
+                database,
+                &benchmark_config,
+                commit_hashes,
+                measurement_method,
+            )?;
+
+            let plot = FlamegraphPlot::from_dataset(
+                dataset,
+                benchmark_config.name,
+                names,
+                PathBuf::from(plot_settings.output.clone()),
+                flame_repo,
+                artifacts_dir,
+            )?;
+
+            plot_on_backend(plot, &plot_settings.output, plot_settings.format)
         }
 
         PlotKind::PerfStat { events } => {
-            let plot = PerfStatPlot::build(
+            if plot_settings.format == OutputFormat::Html {
+                return Err(PlotError::IncompatibleOutputFormat {
+                    format: OutputFormat::Html.to_string(),
+                    plot: PlotKind::PerfStat { events }.to_string(),
+                });
+            }
+
+            let dataset: BenchmarkDataset<PerfStatData> = BenchmarkDataset::new(
                 database,
-                benchmark_config,
-                measurement_method,
+                &benchmark_config,
                 commit_hashes,
-                names,
-                events,
+                measurement_method,
             )?;
+
+            let plot = PerfStatPlot::from_dataset(dataset, benchmark_config.name, names, events)?;
 
             plot_on_backend(plot, &plot_settings.output, plot_settings.format)
         }

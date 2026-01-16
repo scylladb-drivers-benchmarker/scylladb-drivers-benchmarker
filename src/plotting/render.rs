@@ -1,7 +1,13 @@
 use super::error::PlotError;
+use super::flamegraph_plot::ArtifactFile;
 use crate::utilities::{BenchmarkPoint, RangedCoordBenchmarkPoint};
+use html_escape::encode_safe;
 use plotters::coord::types::RangedCoordf64;
 use plotters::prelude::*;
+
+use std::fs::{self, OpenOptions};
+use std::io::Write;
+use std::path::PathBuf;
 
 const LEGEND_LINE_LENGTH: i32 = 20;
 const CROSS_SIZE: u32 = 5;
@@ -40,6 +46,14 @@ pub(crate) struct RenderablePerfStat {
     pub name: String,
     values: Vec<Vec<Option<f64>>>,
     ranges: Vec<Option<(f64, f64)>>,
+}
+
+pub(crate) struct RenderableFlamegraph {
+    pub points: Vec<BenchmarkPoint>,
+    pub name: String,
+    data: Vec<Option<String>>,
+    output: PathBuf,
+    artifacts: Vec<ArtifactFile>,
 }
 
 impl RenderableSeries {
@@ -187,6 +201,64 @@ where
                 .legend(move |(x, y)| {
                     PathElement::new(vec![(x, y), (x + LEGEND_LINE_LENGTH, y)], color)
                 });
+        }
+
+        Ok(())
+    }
+}
+
+impl RenderableFlamegraph {
+    pub(crate) fn new(
+        name: String,
+        points: Vec<BenchmarkPoint>,
+        data: Vec<Option<String>>,
+        output: PathBuf,
+        artifacts: Vec<ArtifactFile>,
+    ) -> Self {
+        RenderableFlamegraph {
+            name,
+            points,
+            data,
+            output,
+            artifacts,
+        }
+    }
+}
+
+impl<'a, DB> Renderable<'a, DB> for RenderableFlamegraph
+where
+    DB: DrawingBackend + 'a,
+    <DB as DrawingBackend>::ErrorType: 'static,
+{
+    fn add_to_plot(
+        &self,
+        _charts: &mut [ChartContext<
+            'a,
+            DB,
+            Cartesian2d<RangedCoordBenchmarkPoint, RangedCoordf64>,
+        >],
+    ) -> Result<(), PlotError> {
+        for artifact in &self.artifacts {
+            let flame_svg = fs::read_to_string(artifact.path()).map_err(|e| {
+                PlotError::from_io_with_path(e, artifact.path().display().to_string())
+            })?;
+
+            let escaped = encode_safe(flame_svg.as_str());
+
+            let iframe = format!(
+                r#"<iframe srcdoc='<!DOCTYPE html><html><body>{}</body></html>'
+                style="width:100%; height:1080px; border:none"></iframe>"#,
+                escaped
+            );
+
+            let mut file = OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&self.output)
+                .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
+
+            writeln!(file, "{}", iframe)
+                .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
         }
 
         Ok(())

@@ -51,6 +51,7 @@ pub enum AppSubcommands {
 
 pub struct ParsedParams {
     pub database: Database,
+    pub aliasing_config: AliasingConfig, // TODO remove
     pub params: Subcommands,
 }
 
@@ -95,11 +96,15 @@ impl App {
         let database = Database::new(&db_path)?;
 
         let params: Subcommands = match self.subcommand {
-            AppSubcommands::Run(x) => x.finalize(aliasing_config)?,
-            AppSubcommands::Plot(x) => x.finalize(aliasing_config)?,
+            AppSubcommands::Run(x) => x.finalize(aliasing_config.clone())?,
+            AppSubcommands::Plot(x) => x.finalize(aliasing_config.clone())?,
             AppSubcommands::Database(x) => x.finalize(),
         };
 
-        Ok(ParsedParams { database, params })
+        Ok(ParsedParams {
+            database,
+            aliasing_config,
+            params,
+        })
     }
 }

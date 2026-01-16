@@ -68,8 +68,17 @@ fn main() {
             benchmark_config,
             from,
             resolved,
-            plot_settings,
+            mut plot_settings,
         }) => {
+            if let PlotKind::Flamegraph {
+                artifacts_dir: _,
+                flame_repo,
+            } = &mut plot_settings.plot_kind
+                && flame_repo.is_none()
+            {
+                *flame_repo = input.aliasing_config.flame_path.clone();
+            }
+
             scylladb_drivers_benchmarker::plot_benchmarks(
                 plot_settings,
                 &input.database,

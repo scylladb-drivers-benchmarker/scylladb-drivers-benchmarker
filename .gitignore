@@ -32,3 +32,6 @@ target
 *.png
 *.jpg
 *.svg
+
+# flamegraph html files
+*.html
