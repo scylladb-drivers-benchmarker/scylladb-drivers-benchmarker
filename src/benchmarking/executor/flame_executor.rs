@@ -101,24 +101,24 @@ impl FlameExecutor {
     fn make_pipeline<'a>(commands: impl Iterator<Item = &'a command::Command>) -> Pipeline {
         Pipeline::from_exec_iter(
             commands.map(|command| Exec::from(command).stderr(Redirection::Pipe)),
-        )
+        ).stdin(Redirection::None)
     }
 
     fn validate_pipeline_results(
         popens: Vec<Popen>,
-        commands: impl Iterator<Item = command::Command>,
+        mut commands: impl Iterator<Item = command::Command>,
     ) -> Result<(), FlameMeasuringError> {
         for (index, mut popen) in popens.into_iter().enumerate() {
             let Some(exit_status) = popen.poll() else {
                 return Err(FlameMeasuringError::SubExecStillRunning {
-                    command: commands.into_iter().nth(index).unwrap(),
+                    command: commands.nth(index).unwrap(),
                 });
             };
             if !exit_status.success() {
                 return Err(FlameMeasuringError::new_failure(
                     exit_status,
                     popen,
-                    commands.into_iter().nth(index).unwrap(),
+                    commands.nth(index).unwrap(),
                 ));
             }
         }
