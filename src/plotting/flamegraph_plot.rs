@@ -76,7 +76,7 @@ impl FlamegraphPlot {
                     for (i, folded) in data.iter().enumerate() {
                         let artifact = match folded {
                             Some(folded_data) => {
-                                let path = dir.join(format!("{}_{}.svg", name, i));
+                                let path = dir.join(format!("{}_{}_{}.svg", benchmark_name, name, i));
                                 let artifact = ArtifactFile::from_path(path);
 
                                 let mut child = Command::new(flame_repo.join("flamegraph.pl"))
@@ -233,15 +233,36 @@ impl Plot for FlamegraphPlot {
     where
         DB::ErrorType: 'static,
     {
-        let mut file = OpenOptions::new()
+        {
+            let mut file = OpenOptions::new()
             .create(true)
-            .write(true) // overwrite if exists
+            .append(true)
             .truncate(true)
             .open(&self.output)
             .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
 
+            writeln!(file, "{}", format!(r#"<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Benchmark {} results</title>
+</head>
+<body style="margin:0">
+	<h1>Benchmark {} results</h1>"#, self.benchmark_name, self.benchmark_name))?;
+        }
+
         for renderable in &self.results {
             <RenderableFlamegraph as Renderable<'_, DB>>::add_to_plot(renderable, &mut [])?;
+        }
+
+        {
+            let mut file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&self.output)
+            .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
+
+            writeln!(file, "{}", format!(r#"</body></html>"#))?;
         }
 
         Ok(())

@@ -238,15 +238,17 @@ where
             Cartesian2d<RangedCoordBenchmarkPoint, RangedCoordf64>,
         >],
     ) -> Result<(), PlotError> {
-        for artifact in &self.artifacts {
-            let flame_svg = fs::read_to_string(artifact.path()).map_err(|e| {
+        for (i, artifact) in self.artifacts.iter().enumerate() {
+            let mut flame_svg = fs::read_to_string(artifact.path()).map_err(|e| {
                 PlotError::from_io_with_path(e, artifact.path().display().to_string())
             })?;
+
+            flame_svg = flame_svg.replace(">Flame Graph<", format!(">{} at {}<", self.name, self.points[i]).as_str());
 
             let escaped = encode_safe(flame_svg.as_str());
 
             let iframe = format!(
-                r#"<iframe srcdoc='<!DOCTYPE html><html><body>{}</body></html>'
+                r#"<iframe srcdoc='&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;body&gt;{}&lt;&#47;body&gt;&lt;&#47;html&gt;'
                 style="width:100%; height:1080px; border:none"></iframe>"#,
                 escaped
             );
