@@ -87,7 +87,7 @@ fn main() {
                 from,
                 resolved,
             )
-            .unwrap();
+            .unwrap_or_else(print_error)
         }
         crate::parsing::Subcommands::PrintDatabase(PrintDatabaseParams { filters }) => {
             scylladb_drivers_benchmarker::print_database(&input.database, filters)
