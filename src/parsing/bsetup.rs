@@ -55,8 +55,7 @@ impl FromStr for BenchmarkSetup {
             vec.insert(0, num);
             Ok(BenchmarkSetup::Points(vec))
         } else {
-            let path = s.parse().expect("Infallible error");
-            Ok(BenchmarkSetup::Path(path))
+            Ok(BenchmarkSetup::Path(s.into()))
         }
     }
 }

@@ -19,7 +19,6 @@ pub struct RepoNameWithTags {
 pub enum RepoNameWithCommitsParsingError {
     PathNotSupplied,
     HashResolutionFailed(#[from] Box<FailedToRetrieveCommitHash>),
-    Infallible(#[from] std::convert::Infallible),
 }
 
 pub fn resolve_repo_tags(
