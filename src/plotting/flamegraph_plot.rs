@@ -15,12 +15,16 @@ pub(crate) struct ArtifactFile {
 }
 
 impl ArtifactFile {
-    pub(crate) fn from_path(path: PathBuf) -> Self {
-        Self { path, _tmp: None }
+    pub(crate) fn from_path(path: PathBuf) -> std::io::Result<Self> {
+        if !path.exists() {
+            std::fs::File::create(&path)?;
+        }
+
+        Ok(Self { path, _tmp: None })
     }
 
     pub(crate) fn temp() -> Self {
-        let tmp = NamedTempFile::new().unwrap();
+        let tmp = NamedTempFile::new().expect("NamedTempFile creation failed");
         let path = tmp.path().to_path_buf();
         Self {
             path,
@@ -76,8 +80,9 @@ impl FlamegraphPlot {
                     for (i, folded) in data.iter().enumerate() {
                         let artifact = match folded {
                             Some(folded_data) => {
-                                let path = dir.join(format!("{}_{}_{}.svg", benchmark_name, name, i));
-                                let artifact = ArtifactFile::from_path(path);
+                                let path =
+                                    dir.join(format!("{}_{}_{}.svg", benchmark_name, name, i));
+                                let artifact = ArtifactFile::from_path(path)?;
 
                                 let mut child = Command::new(flame_repo.join("flamegraph.pl"))
                                     .arg("--width")
@@ -117,17 +122,19 @@ impl FlamegraphPlot {
                                 if !output.status.success() {
                                     return Err(PlotError::Internal(format!(
                                         "flamegraph.pl failed on {} data point {}",
-                                        name,
-                                        i
+                                        name, i
                                     )));
                                 }
 
                                 let mut stdout_str = String::from_utf8(output.stdout.to_vec())
-                                    .map_err(|_| PlotError::Internal(
-                                        "stdout UTF-8 parsing failed".into()
-                                    ))?;
+                                    .map_err(|_| {
+                                        PlotError::Internal("stdout UTF-8 parsing failed".into())
+                                    })?;
 
-                                stdout_str = stdout_str.replace(">Flame Graph<", format!("{} at {}", name, i).as_str());
+                                stdout_str = stdout_str.replace(
+                                    ">Flame Graph<",
+                                    format!("{} at {}", name, i).as_str(),
+                                );
 
                                 fs::write(artifact.path(), &stdout_str).map_err(|e| {
                                     PlotError::from_io_with_path(
@@ -194,13 +201,16 @@ impl FlamegraphPlot {
                                         "flamegraph.pl failed for temp artifact".to_string(),
                                     ));
                                 }
-                                
-                                let mut stdout_str = String::from_utf8(output.stdout.to_vec())
-                                    .map_err(|_| PlotError::Internal(
-                                        "stdout UTF-8 parsing failed".into()
-                                    ))?;
 
-                                stdout_str = stdout_str.replace(">Flame Graph<", format!("{} at {}", name, i).as_str());
+                                let mut stdout_str = String::from_utf8(output.stdout.to_vec())
+                                    .map_err(|_| {
+                                        PlotError::Internal("stdout UTF-8 parsing failed".into())
+                                    })?;
+
+                                stdout_str = stdout_str.replace(
+                                    ">Flame Graph<",
+                                    format!("{} at {}", name, i).as_str(),
+                                );
 
                                 fs::write(artifact.path(), stdout_str).map_err(|e| {
                                     PlotError::from_io_with_path(
@@ -250,20 +260,27 @@ impl Plot for FlamegraphPlot {
     {
         {
             let mut file = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .truncate(true)
-            .open(&self.output)
-            .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
+                .create(true)
+                .append(true)
+                .truncate(true)
+                .open(&self.output)
+                .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
 
-            writeln!(file, "{}", format!(r#"<!DOCTYPE html>
+            writeln!(
+                file,
+                "{}",
+                format!(
+                    r#"<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <title>Benchmark {} results</title>
 </head>
 <body style="margin:0">
-	<h1>Benchmark {} results</h1>"#, self.benchmark_name, self.benchmark_name))?;
+	<h1>Benchmark {} results</h1>"#,
+                    self.benchmark_name, self.benchmark_name
+                )
+            )?;
         }
 
         for renderable in &self.results {
@@ -272,10 +289,10 @@ impl Plot for FlamegraphPlot {
 
         {
             let mut file = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&self.output)
-            .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
+                .create(true)
+                .append(true)
+                .open(&self.output)
+                .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
 
             writeln!(file, "{}", format!(r#"</body></html>"#))?;
         }
