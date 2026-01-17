@@ -44,9 +44,7 @@ pub struct App {
 #[derive(Debug, clap::Subcommand)]
 pub enum AppSubcommands {
     Run(BenchmarkCommand),
-
     Plot(PlotCommand),
-
     Database(DatabaseArgs),
 }
 
