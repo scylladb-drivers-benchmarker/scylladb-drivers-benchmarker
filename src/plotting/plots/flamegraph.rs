@@ -1,6 +1,6 @@
 use crate::plotting::IMAGE_WIDTH;
 use crate::plotting::core::BenchmarkDataset;
-use crate::plotting::core::{BackendWithKind, Plot};
+use crate::plotting::core::{ArtifactFile, BackendWithKind, Plot};
 use crate::plotting::core::{Renderable, RenderableFlamegraph};
 use crate::plotting::error::PlotError;
 use crate::utilities::BenchmarkPoint;
@@ -9,35 +9,6 @@ use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use tempfile::NamedTempFile;
-
-pub struct ArtifactFile {
-    path: PathBuf,
-    _tmp: Option<NamedTempFile>,
-}
-
-impl ArtifactFile {
-    pub fn from_path(path: PathBuf) -> std::io::Result<Self> {
-        if !path.exists() {
-            std::fs::File::create(&path)?;
-        }
-
-        Ok(Self { path, _tmp: None })
-    }
-
-    pub fn temp() -> Self {
-        let tmp = NamedTempFile::new().expect("NamedTempFile creation failed");
-        let path = tmp.path().to_path_buf();
-        Self {
-            path,
-            _tmp: Some(tmp),
-        }
-    }
-
-    pub fn path(&self) -> &Path {
-        &self.path
-    }
-}
 
 pub struct FlamegraphPlot {
     benchmark_name: String,

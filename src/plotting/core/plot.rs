@@ -3,6 +3,8 @@ use crate::plotting::error::PlotError;
 use plotters::backend::DrawingBackend;
 use plotters::prelude::*;
 use plotters_backend::DrawingErrorKind;
+use std::path::{Path, PathBuf};
+use tempfile::NamedTempFile;
 
 pub const MARGIN_SIZE: u32 = 20;
 pub const X_LABEL_AREA_SIZE: u32 = 40;
@@ -82,5 +84,34 @@ impl<'a> BackendWithKind for SVGBackend<'a> {
 impl BackendWithKind for NullBackend {
     fn kind(&self) -> BackendKind {
         BackendKind::Html
+    }
+}
+
+// Struct to hold both tmp and normal files.
+pub struct ArtifactFile {
+    path: PathBuf,
+    _tmp: Option<NamedTempFile>,
+}
+
+impl ArtifactFile {
+    pub fn from_path(path: PathBuf) -> std::io::Result<Self> {
+        if !path.exists() {
+            std::fs::File::create(&path)?;
+        }
+
+        Ok(Self { path, _tmp: None })
+    }
+
+    pub fn temp() -> Self {
+        let tmp = NamedTempFile::new().expect("NamedTempFile creation failed");
+        let path = tmp.path().to_path_buf();
+        Self {
+            path,
+            _tmp: Some(tmp),
+        }
+    }
+
+    pub fn path(&self) -> &Path {
+        &self.path
     }
 }
