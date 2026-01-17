@@ -1,8 +1,10 @@
+use fs_err as fs;
+
+use fs::File;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io;
+use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -21,13 +23,12 @@ pub struct AliasingConfig {
 
 #[justerror::Error(desc = "Failed reading the main config file")]
 pub enum MainConfigError {
-    FailedOpening(#[from] io::Error),
+    FailedOpening(#[from] std::io::Error),
     FailedParsing(#[from] serde_yml::Error),
 }
 
 impl AliasingConfig {
     pub fn read_config(path: &Path) -> Result<Self, MainConfigError> {
-        let file = File::open(path)?;
-        Ok(serde_yml::from_reader(file)?)
+        Ok(serde_yml::from_slice(&fs::read(path)?)?)
     }
 }

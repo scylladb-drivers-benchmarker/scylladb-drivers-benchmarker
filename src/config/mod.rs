@@ -10,13 +10,10 @@ use fs_err as fs;
 
 #[justerror::Error(desc = "error reading from config")]
 pub enum ConfigError {
-    FileOperationError {
-        source: std::io::Error,
-        path: PathBuf,
-    },
+    FileOperationError(#[from] std::io::Error),
     ParseError {
         source: serde_yml::Error,
-        path: PathBuf,
+        path: PathBuf
     },
     #[error(desc = "configuration not found")]
     ConfigurationNotFound {
@@ -28,11 +25,8 @@ pub enum ConfigError {
 pub fn open_config<ConfigListType: ConfigurationList>(
     config_path: &Path,
 ) -> Result<ConfigListType, ConfigError> {
-    let file = fs::File::open(config_path).map_err(|source| ConfigError::FileOperationError {
-        source,
-        path: config_path.to_path_buf(),
-    })?;
-    serde_yml::from_reader(file).map_err(|source| ConfigError::ParseError {
+    let contents = fs::read(config_path)?;
+    serde_yml::from_slice(&contents).map_err(|source| ConfigError::ParseError {
         source,
         path: config_path.to_path_buf(),
     })
