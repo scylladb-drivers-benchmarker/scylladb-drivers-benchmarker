@@ -123,7 +123,7 @@ mod test {
             no_steps: 1,
             step_progress: 100,
             progress_type: ProgressType::Multiplicative,
-            timeout: Some(Duration::from_hours(100)),
+            timeout: Some(Duration::from_secs(60 * 60 * 100)), // 100 hours, from_hours may not be available.
         };
         let wrong_config = write_assert(BenchmarkConfigList {
             configs: vec![bconfig],
@@ -153,7 +153,7 @@ mod test {
         let output = BenchmarkSetup::finalize(None, "Aliased", &aconfig).unwrap();
         assert_eq!(output.name, "Aliased");
         assert_eq!(output.points, vec![100]);
-        assert_eq!(output.timeout, Some(Duration::from_hours(100)));
+        assert_eq!(output.timeout, Some(Duration::from_secs(60 * 60 * 100))); // 100 hours, from_hours may not be available.
     }
 
     #[test]
