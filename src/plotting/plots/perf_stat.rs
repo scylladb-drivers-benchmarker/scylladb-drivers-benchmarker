@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
 use crate::plotting::{
+    PlotError,
     core::{
         BACKGROUND_COLOR, BackendKind, BackendWithKind, BenchmarkDataset, CAPTION_FONT, LABEL_FONT,
         LEGEND_BORDER_COLOR, LEGEND_BORDER_SIZE, MARGIN_SIZE, Plot, Renderable, RenderablePerfStat,
         TITLE_FONT, X_LABEL_AREA_SIZE, Y_LABEL_AREA_SIZE,
     },
-    error::PlotError,
 };
 
 use crate::perf_stat::PerfStatData;
