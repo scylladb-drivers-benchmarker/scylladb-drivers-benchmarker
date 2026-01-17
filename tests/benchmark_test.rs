@@ -207,7 +207,7 @@ fn utility_test() {
 
     run(sdb_command()
         .env("SDB_CONFIG", ac_path)
-        .args(&["run", "utility", "-b", "1,5,2", "command", "echo"])
+        .args(["run", "utility", "-b", "1,5,2", "command", "echo"])
         .current_dir("./tests/utility_test/"));
 
     let data = dp.get_all_data().unwrap();

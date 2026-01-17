@@ -18,7 +18,7 @@ pub enum BenchmarkSetup {
 }
 
 impl BenchmarkSetup {
-    pub fn to_config(self, name: &str) -> Result<BenchmarkData, ConfigError> {
+    pub fn into_config(self, name: &str) -> Result<BenchmarkData, ConfigError> {
         match self {
             BenchmarkSetup::Path(path) => Ok(find_config::<BenchmarkConfig>(name, &path)?.into()),
             BenchmarkSetup::Points(points) => Ok(BenchmarkData {
@@ -29,7 +29,7 @@ impl BenchmarkSetup {
         }
     }
 
-    pub fn to_points(self, name: String) -> Result<Vec<BenchmarkPoint>, ConfigError> {
+    pub fn into_points(self, name: String) -> Result<Vec<BenchmarkPoint>, ConfigError> {
         match self {
             BenchmarkSetup::Path(path) => Ok(find_config::<BenchmarkConfig>(&name, &path)?
                 .benchmark_points()
@@ -68,9 +68,9 @@ impl BenchmarkSetup {
         aliasing_config: &AliasingConfig,
     ) -> Result<BenchmarkData, ParsingError> {
         if let Some(bsetup) = bsetup {
-            Ok(bsetup.to_config(bname)?)
+            Ok(bsetup.into_config(bname)?)
         } else if let Some(config_path) = &aliasing_config.benchmark_config {
-            match find_config::<BenchmarkConfig>(&bname, config_path) {
+            match find_config::<BenchmarkConfig>(bname, config_path) {
                 Ok(config) => Ok(config.into()),
                 Err(ConfigError::ConfigurationNotFound { .. }) => {
                     Err(ParsingError::NoBenchmarkConfiguration)
@@ -88,14 +88,12 @@ mod test {
     use std::collections::HashMap;
     use std::fmt::Debug;
     use std::fs;
-    use std::io::Write;
     use std::time::Duration;
 
     use scylladb_drivers_benchmarker::config::benchmark::{
         BenchmarkConfig, BenchmarkConfigList, ProgressType,
     };
     use serde::{Deserialize, Serialize};
-    use serde_json::to_writer;
     use tempfile::NamedTempFile;
 
     use crate::parsing::aliasing::AliasingConfig;
@@ -137,10 +135,10 @@ mod test {
             benchmark_config: Some(wrong_config.path().to_owned()),
         };
 
-        return Configs {
+        Configs {
             wrong_config,
             aconfig,
-        };
+        }
     }
 
     #[test]
