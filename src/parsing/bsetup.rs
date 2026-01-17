@@ -9,18 +9,18 @@ use scylladb_drivers_benchmarker::{
     utilities::BenchmarkPoint,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BenchmarkSetup {
     Path(PathBuf),
     Points(Vec<BenchmarkPoint>),
 }
 
 impl BenchmarkSetup {
-    pub fn to_config(self, name: String) -> Result<BenchmarkData, ConfigError> {
+    pub fn to_config(self, name: &str) -> Result<BenchmarkData, ConfigError> {
         match self {
             BenchmarkSetup::Path(path) => Ok(find_config::<BenchmarkConfig>(&name, &path)?.into()),
             BenchmarkSetup::Points(points) => Ok(BenchmarkData {
-                name,
+                name: name.to_owned(),
                 points,
                 timeout: None,
             }),

@@ -19,6 +19,8 @@ pub struct AliasingConfig {
     pub flame_path: Option<PathBuf>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub store_dir: Option<PathBuf>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub benchmark_config: Option<PathBuf>,
 }
 
 #[justerror::Error(desc = "Failed reading the main config file")]

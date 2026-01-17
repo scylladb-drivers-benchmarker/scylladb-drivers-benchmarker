@@ -7,6 +7,7 @@ use crate::parsing::aliasing;
 use crate::parsing::aliasing::AliasingConfig;
 use crate::parsing::bsetup::BenchmarkSetup;
 use clap::Args;
+use scylladb_drivers_benchmarker::config::benchmark::BenchmarkConfig;
 use scylladb_drivers_benchmarker::config::find_config;
 use scylladb_drivers_benchmarker::flame_graph::BenchMeasure;
 use scylladb_drivers_benchmarker::flame_graph::FlameFrequency;
@@ -94,15 +95,21 @@ pub struct BenchmarkCommand {
 
 impl BenchmarkCommand {
     pub fn finalize(self, aliasing_config: AliasingConfig) -> Result<Subcommands, ParsingError> {
+        let benchmark_config = if let Some(config_path) = &aliasing_config.benchmark_config {
+            find_config::<BenchmarkConfig>(&self.benchmark_name, &config_path)?.into()
+        } else if let Some(arg_configuration) = self.benchmark_configuration {
+            arg_configuration.to_config(&self.benchmark_name)?
+        } else {
+            return Err(ParsingError::NoBenchmarkConfiguration);
+        };
+
         let measure = self.measure.unwrap_or(MeasureSubcommand::Time);
         let bench_measure = measure.finalize(aliasing_config)?;
 
         Ok(Subcommands::Benchmark(BenchmarkParams {
             bench_measure,
             backend_config: find_config(&self.benchmark_name, &self.backend_config_path)?,
-            benchmark_config: self
-                .benchmark_configuration
-                .to_config(self.benchmark_name)?,
+            benchmark_config,
             benchmark_mode: self.benchmark_mode,
         }))
     }
