@@ -15,7 +15,7 @@ use plotters::coord::Shift;
 use plotters::drawing::DrawingArea;
 use plotters::prelude::*;
 
-pub(crate) struct PerfStatPlot {
+pub struct PerfStatPlot {
     benchmark_name: String,
     events: Vec<String>,
     units: Vec<String>,
@@ -46,7 +46,7 @@ impl PerfStatPlot {
         }
     }
 
-    pub(crate) fn from_dataset(
+    pub fn from_dataset(
         dataset: BenchmarkDataset<PerfStatData>,
         benchmark_name: String,
         names: &[String],

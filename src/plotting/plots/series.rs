@@ -13,7 +13,7 @@ use crate::utilities::calc_min_max;
 use plotters::drawing::DrawingArea;
 use plotters::prelude::*;
 
-pub(crate) struct SeriesPlot {
+pub struct SeriesPlot {
     benchmark_name: String,
     results: Vec<RenderableSeries>,
     visualization_kind: VisKind,
@@ -32,7 +32,7 @@ impl SeriesPlot {
         }
     }
 
-    pub(crate) fn from_dataset<T: SeriesValue>(
+    pub fn from_dataset<T: SeriesValue>(
         dataset: BenchmarkDataset<T>,
         benchmark_name: String,
         names: &[String],

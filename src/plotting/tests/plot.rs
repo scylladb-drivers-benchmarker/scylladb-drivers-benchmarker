@@ -2,8 +2,8 @@ use crate::plotting::PlotError;
 use crate::plotting::VisKind;
 use crate::plotting::core::BenchmarkDataset;
 use crate::plotting::plot_on_backend;
-use crate::plotting::plots::perf_stat::PerfStatPlot;
-use crate::plotting::plots::series::SeriesPlot;
+use crate::plotting::plots::PerfStatPlot;
+use crate::plotting::plots::SeriesPlot;
 
 use fs_err as fs;
 use std::str::FromStr;

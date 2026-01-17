@@ -39,7 +39,7 @@ impl ArtifactFile {
     }
 }
 
-pub(crate) struct FlamegraphPlot {
+pub struct FlamegraphPlot {
     benchmark_name: String,
     results: Vec<RenderableFlamegraph>,
     output: PathBuf,
@@ -102,7 +102,7 @@ impl FlamegraphPlot {
         Ok(())
     }
 
-    pub(crate) fn from_dataset(
+    pub fn from_dataset(
         dataset: BenchmarkDataset<String>,
         benchmark_name: String,
         names: &[String],

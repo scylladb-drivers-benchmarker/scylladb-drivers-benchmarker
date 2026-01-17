@@ -10,13 +10,13 @@ use crate::database::Database;
 use crate::perf_stat::PerfStatData;
 use crate::{commit_hash::CommitHash, measurement::MeasurementMethod};
 
-pub use core::VisKind;
 use core::BenchmarkDataset;
+pub use core::VisKind;
 use core::{NullBackend, Plot};
 use error::PlotError;
-use plots::flamegraph::FlamegraphPlot;
-use plots::perf_stat::PerfStatPlot;
-use plots::series::SeriesPlot;
+use plots::FlamegraphPlot;
+use plots::PerfStatPlot;
+use plots::SeriesPlot;
 use std::path::PathBuf;
 
 use plotters::backend::{BitMapBackend, SVGBackend};
