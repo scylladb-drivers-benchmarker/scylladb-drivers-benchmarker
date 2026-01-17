@@ -1,4 +1,5 @@
 use crate::plotting::core::{Renderable, RenderablePerfStat, RenderableSeries};
+
 use plotters::prelude::*;
 use tempfile::NamedTempFile;
 

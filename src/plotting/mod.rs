@@ -5,21 +5,20 @@ mod plots;
 #[cfg(test)]
 mod tests;
 
+use crate::commit_hash::CommitHash;
 use crate::config::benchmark::BenchmarkConfig;
 use crate::database::Database;
+use crate::measurement::MeasurementMethod;
 use crate::perf_stat::PerfStatData;
-use crate::{commit_hash::CommitHash, measurement::MeasurementMethod};
 
-use core::BenchmarkDataset;
 pub use core::VisKind;
-use core::{NullBackend, Plot};
+use core::{BenchmarkDataset, NullBackend, Plot};
 use error::PlotError;
-use plots::FlamegraphPlot;
-use plots::PerfStatPlot;
-use plots::SeriesPlot;
-use std::path::PathBuf;
+use plots::{FlamegraphPlot, PerfStatPlot, SeriesPlot};
 
 use plotters::backend::{BitMapBackend, SVGBackend};
+
+use std::path::PathBuf;
 
 pub(crate) const IMAGE_WIDTH: u32 = 1920;
 pub(crate) const IMAGE_HEIGHT: u32 = 1080;

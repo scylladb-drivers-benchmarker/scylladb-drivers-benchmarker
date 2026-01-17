@@ -1,5 +1,5 @@
 use super::data::PlottableValue;
-use crate::plotting::error::PlotError;
+use crate::plotting::PlotError;
 use crate::utilities::calc_min_max;
 use std::fmt;
 

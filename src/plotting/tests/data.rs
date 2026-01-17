@@ -2,13 +2,10 @@ use fs::OpenOptions;
 
 use crate::CommitHash;
 use crate::Database;
-use crate::PlotError;
 use crate::config;
-use crate::database::utilities::BenchmarkParams;
-use crate::database::utilities::{BenchmarkFilters, BenchmarkRecord};
+use crate::database::utilities::{BenchmarkFilters, BenchmarkParams, BenchmarkRecord};
 use crate::measurement::MeasurementMethod;
-use crate::plotting::BenchmarkConfig;
-use crate::plotting::core::BenchmarkDataset;
+use crate::plotting::{BenchmarkConfig, PlotError, core::BenchmarkDataset};
 use crate::utilities::BenchmarkPoint;
 use tempfile::NamedTempFile;
 

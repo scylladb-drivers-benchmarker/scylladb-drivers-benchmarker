@@ -1,8 +1,10 @@
-use crate::plotting::IMAGE_WIDTH;
-use crate::plotting::core::BenchmarkDataset;
-use crate::plotting::core::{ArtifactFile, BackendWithKind, Plot};
-use crate::plotting::core::{Renderable, RenderableFlamegraph};
-use crate::plotting::error::PlotError;
+use crate::plotting::{
+    IMAGE_WIDTH,
+    core::{
+        ArtifactFile, BackendWithKind, BenchmarkDataset, Plot, Renderable, RenderableFlamegraph,
+    },
+    error::PlotError,
+};
 use crate::utilities::BenchmarkPoint;
 
 use std::fs::{self, OpenOptions};

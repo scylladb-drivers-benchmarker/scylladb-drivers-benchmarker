@@ -1,8 +1,9 @@
-use crate::plotting::error::PlotError;
+use crate::plotting::PlotError;
 
 use plotters::backend::DrawingBackend;
 use plotters::prelude::*;
 use plotters_backend::DrawingErrorKind;
+
 use std::path::{Path, PathBuf};
 use tempfile::NamedTempFile;
 

@@ -1,11 +1,10 @@
-use crate::plotting::core::ArtifactFile;
-use crate::plotting::error::PlotError;
+use crate::plotting::{PlotError, core::ArtifactFile};
 use crate::utilities::{BenchmarkPoint, RangedCoordBenchmarkPoint};
-use html_escape::encode_safe;
-use plotters::coord::types::RangedCoordf64;
-use plotters::prelude::*;
 
+use html_escape::encode_safe;
+use plotters::{coord::types::RangedCoordf64, prelude::*};
 use regex::Regex;
+
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
