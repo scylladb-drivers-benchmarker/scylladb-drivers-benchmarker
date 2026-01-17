@@ -9,6 +9,8 @@ use scylladb_drivers_benchmarker::{
     utilities::BenchmarkPoint,
 };
 
+use crate::parsing::{ParsingError, aliasing::AliasingConfig};
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BenchmarkSetup {
     Path(PathBuf),
@@ -56,5 +58,144 @@ impl FromStr for BenchmarkSetup {
         } else {
             Ok(BenchmarkSetup::Path(s.into()))
         }
+    }
+}
+
+impl BenchmarkSetup {
+    pub fn finalize(
+        bsetup: Option<Self>,
+        bname: &str,
+        aliasing_config: &AliasingConfig,
+    ) -> Result<BenchmarkData, ParsingError> {
+        if let Some(bsetup) = bsetup {
+            Ok(bsetup.to_config(bname)?)
+        } else if let Some(config_path) = &aliasing_config.benchmark_config {
+            match find_config::<BenchmarkConfig>(&bname, config_path) {
+                Ok(config) => Ok(config.into()),
+                Err(ConfigError::ConfigurationNotFound { .. }) => {
+                    Err(ParsingError::NoBenchmarkConfiguration)
+                }
+                Err(err) => Err(err.into()),
+            }
+        } else {
+            Err(ParsingError::NoBenchmarkConfiguration)
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::collections::HashMap;
+    use std::fmt::Debug;
+    use std::fs;
+    use std::io::Write;
+    use std::time::Duration;
+
+    use scylladb_drivers_benchmarker::config::benchmark::{
+        BenchmarkConfig, BenchmarkConfigList, ProgressType,
+    };
+    use serde::{Deserialize, Serialize};
+    use serde_json::to_writer;
+    use tempfile::NamedTempFile;
+
+    use crate::parsing::aliasing::AliasingConfig;
+    use crate::parsing::bsetup::BenchmarkSetup;
+
+    fn write_assert<T: Serialize + Debug + Eq + for<'a> Deserialize<'a>>(val: T) -> NamedTempFile {
+        let file = NamedTempFile::new().unwrap();
+        serde_yml::ser::to_writer(&file, &val).unwrap();
+        assert_eq!(
+            serde_yml::from_slice::<T>(&fs::read(file.path()).unwrap()).unwrap(),
+            val
+        );
+        file
+    }
+
+    struct Configs {
+        wrong_config: NamedTempFile,
+        aconfig: AliasingConfig,
+    }
+
+    fn aliasing_config() -> Configs {
+        let bconfig = BenchmarkConfig {
+            name: "Aliased".to_owned(),
+            starting_step: 100,
+            no_steps: 1,
+            step_progress: 100,
+            progress_type: ProgressType::Multiplicative,
+            timeout: Some(Duration::from_hours(100)),
+        };
+        let wrong_config = write_assert(BenchmarkConfigList {
+            configs: vec![bconfig],
+        });
+
+        let aconfig = AliasingConfig {
+            dp_path: None,
+            repo_path: HashMap::new(),
+            flame_path: None,
+            store_dir: None,
+            benchmark_config: Some(wrong_config.path().to_owned()),
+        };
+
+        return Configs {
+            wrong_config,
+            aconfig,
+        };
+    }
+
+    #[test]
+    fn setup_aliased_config() {
+        let Configs {
+            wrong_config: _wrong_config,
+            aconfig,
+        } = aliasing_config();
+
+        let output = BenchmarkSetup::finalize(None, "Aliased", &aconfig).unwrap();
+        assert_eq!(output.name, "Aliased");
+        assert_eq!(output.points, vec![100]);
+        assert_eq!(output.timeout, Some(Duration::from_hours(100)));
+    }
+
+    #[test]
+    fn setup_finalize_points() {
+        let output = BenchmarkSetup::finalize(
+            Some(BenchmarkSetup::Points(vec![1, 2, 3])),
+            "bname",
+            &AliasingConfig::default(),
+        )
+        .unwrap();
+        assert_eq!(output.name, "bname");
+        assert_eq!(output.points, vec![1, 2, 3]);
+        assert_eq!(output.timeout, None);
+    }
+
+    #[test]
+    fn setup_finalize_path() {
+        let bconfig = BenchmarkConfig {
+            name: "bname".to_owned(),
+            starting_step: 1,
+            no_steps: 3,
+            step_progress: 1,
+            progress_type: ProgressType::Additive,
+            timeout: Some(Duration::from_secs(3)),
+        };
+
+        let bconfig_file = write_assert(BenchmarkConfigList {
+            configs: vec![bconfig],
+        });
+        let Configs {
+            wrong_config: _wrong_config,
+            aconfig,
+        } = aliasing_config();
+
+        let output = BenchmarkSetup::finalize(
+            Some(BenchmarkSetup::Path(bconfig_file.path().to_owned())),
+            "bname",
+            &aconfig,
+        )
+        .unwrap();
+        assert_eq!(output.name, "bname");
+        assert_eq!(output.points, vec![1, 2, 3]);
+        assert_eq!(output.timeout, Some(Duration::from_secs(3)));
     }
 }
