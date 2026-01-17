@@ -1,3 +1,4 @@
+use std::iter;
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
@@ -14,7 +15,8 @@ pub enum ProgressType {
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
-pub struct BenchmarkConfiguration {
+pub struct BenchmarkConfig {
+    pub name: String,
     pub starting_step: BenchmarkPoint,
     pub no_steps: BenchmarkPoint,
     pub step_progress: BenchmarkPoint,
@@ -27,46 +29,32 @@ pub struct BenchmarkConfiguration {
     pub timeout: Option<Duration>,
 }
 
-impl BenchmarkConfiguration {
+impl BenchmarkConfig {
     pub fn benchmark_points(&self) -> impl Iterator<Item = BenchmarkPoint> {
-        struct ReturnIterator {
-            pub starting_step: BenchmarkPoint,
-            pub step_progress: BenchmarkPoint,
-            pub progress_type: ProgressType,
-        }
-        impl Iterator for ReturnIterator {
-            type Item = BenchmarkPoint;
-
-            fn next(&mut self) -> Option<Self::Item> {
-                let ret = self.starting_step;
-                match self.progress_type {
-                    ProgressType::Additive => {
-                        self.starting_step += self.step_progress;
-                    }
-                    ProgressType::Multiplicative => {
-                        self.starting_step *= self.step_progress;
-                    }
+        let mut starting_step = self.starting_step;
+        let step_progress = self.step_progress;
+        let progress_type = self.progress_type;
+        iter::from_fn(move || {
+            let ret = starting_step;
+            match progress_type {
+                ProgressType::Additive => {
+                    starting_step += step_progress;
                 }
-                Some(ret)
+                ProgressType::Multiplicative => {
+                    starting_step *= step_progress;
+                }
             }
-        }
-
-        ReturnIterator {
-            starting_step: self.starting_step,
-            step_progress: self.step_progress,
-            progress_type: self.progress_type,
-        }
+            Some(ret)
+        })
         .take(self.no_steps as usize)
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-#[serde(rename_all = "kebab-case")]
-pub struct BenchmarkConfig {
-    pub name: String,
-
-    #[serde(flatten)]
-    pub data: BenchmarkConfiguration,
+impl Configuration for BenchmarkConfig {
+    type ConfigListType = BenchmarkConfigList;
+    fn benchmark_name(&self) -> String {
+        self.name.clone()
+    }
 }
 
 pub struct BenchmarkData {
@@ -78,17 +66,10 @@ pub struct BenchmarkData {
 impl From<BenchmarkConfig> for BenchmarkData {
     fn from(value: BenchmarkConfig) -> Self {
         BenchmarkData {
+            points: value.benchmark_points().collect(),
             name: value.name,
-            points: value.data.benchmark_points().collect(),
-            timeout: value.data.timeout,
+            timeout: value.timeout,
         }
-    }
-}
-
-impl Configuration for BenchmarkConfig {
-    type ConfigListType = BenchmarkConfigList;
-    fn benchmark_name(&self) -> String {
-        self.name.clone()
     }
 }
 
@@ -115,7 +96,8 @@ mod tests {
 
     #[test]
     fn points_additive() {
-        let data = BenchmarkConfiguration {
+        let data = BenchmarkConfig {
+            name: String::new(),
             starting_step: 7,
             no_steps: 3,
             step_progress: 2,
@@ -128,7 +110,8 @@ mod tests {
 
     #[test]
     fn points_multiplicative() {
-        let data = BenchmarkConfiguration {
+        let data = BenchmarkConfig {
+            name: String::new(),
             starting_step: 3,
             no_steps: 3,
             step_progress: 2,
@@ -143,13 +126,11 @@ mod tests {
     fn serde_benchmark_config() {
         let config = BenchmarkConfig {
             name: "benchmark_name".to_owned(),
-            data: BenchmarkConfiguration {
-                starting_step: 1,
-                no_steps: 5,
-                step_progress: 2,
-                progress_type: ProgressType::Multiplicative,
-                timeout: Some(Duration::from_secs(3)),
-            },
+            starting_step: 1,
+            no_steps: 5,
+            step_progress: 2,
+            progress_type: ProgressType::Multiplicative,
+            timeout: Some(Duration::from_secs(3)),
         };
 
         let serialized: String = serde_yml::to_string(&config).unwrap();
@@ -172,24 +153,20 @@ timeout: '3s'
     fn serde_benchmark_config_list() {
         let config1 = BenchmarkConfig {
             name: "benchmark_name1".to_owned(),
-            data: BenchmarkConfiguration {
-                starting_step: 1,
-                no_steps: 5,
-                step_progress: 2,
-                progress_type: ProgressType::Multiplicative,
-                timeout: None,
-            },
+            starting_step: 1,
+            no_steps: 5,
+            step_progress: 2,
+            progress_type: ProgressType::Multiplicative,
+            timeout: None,
         };
 
         let config2 = BenchmarkConfig {
             name: "benchmark_name2".to_owned(),
-            data: BenchmarkConfiguration {
-                starting_step: 2,
-                no_steps: 6,
-                step_progress: 3,
-                progress_type: ProgressType::Additive,
-                timeout: Some(Duration::from_secs(2 * 60)),
-            },
+            starting_step: 2,
+            no_steps: 6,
+            step_progress: 3,
+            progress_type: ProgressType::Additive,
+            timeout: Some(Duration::from_secs(2 * 60)),
         };
 
         let config_list = BenchmarkConfigList {

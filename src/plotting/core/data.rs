@@ -27,7 +27,6 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         measurement_method: &MeasurementMethod,
     ) -> Result<BenchmarkDataset<T>, PlotError> {
         let points = benchmark_config
-            .data
             .benchmark_points()
             .collect::<Vec<BenchmarkPoint>>();
 
@@ -51,15 +50,10 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         benchmark_config: &BenchmarkConfig,
         measurement_method: &MeasurementMethod,
     ) -> Result<Vec<Option<T>>, PlotError> {
-        let BenchmarkConfig {
-            name: benchmark_name,
-            data: benchmark_data,
-        } = benchmark_config;
-
         let benchmark_params = |param: BenchmarkPoint| {
             BenchmarkParams::new(
                 commit_hash.clone(),
-                benchmark_name.clone(),
+                benchmark_config.name.clone(),
                 param,
                 measurement_method.to_string(),
             )
@@ -68,7 +62,7 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         let mut results = Vec::new();
         let mut missing = Vec::new();
 
-        for point in benchmark_data.benchmark_points() {
+        for point in benchmark_config.benchmark_points() {
             let params = benchmark_params(point);
 
             match database.get_result(params)?.map(|r| r.flatten()) {
@@ -83,16 +77,16 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         }
 
         if !missing.is_empty() {
-            if missing.len() == benchmark_data.no_steps as usize {
+            if missing.len() == benchmark_config.no_steps as usize {
                 return Err(PlotError::MissingBenchmark {
                     commit_hash: commit_hash.as_str().to_owned(),
-                    benchmark: benchmark_name.clone(),
+                    benchmark: benchmark_config.name.clone(),
                     measurement_method: measurement_method.to_string(),
                 });
             } else {
                 return Err(PlotError::MissingRecords {
                     commit_hash: commit_hash.as_str().to_owned(),
-                    benchmark: benchmark_name.clone(),
+                    benchmark: benchmark_config.name.clone(),
                     points: missing,
                     measurement_method: measurement_method.to_string(),
                 });

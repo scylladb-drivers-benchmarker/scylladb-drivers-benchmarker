@@ -30,7 +30,6 @@ impl BenchmarkSetup {
     pub fn to_points(self, name: String) -> Result<Vec<BenchmarkPoint>, ConfigError> {
         match self {
             BenchmarkSetup::Path(path) => Ok(find_config::<BenchmarkConfig>(&name, &path)?
-                .data
                 .benchmark_points()
                 .collect()),
             BenchmarkSetup::Points(points) => Ok(points),
