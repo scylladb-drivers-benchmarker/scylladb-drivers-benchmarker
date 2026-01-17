@@ -107,7 +107,7 @@ fn database_file() {
             .unwrap()
             .expect("Should get one result");
 
-        let flat: FlatBenchmarkRecord = read_result.flatten();
+        let flat: FlatBenchmarkRecord = read_result.flatten().unwrap();
 
         match flat {
             FlatBenchmarkRecord::Data(s) => {

@@ -65,12 +65,13 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
             let params = benchmark_params(point);
 
             match database.get_result(params)?.map(|r| r.flatten()) {
-                Some(FlatBenchmarkRecord::Data(text)) => {
+                Some(Ok(FlatBenchmarkRecord::Data(text))) => {
                     let value =
                         T::from_str(&text).map_err(|_| PlotError::InvalidData(text.clone()))?;
                     results.push(Some(value));
                 }
-                Some(FlatBenchmarkRecord::Timeout) => results.push(None),
+                Some(Ok(FlatBenchmarkRecord::Timeout)) => results.push(None),
+                Some(Err(e)) => return Err(PlotError::Io(e)),
                 None => missing.push(point), // This invalidates the result, but for better errors, we continue
             }
         }

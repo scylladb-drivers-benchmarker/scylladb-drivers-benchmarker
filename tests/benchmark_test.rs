@@ -168,7 +168,7 @@ fn flame_graph() {
             assert!(params == param_builder.finalize(params.benchmark_point));
         }
 
-        let FlatBenchmarkRecord::Data(record_value) = record.flatten() else {
+        let FlatBenchmarkRecord::Data(record_value) = record.flatten().unwrap() else {
             panic!("Unexpected timeout at point: {}", params.benchmark_point);
         };
 

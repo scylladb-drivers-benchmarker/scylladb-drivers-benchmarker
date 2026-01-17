@@ -59,7 +59,7 @@ fn series_plot_fails_file_not_found() {
 #[cfg(unix)]
 #[test]
 fn series_plot_fails_on_permission_denied() {
-    use fs::{self, File};
+    use fs::File;
     use std::fs::Permissions;
     use std::os::unix::fs::PermissionsExt;
     use tempfile::Builder;

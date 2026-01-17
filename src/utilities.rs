@@ -47,16 +47,14 @@ pub enum FlatBenchmarkRecord {
 }
 
 impl BenchmarkRecord {
-    pub fn flatten(self) -> FlatBenchmarkRecord {
-        match self {
+    pub fn flatten(self) -> Result<FlatBenchmarkRecord, std::io::Error> {
+        Ok(match self {
             BenchmarkRecord::Data(s) => FlatBenchmarkRecord::Data(s),
             BenchmarkRecord::FilePath(path) => {
-                let s = fs::read_to_string(&path)
-                    .unwrap_or_else(|_| format!("Failed to read file: {}", path.to_string_lossy())); // TODO error
-                FlatBenchmarkRecord::Data(s)
+                FlatBenchmarkRecord::Data(fs::read_to_string(&path)?)
             }
             BenchmarkRecord::Timeout => FlatBenchmarkRecord::Timeout,
-        }
+        })
     }
 }
 

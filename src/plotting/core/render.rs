@@ -5,7 +5,9 @@ use html_escape::encode_safe;
 use plotters::{coord::types::RangedCoordf64, prelude::*};
 use regex::Regex;
 
-use std::fs::{self, OpenOptions};
+use fs_err as fs;
+use std::fs::OpenOptions;
+
 use std::io::Write;
 use std::path::PathBuf;
 
@@ -228,9 +230,7 @@ where
                 .expect("Regex creation failed");
 
         for artifact in &self.artifacts {
-            let mut flame_svg = fs::read_to_string(artifact.path()).map_err(|e| {
-                PlotError::from_io_with_path(e, artifact.path().display().to_string())
-            })?;
+            let mut flame_svg = fs::read_to_string(artifact.path())?;
 
             let mut captured_width = String::new();
             let mut captured_height = String::new();
@@ -259,13 +259,9 @@ where
                 escaped, captured_width, captured_height
             );
 
-            let mut file = OpenOptions::new()
-                .append(true)
-                .open(&self.output)
-                .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
+            let mut file = OpenOptions::new().append(true).open(&self.output)?;
 
-            writeln!(file, "{iframe}")
-                .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
+            writeln!(file, "{iframe}")?;
         }
 
         Ok(())

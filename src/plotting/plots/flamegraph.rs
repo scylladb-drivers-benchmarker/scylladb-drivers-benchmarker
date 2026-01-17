@@ -6,7 +6,8 @@ use crate::plotting::{
 };
 use crate::utilities::BenchmarkPoint;
 
-use std::fs::{self, OpenOptions};
+use fs_err as fs;
+use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -38,19 +39,15 @@ impl FlamegraphPlot {
             .arg(IMAGE_WIDTH.to_string())
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .spawn()
-            .map_err(|e| PlotError::from_io_with_path(e, artifact.path().to_string_lossy()))?;
+            .spawn()?;
 
         child
             .stdin
             .as_mut()
             .ok_or_else(|| PlotError::Internal("Failed to open stdin for flamegraph.pl".into()))?
-            .write_all(data.as_bytes())
-            .map_err(|e| PlotError::from_io_with_path(e, artifact.path().to_string_lossy()))?;
+            .write_all(data.as_bytes())?;
 
-        let output = child
-            .wait_with_output()
-            .map_err(|e| PlotError::from_io_with_path(e, artifact.path().to_string_lossy()))?;
+        let output = child.wait_with_output()?;
 
         if !output.status.success() {
             return Err(PlotError::Internal(format!(
@@ -65,9 +62,7 @@ impl FlamegraphPlot {
         stdout_str =
             stdout_str.replace(">Flame Graph<", format!(">{} at {}<", name, point).as_str());
 
-        fs::write(artifact.path(), &stdout_str)
-            .map_err(|e| PlotError::from_io_with_path(e, artifact.path().to_string_lossy()))?;
-
+        fs::write(artifact.path(), &stdout_str)?;
         Ok(())
     }
 
@@ -136,8 +131,7 @@ impl Plot for FlamegraphPlot {
                 .create(true)
                 .write(true)
                 .truncate(true)
-                .open(&self.output)
-                .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
+                .open(&self.output)?;
 
             let header = format!(
                 r#"<!DOCTYPE html>
@@ -151,22 +145,17 @@ impl Plot for FlamegraphPlot {
                 self.benchmark_name, self.benchmark_name
             );
 
-            writeln!(file, "{header}")
-                .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
+            writeln!(file, "{header}")?;
         }
 
         for renderable in &self.results {
             <RenderableFlamegraph as Renderable<'_, DB>>::add_to_plot(renderable, &mut [])?;
         }
 
-        let mut file = OpenOptions::new()
-            .append(true)
-            .open(&self.output)
-            .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
+        let mut file = OpenOptions::new().append(true).open(&self.output)?;
 
         let footer = r#"</body></html>"#;
-        writeln!(file, "{footer}")
-            .map_err(|e| PlotError::from_io_with_path(e, self.output.display().to_string()))?;
+        writeln!(file, "{footer}")?;
 
         Ok(())
     }
