@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use crate::plotting::data::BenchmarkDataset;
+use crate::plotting::core::data::BenchmarkDataset;
+use crate::plotting::core::plot::*;
+use crate::plotting::core::render::{Renderable, RenderablePerfStat};
 use crate::plotting::error::PlotError;
-use crate::plotting::plot::*;
-use crate::plotting::render::{Renderable, RenderablePerfStat};
 
 use crate::perf_stat::PerfStatData;
 use crate::utilities::calc_min_max;

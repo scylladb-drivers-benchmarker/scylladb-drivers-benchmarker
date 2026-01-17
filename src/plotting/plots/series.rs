@@ -1,9 +1,9 @@
 use crate::plotting::VisKind;
-use crate::plotting::data::BenchmarkDataset;
+use crate::plotting::core::data::BenchmarkDataset;
+use crate::plotting::core::plot::*;
+use crate::plotting::core::render::{Renderable, RenderableSeries};
+use crate::plotting::core::series::{LinearSeries, LogSeries, SeriesValue, ValueTransformation};
 use crate::plotting::error::PlotError;
-use crate::plotting::plot::*;
-use crate::plotting::render::{Renderable, RenderableSeries};
-use crate::plotting::series::{LinearSeries, LogSeries, SeriesValue, ValueTransformation};
 
 use crate::utilities::calc_min_max;
 

@@ -1,9 +1,6 @@
-mod data;
+mod core;
 pub mod error;
-mod plot;
 mod plots;
-mod render;
-mod series;
 
 #[cfg(test)]
 mod tests;
@@ -13,13 +10,13 @@ use crate::database::Database;
 use crate::perf_stat::PerfStatData;
 use crate::{commit_hash::CommitHash, measurement::MeasurementMethod};
 
-use data::BenchmarkDataset;
+use core::data::BenchmarkDataset;
+use core::plot::{NullBackend, Plot};
+pub use core::series::VisKind;
 use error::PlotError;
-use plot::{NullBackend, Plot};
 use plots::flamegraph::FlamegraphPlot;
 use plots::perf_stat::PerfStatPlot;
 use plots::series::SeriesPlot;
-pub use series::VisKind;
 use std::path::PathBuf;
 
 use plotters::backend::{BitMapBackend, SVGBackend};

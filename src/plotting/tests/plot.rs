@@ -1,6 +1,6 @@
 use crate::plotting::PlotError;
 use crate::plotting::VisKind;
-use crate::plotting::data::BenchmarkDataset;
+use crate::plotting::core::data::BenchmarkDataset;
 use crate::plotting::plot_on_backend;
 use crate::plotting::plots::perf_stat::PerfStatPlot;
 use crate::plotting::plots::series::SeriesPlot;

@@ -1,4 +1,4 @@
-use super::error::PlotError;
+use crate::plotting::error::PlotError;
 
 use plotters::backend::DrawingBackend;
 use plotters::prelude::*;

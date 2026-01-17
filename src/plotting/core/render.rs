@@ -1,4 +1,4 @@
-use super::error::PlotError;
+use crate::plotting::error::PlotError;
 use crate::plotting::plots::flamegraph::ArtifactFile;
 use crate::utilities::{BenchmarkPoint, RangedCoordBenchmarkPoint};
 use html_escape::encode_safe;

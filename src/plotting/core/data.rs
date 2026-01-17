@@ -7,7 +7,7 @@ use crate::utilities::{BenchmarkPoint, FlatBenchmarkRecord};
 use std::fmt::Debug;
 use std::str::FromStr;
 
-use super::error::PlotError;
+use crate::plotting::error::PlotError;
 
 pub(crate) trait PlottableValue: Sized + Debug + Clone + FromStr {}
 
