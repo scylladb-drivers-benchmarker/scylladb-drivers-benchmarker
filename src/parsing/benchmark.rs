@@ -3,7 +3,6 @@ use crate::BenchmarkParams;
 use crate::command;
 use crate::parsing::ParsingError;
 use crate::parsing::Subcommands;
-use crate::parsing::aliasing;
 use crate::parsing::aliasing::AliasingConfig;
 use crate::parsing::bsetup::BenchmarkSetup;
 use clap::Args;
@@ -16,7 +15,7 @@ use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, clap::Args)]
-struct FlameOptions {
+pub struct FlameOptions {
     #[arg(short = 'r', long)]
     flame_repo: Option<PathBuf>,
     #[arg(short, long, default_value_t = FlameFrequency::Number(99))]
@@ -99,13 +98,13 @@ impl BenchmarkCommand {
         let benchmark_config = if let Some(arg_configuration) = self.benchmark_configuration {
             arg_configuration.to_config(&self.benchmark_name)?
         } else if let Some(config_path) = &aliasing_config.benchmark_config {
-            match find_config::<BenchmarkConfig>(&self.benchmark_name, &config_path) {
+            match find_config::<BenchmarkConfig>(&self.benchmark_name, config_path) {
                 Ok(config) => config.into(),
                 Err(ConfigError::ConfigurationNotFound { .. }) => {
-                    return Err(ParsingError::NoBenchmarkConfiguration)
+                    return Err(ParsingError::NoBenchmarkConfiguration);
                 }
                 Err(err) => {
-                    return Err(ParsingError::BenchmarkConfigError(err.into()));
+                    return Err(err.into());
                 }
             }
         } else {

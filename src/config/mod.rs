@@ -13,7 +13,7 @@ pub enum ConfigError {
     FileOperationError(#[from] std::io::Error),
     ParseError {
         source: serde_yml::Error,
-        path: PathBuf
+        path: PathBuf,
     },
     #[error(desc = "configuration not found")]
     ConfigurationNotFound {

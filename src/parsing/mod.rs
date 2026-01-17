@@ -77,7 +77,7 @@ pub enum ParsingError {
     #[error(desc = "Given path to store is not a directory")]
     StoreDirNotADir,
     #[error(desc = "Benchmark configuration not found")]
-    NoBenchmarkConfiguration
+    NoBenchmarkConfiguration,
 }
 
 impl App {

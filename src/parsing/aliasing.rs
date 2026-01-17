@@ -1,10 +1,8 @@
 use fs_err as fs;
 
-use fs::File;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
-use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
 
