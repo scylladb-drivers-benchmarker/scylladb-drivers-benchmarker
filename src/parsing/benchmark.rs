@@ -4,7 +4,7 @@ use crate::command;
 use crate::parsing::ParsingError;
 use crate::parsing::Subcommands;
 use crate::parsing::aliasing::AliasingConfig;
-use crate::parsing::bsetup::BenchmarkSetup;
+use crate::parsing::benchmark_setup::BenchmarkSetup;
 use clap::Args;
 use scylladb_drivers_benchmarker::config::find_config;
 use scylladb_drivers_benchmarker::flame_graph::BenchMeasure;

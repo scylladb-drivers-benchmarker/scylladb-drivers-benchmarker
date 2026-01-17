@@ -1,6 +1,6 @@
 mod aliasing;
 mod benchmark;
-mod bsetup;
+mod benchmark_setup;
 mod database;
 mod plot;
 #[cfg(test)]

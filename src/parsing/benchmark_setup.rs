@@ -63,14 +63,14 @@ impl FromStr for BenchmarkSetup {
 
 impl BenchmarkSetup {
     pub fn finalize(
-        bsetup: Option<Self>,
-        bname: &str,
+        benchmark_setup: Option<Self>,
+        benchmark_name: &str,
         aliasing_config: &AliasingConfig,
     ) -> Result<BenchmarkData, ParsingError> {
-        if let Some(bsetup) = bsetup {
-            Ok(bsetup.into_config(bname)?)
+        if let Some(benchmark_setup) = benchmark_setup {
+            Ok(benchmark_setup.into_config(benchmark_name)?)
         } else if let Some(config_path) = &aliasing_config.benchmark_config {
-            match find_config::<BenchmarkConfig>(bname, config_path) {
+            match find_config::<BenchmarkConfig>(benchmark_name, config_path) {
                 Ok(config) => Ok(config.into()),
                 Err(ConfigError::ConfigurationNotFound { .. }) => {
                     Err(ParsingError::NoBenchmarkConfiguration)
@@ -97,7 +97,7 @@ mod test {
     use tempfile::NamedTempFile;
 
     use crate::parsing::aliasing::AliasingConfig;
-    use crate::parsing::bsetup::BenchmarkSetup;
+    use crate::parsing::benchmark_setup::BenchmarkSetup;
 
     fn write_assert<T: Serialize + Debug + Eq + for<'a> Deserialize<'a>>(val: T) -> NamedTempFile {
         let file = NamedTempFile::new().unwrap();
