@@ -7,6 +7,7 @@ use crate::parsing::aliasing;
 use crate::parsing::aliasing::AliasingConfig;
 use crate::parsing::bsetup::BenchmarkSetup;
 use clap::Args;
+use scylladb_drivers_benchmarker::config::ConfigError;
 use scylladb_drivers_benchmarker::config::benchmark::BenchmarkConfig;
 use scylladb_drivers_benchmarker::config::find_config;
 use scylladb_drivers_benchmarker::flame_graph::BenchMeasure;
@@ -95,10 +96,18 @@ pub struct BenchmarkCommand {
 
 impl BenchmarkCommand {
     pub fn finalize(self, aliasing_config: AliasingConfig) -> Result<Subcommands, ParsingError> {
-        let benchmark_config = if let Some(config_path) = &aliasing_config.benchmark_config {
-            find_config::<BenchmarkConfig>(&self.benchmark_name, &config_path)?.into()
-        } else if let Some(arg_configuration) = self.benchmark_configuration {
+        let benchmark_config = if let Some(arg_configuration) = self.benchmark_configuration {
             arg_configuration.to_config(&self.benchmark_name)?
+        } else if let Some(config_path) = &aliasing_config.benchmark_config {
+            match find_config::<BenchmarkConfig>(&self.benchmark_name, &config_path) {
+                Ok(config) => config.into(),
+                Err(ConfigError::ConfigurationNotFound { .. }) => {
+                    return Err(ParsingError::NoBenchmarkConfiguration)
+                }
+                Err(err) => {
+                    return Err(ParsingError::BenchmarkConfigError(err.into()));
+                }
+            }
         } else {
             return Err(ParsingError::NoBenchmarkConfiguration);
         };

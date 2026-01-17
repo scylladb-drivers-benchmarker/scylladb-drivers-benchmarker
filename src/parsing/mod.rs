@@ -67,7 +67,7 @@ pub enum ParsingError {
     DatabasePathAccess(#[from] DbPathError),
     DatabaseInitialization(#[from] DatabaseError),
     FromClauser(#[from] RepoNameWithCommitsParsingError),
-    Config(#[from] ConfigError),
+    BenchmarkConfigError(#[from] ConfigError),
     NoStoreDir {
         needed_by: MeasurementMethod,
     },
