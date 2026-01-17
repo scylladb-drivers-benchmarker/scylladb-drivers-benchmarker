@@ -1,9 +1,8 @@
 use crate::plotting::{
-    IMAGE_WIDTH,
+    IMAGE_WIDTH, PlotError,
     core::{
         ArtifactFile, BackendWithKind, BenchmarkDataset, Plot, Renderable, RenderableFlamegraph,
     },
-    error::PlotError,
 };
 use crate::utilities::BenchmarkPoint;
 
@@ -42,15 +41,12 @@ impl FlamegraphPlot {
             .spawn()
             .map_err(|e| PlotError::from_io_with_path(e, artifact.path().to_string_lossy()))?;
 
-        {
-            let stdin = child.stdin.as_mut().ok_or_else(|| {
-                PlotError::Internal("Failed to open stdin for flamegraph.pl".into())
-            })?;
-
-            stdin
-                .write_all(data.as_bytes())
-                .map_err(|e| PlotError::from_io_with_path(e, artifact.path().to_string_lossy()))?;
-        }
+        child
+            .stdin
+            .as_mut()
+            .ok_or_else(|| PlotError::Internal("Failed to open stdin for flamegraph.pl".into()))?
+            .write_all(data.as_bytes())
+            .map_err(|e| PlotError::from_io_with_path(e, artifact.path().to_string_lossy()))?;
 
         let output = child
             .wait_with_output()
