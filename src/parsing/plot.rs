@@ -66,13 +66,19 @@ impl PlotCommand {
             .map(|repo| resolve_repo_tags(repo.clone(), &aliasing_config.repo_path))
             .collect::<Result<Vec<RepoPathWithCommits>, _>>()?;
 
-        let plot_settings = PlotSettings::new(
+        let mut plot_settings = PlotSettings::new(
             self.plot_kind,
             self.output
                 .to_str()
                 .expect("Invalid UTF-8 path") // TODO probably error not panic
                 .to_owned(),
         );
+
+        if let PlotKind::Flamegraph { flame_repo, .. } = &mut plot_settings.plot_kind
+            && flame_repo.is_none()
+        {
+            *flame_repo = aliasing_config.flame_path.clone();
+        }
 
         Ok(Subcommands::Plot(PlotParams {
             benchmark_config: find_config(&self.benchmark_name, &self.benchmark_config_path)?,
