@@ -36,7 +36,7 @@ pub enum PlotError {
     },
 
     #[error(
-        desc = "flamegraph repository path is missing; provide --flame-repo or configure global path"
+        desc = "Flamegraph repository path is missing; provide --flame-repo or configure global path"
     )]
     MissingFlameRepo,
 
