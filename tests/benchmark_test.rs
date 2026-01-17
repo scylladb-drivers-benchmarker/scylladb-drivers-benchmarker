@@ -180,3 +180,71 @@ fn flame_graph() {
         assert!(params.benchmark_point as usize / 1_000 < record_value.matches("goo").count());
     }
 }
+
+#[test]
+fn utility_test() {
+    let path = Path::new(file!())
+        .parent()
+        .unwrap()
+        .canonicalize()
+        .unwrap()
+        .join("utility_test/");
+
+    let dp_path = path.join("db.db");
+    let bc_path = path.join("bconfig.yml");
+    let ac_path = path.join("alias.yml");
+
+    write!(
+        File::create(&ac_path).unwrap(),
+        "dp-path: {dp_path:?}\nbenchmark-config: {bc_path:?}"
+    )
+    .unwrap();
+
+    setup_git(&path);
+    let commit_hash = CommitHash::new(&path, "HEAD".to_owned()).unwrap();
+
+    let dp = open_clean_db(&dp_path);
+
+    run(sdb_command()
+        .env("SDB_CONFIG", ac_path)
+        .args(&["run", "utility", "-b", "1,5,2", "command", "echo"])
+        .current_dir("./tests/utility_test/"));
+
+    let data = dp.get_all_data().unwrap();
+    assert_eq!(
+        data[0],
+        (
+            BenchmarkParams::new(
+                commit_hash.clone(),
+                "utility".to_owned(),
+                1,
+                "echo".to_owned()
+            ),
+            BenchmarkRecord::Data("sleep 1".to_owned())
+        ),
+    );
+    assert_eq!(
+        data[1],
+        (
+            BenchmarkParams::new(
+                commit_hash.clone(),
+                "utility".to_owned(),
+                5,
+                "echo".to_owned()
+            ),
+            BenchmarkRecord::Data("sleep 5".to_owned())
+        ),
+    );
+    assert_eq!(
+        data[2],
+        (
+            BenchmarkParams::new(
+                commit_hash.clone(),
+                "utility".to_owned(),
+                2,
+                "echo".to_owned()
+            ),
+            BenchmarkRecord::Data("sleep 2".to_owned())
+        )
+    );
+}
