@@ -11,7 +11,7 @@ use std::path::Path;
 
 mod utilities;
 use utilities::run_utilities::{run_no_output, run_only_stdout, sdb_command};
-
+// TODO only temp files for db here.
 #[test]
 fn database() {
     let db_path = "./tests/database_test/test.db";
