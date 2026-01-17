@@ -13,7 +13,7 @@ use std::path::PathBuf;
 const LEGEND_LINE_LENGTH: i32 = 20;
 const CROSS_SIZE: u32 = 5;
 
-pub(crate) trait Renderable<'a, DB>
+pub trait Renderable<'a, DB>
 where
     DB: DrawingBackend + 'a,
     <DB as DrawingBackend>::ErrorType: 'static,
@@ -33,7 +33,7 @@ where
     ) -> Result<(), PlotError>;
 }
 
-pub(crate) struct RenderableSeries {
+pub struct RenderableSeries {
     pub points: Vec<BenchmarkPoint>,
     name: String,
     series: Vec<Option<f64>>,
@@ -41,7 +41,7 @@ pub(crate) struct RenderableSeries {
     range: Option<(f64, f64)>,
 }
 
-pub(crate) struct RenderablePerfStat {
+pub struct RenderablePerfStat {
     pub points: Vec<BenchmarkPoint>,
     pub color: PaletteColor<Palette99>,
     pub name: String,
@@ -49,13 +49,13 @@ pub(crate) struct RenderablePerfStat {
     ranges: Vec<Option<(f64, f64)>>,
 }
 
-pub(crate) struct RenderableFlamegraph {
+pub struct RenderableFlamegraph {
     output: PathBuf,
     artifacts: Vec<ArtifactFile>,
 }
 
 impl RenderableSeries {
-    pub(crate) fn new(
+    pub fn new(
         name: String,
         points: Vec<BenchmarkPoint>,
         series: Vec<Option<f64>>,
@@ -127,7 +127,7 @@ where
 }
 
 impl RenderablePerfStat {
-    pub(crate) fn new(
+    pub fn new(
         name: String,
         points: Vec<BenchmarkPoint>,
         values: Vec<Vec<Option<f64>>>,
@@ -206,7 +206,7 @@ where
 }
 
 impl RenderableFlamegraph {
-    pub(crate) fn new(output: PathBuf, artifacts: Vec<ArtifactFile>) -> Self {
+    pub fn new(output: PathBuf, artifacts: Vec<ArtifactFile>) -> Self {
         RenderableFlamegraph { output, artifacts }
     }
 }

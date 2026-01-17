@@ -14,13 +14,13 @@ pub(crate) trait PlottableValue: Sized + Debug + Clone + FromStr {}
 impl<T> PlottableValue for T where T: FromStr + Sized + Debug + Clone {}
 
 #[derive(Debug)]
-pub(crate) struct BenchmarkDataset<T: PlottableValue> {
-    pub(crate) points: Vec<BenchmarkPoint>,
-    pub(crate) results: Vec<Vec<Option<T>>>,
+pub struct BenchmarkDataset<T: PlottableValue> {
+    pub points: Vec<BenchmarkPoint>,
+    pub results: Vec<Vec<Option<T>>>,
 }
 
 impl<T: PlottableValue> BenchmarkDataset<T> {
-    pub(crate) fn new(
+    pub fn new(
         database: &Database,
         benchmark_config: &BenchmarkConfig,
         commit_hashes: impl Iterator<Item = CommitHash>,

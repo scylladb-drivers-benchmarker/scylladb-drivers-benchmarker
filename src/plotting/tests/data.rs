@@ -8,7 +8,7 @@ use crate::database::utilities::BenchmarkParams;
 use crate::database::utilities::{BenchmarkFilters, BenchmarkRecord};
 use crate::measurement::MeasurementMethod;
 use crate::plotting::BenchmarkConfig;
-use crate::plotting::core::data::BenchmarkDataset;
+use crate::plotting::core::BenchmarkDataset;
 use crate::utilities::BenchmarkPoint;
 use tempfile::NamedTempFile;
 

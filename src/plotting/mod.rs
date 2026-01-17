@@ -10,9 +10,9 @@ use crate::database::Database;
 use crate::perf_stat::PerfStatData;
 use crate::{commit_hash::CommitHash, measurement::MeasurementMethod};
 
-use core::data::BenchmarkDataset;
-use core::plot::{NullBackend, Plot};
-pub use core::series::VisKind;
+pub use core::VisKind;
+use core::BenchmarkDataset;
+use core::{NullBackend, Plot};
 use error::PlotError;
 use plots::flamegraph::FlamegraphPlot;
 use plots::perf_stat::PerfStatPlot;

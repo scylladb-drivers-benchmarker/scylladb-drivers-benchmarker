@@ -1,8 +1,11 @@
 use crate::plotting::VisKind;
-use crate::plotting::core::data::BenchmarkDataset;
-use crate::plotting::core::plot::*;
-use crate::plotting::core::render::{Renderable, RenderableSeries};
-use crate::plotting::core::series::{LinearSeries, LogSeries, SeriesValue, ValueTransformation};
+use crate::plotting::core::BenchmarkDataset;
+use crate::plotting::core::{
+    BACKGROUND_COLOR, BackendWithKind, LABEL_FONT, LEGEND_BORDER_COLOR, LEGEND_BORDER_SIZE,
+    MARGIN_SIZE, Plot, TITLE_FONT, X_LABEL_AREA_SIZE, Y_LABEL_AREA_SIZE,
+};
+use crate::plotting::core::{LinearSeries, LogSeries, SeriesValue, ValueTransformation};
+use crate::plotting::core::{Renderable, RenderableSeries};
 use crate::plotting::error::PlotError;
 
 use crate::utilities::calc_min_max;

@@ -1,7 +1,7 @@
 use crate::plotting::IMAGE_WIDTH;
-use crate::plotting::core::data::BenchmarkDataset;
-use crate::plotting::core::plot::*;
-use crate::plotting::core::render::{Renderable, RenderableFlamegraph};
+use crate::plotting::core::BenchmarkDataset;
+use crate::plotting::core::{BackendWithKind, Plot};
+use crate::plotting::core::{Renderable, RenderableFlamegraph};
 use crate::plotting::error::PlotError;
 use crate::utilities::BenchmarkPoint;
 

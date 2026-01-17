@@ -1,8 +1,11 @@
 use std::collections::HashMap;
 
-use crate::plotting::core::data::BenchmarkDataset;
-use crate::plotting::core::plot::*;
-use crate::plotting::core::render::{Renderable, RenderablePerfStat};
+use crate::plotting::core::BenchmarkDataset;
+use crate::plotting::core::{
+    BACKGROUND_COLOR, BackendKind, BackendWithKind, CAPTION_FONT, LABEL_FONT, LEGEND_BORDER_COLOR,
+    LEGEND_BORDER_SIZE, MARGIN_SIZE, Plot, TITLE_FONT, X_LABEL_AREA_SIZE, Y_LABEL_AREA_SIZE,
+};
+use crate::plotting::core::{Renderable, RenderablePerfStat};
 use crate::plotting::error::PlotError;
 
 use crate::perf_stat::PerfStatData;
@@ -27,7 +30,7 @@ impl PerfStatPlot {
     const LEGEND_MARKER_HEIGHT: i32 = 10; // color rectangle height
     const LEGEND_MARKER_TEXT_GAP: i32 = 5; // gap between marker and text
     const LEGEND_ENTRY_SPACING: i32 = 8; // vertical gap between legend entries
-    const LEGEND_CHAR_HEIGHT: i32 = LABEL_FONT_SIZE as i32; // legend text character height
+    const LEGEND_CHAR_HEIGHT: i32 = LABEL_FONT.1 as i32; // legend text character height
 
     fn new(
         benchmark_name: String,

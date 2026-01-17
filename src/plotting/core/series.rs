@@ -18,18 +18,18 @@ impl fmt::Display for VisKind {
     }
 }
 
-pub(crate) trait SeriesValue: PlottableValue + PartialOrd + Into<f64> {}
+pub trait SeriesValue: PlottableValue + PartialOrd + Into<f64> {}
 impl<T: PlottableValue + PartialOrd + Into<f64>> SeriesValue for T {}
 
-pub(crate) struct LinearSeries<T: SeriesValue> {
+pub struct LinearSeries<T: SeriesValue> {
     pub y: Vec<Option<T>>,
 }
 
-pub(crate) struct LogSeries<T: SeriesValue> {
+pub struct LogSeries<T: SeriesValue> {
     pub y: Vec<Option<T>>,
 }
 
-pub(crate) enum ValueTransformation<T: SeriesValue> {
+pub enum ValueTransformation<T: SeriesValue> {
     Linear(LinearSeries<T>),
     Log(LogSeries<T>),
 }

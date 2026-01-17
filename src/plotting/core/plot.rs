@@ -4,24 +4,24 @@ use plotters::backend::DrawingBackend;
 use plotters::prelude::*;
 use plotters_backend::DrawingErrorKind;
 
-pub(crate) const MARGIN_SIZE: u32 = 20;
-pub(crate) const X_LABEL_AREA_SIZE: u32 = 40;
-pub(crate) const Y_LABEL_AREA_SIZE: u32 = 70;
+pub const MARGIN_SIZE: u32 = 20;
+pub const X_LABEL_AREA_SIZE: u32 = 40;
+pub const Y_LABEL_AREA_SIZE: u32 = 70;
 
-pub(crate) const FONT_FAMILY: &str = "sans-serif";
-pub(crate) const TITLE_FONT_SIZE: u32 = 40;
-pub(crate) const TITLE_FONT: (&str, u32) = (FONT_FAMILY, TITLE_FONT_SIZE);
-pub(crate) const CAPTION_FONT_SIZE: u32 = 24;
-pub(crate) const CAPTION_FONT: (&str, u32) = (FONT_FAMILY, CAPTION_FONT_SIZE);
-pub(crate) const LABEL_FONT_SIZE: u32 = 16;
-pub(crate) const LABEL_FONT: (&str, u32) = (FONT_FAMILY, LABEL_FONT_SIZE);
+pub const FONT_FAMILY: &str = "sans-serif";
+pub const TITLE_FONT_SIZE: u32 = 40;
+pub const TITLE_FONT: (&str, u32) = (FONT_FAMILY, TITLE_FONT_SIZE);
+pub const CAPTION_FONT_SIZE: u32 = 24;
+pub const CAPTION_FONT: (&str, u32) = (FONT_FAMILY, CAPTION_FONT_SIZE);
+pub const LABEL_FONT_SIZE: u32 = 16;
+pub const LABEL_FONT: (&str, u32) = (FONT_FAMILY, LABEL_FONT_SIZE);
 
-pub(crate) const BACKGROUND_COLOR: RGBColor = WHITE;
-pub(crate) const LEGEND_BORDER_COLOR: RGBColor = BLACK;
+pub const BACKGROUND_COLOR: RGBColor = WHITE;
+pub const LEGEND_BORDER_COLOR: RGBColor = BLACK;
 
-pub(crate) const LEGEND_BORDER_SIZE: u32 = 1;
+pub const LEGEND_BORDER_SIZE: u32 = 1;
 
-pub(crate) trait Plot {
+pub trait Plot {
     fn plot<DB: DrawingBackend + BackendWithKind>(&self, backend: DB) -> Result<(), PlotError>
     where
         DB::ErrorType: 'static;
@@ -30,13 +30,13 @@ pub(crate) trait Plot {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum BackendKind {
+pub enum BackendKind {
     Bitmap,
     Svg,
     Html,
 }
 
-pub(crate) struct NullBackend;
+pub struct NullBackend;
 
 impl DrawingBackend for NullBackend {
     type ErrorType = std::convert::Infallible;
@@ -63,7 +63,7 @@ impl DrawingBackend for NullBackend {
 }
 
 // A very hacky way to differentiate backends, necessary as text has different pixel size.
-pub(crate) trait BackendWithKind {
+pub trait BackendWithKind {
     fn kind(&self) -> BackendKind;
 }
 
