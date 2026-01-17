@@ -1,16 +1,16 @@
 use crate::commit_hash::CommitHash;
 use crate::config::benchmark::BenchmarkConfig;
-use crate::database::{Database, utilities::BenchmarkParams};
+use crate::database::Database;
 use crate::measurement::MeasurementMethod;
 use crate::plotting::PlotError;
-use crate::utilities::{BenchmarkPoint, FlatBenchmarkRecord};
+use crate::utilities::{BenchmarkParamsBuilder, BenchmarkPoint, FlatBenchmarkRecord};
 
 use std::fmt::Debug;
 use std::str::FromStr;
 
-pub(crate) trait PlottableValue: Sized + Debug + Clone + FromStr {}
+pub(crate) trait PlottableValue: FromStr + Debug + Clone {}
 
-impl<T> PlottableValue for T where T: FromStr + Sized + Debug + Clone {}
+impl<T> PlottableValue for T where T: FromStr + Debug + Clone {}
 
 #[derive(Debug)]
 pub struct BenchmarkDataset<T: PlottableValue> {
@@ -38,7 +38,7 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
                     measurement_method,
                 )
             })
-            .collect::<Result<Vec<Vec<Option<T>>>, PlotError>>()?;
+            .collect::<Result<_, _>>()?;
 
         Ok(BenchmarkDataset { points, results })
     }
@@ -49,20 +49,17 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         benchmark_config: &BenchmarkConfig,
         measurement_method: &MeasurementMethod,
     ) -> Result<Vec<Option<T>>, PlotError> {
-        let benchmark_params = |param: BenchmarkPoint| {
-            BenchmarkParams::new(
-                commit_hash.clone(),
-                benchmark_config.name.clone(),
-                param,
-                measurement_method.to_string(),
-            )
+        let builder = BenchmarkParamsBuilder {
+            commit_hash: commit_hash.clone(),
+            benchmark_name: benchmark_config.name.clone(),
+            measurement_method: measurement_method.to_string(),
         };
 
         let mut results = Vec::new();
         let mut missing = Vec::new();
 
         for point in benchmark_config.benchmark_points() {
-            let params = benchmark_params(point);
+            let params = builder.finalize(point);
 
             match database.get_result(params)?.map(|r| r.flatten()) {
                 Some(Ok(FlatBenchmarkRecord::Data(text))) => {
