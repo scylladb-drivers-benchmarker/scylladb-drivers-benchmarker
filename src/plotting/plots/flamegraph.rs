@@ -1,8 +1,8 @@
-use super::data::BenchmarkDataset;
-use super::error::PlotError;
-use super::plot::*;
-use super::render::{Renderable, RenderableFlamegraph};
 use crate::plotting::IMAGE_WIDTH;
+use crate::plotting::data::BenchmarkDataset;
+use crate::plotting::error::PlotError;
+use crate::plotting::plot::*;
+use crate::plotting::render::{Renderable, RenderableFlamegraph};
 use crate::utilities::BenchmarkPoint;
 
 use std::fs::{self, OpenOptions};
@@ -11,13 +11,13 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use tempfile::NamedTempFile;
 
-pub(crate) struct ArtifactFile {
+pub struct ArtifactFile {
     path: PathBuf,
     _tmp: Option<NamedTempFile>,
 }
 
 impl ArtifactFile {
-    pub(crate) fn from_path(path: PathBuf) -> std::io::Result<Self> {
+    pub fn from_path(path: PathBuf) -> std::io::Result<Self> {
         if !path.exists() {
             std::fs::File::create(&path)?;
         }
@@ -25,7 +25,7 @@ impl ArtifactFile {
         Ok(Self { path, _tmp: None })
     }
 
-    pub(crate) fn temp() -> Self {
+    pub fn temp() -> Self {
         let tmp = NamedTempFile::new().expect("NamedTempFile creation failed");
         let path = tmp.path().to_path_buf();
         Self {
@@ -34,7 +34,7 @@ impl ArtifactFile {
         }
     }
 
-    pub(crate) fn path(&self) -> &Path {
+    pub fn path(&self) -> &Path {
         &self.path
     }
 }

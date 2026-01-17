@@ -1,5 +1,5 @@
 use super::error::PlotError;
-use super::flamegraph_plot::ArtifactFile;
+use crate::plotting::plots::flamegraph::ArtifactFile;
 use crate::utilities::{BenchmarkPoint, RangedCoordBenchmarkPoint};
 use html_escape::encode_safe;
 use plotters::coord::types::RangedCoordf64;
