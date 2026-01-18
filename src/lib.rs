@@ -1,3 +1,4 @@
+use crate::benchmarking::BenchMeasure;
 use crate::config::backend::BackendConfig;
 use crate::config::benchmark::BenchmarkConfig;
 use crate::config::benchmark::BenchmarkData;
@@ -8,7 +9,6 @@ use crate::{
     benchmarking::BenchmarkingError,
     commit_hash::CommitHash,
     database::{Database, DatabaseError},
-    flame_graph::BenchMeasure,
     plotting::error::PlotError,
     utilities::{BenchmarkMode, format_entry},
 };

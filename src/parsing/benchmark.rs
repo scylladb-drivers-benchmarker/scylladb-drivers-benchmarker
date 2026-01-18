@@ -2,9 +2,7 @@ use std::path::PathBuf;
 
 use clap::Args;
 use scylladb_drivers_benchmarker::{
-    config::find_config,
-    flame_graph::{BenchMeasure, FlameFrequency},
-    measurement::MeasurementMethod,
+    benchmarking::BenchMeasure, config::find_config, flame_graph::FlameFrequency, measurement::MeasurementMethod
 };
 
 use crate::{

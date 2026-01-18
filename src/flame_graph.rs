@@ -35,27 +35,3 @@ impl Display for FlameFrequency {
         }
     }
 }
-
-// TODO czemu to jest tu?
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum BenchMeasure {
-    Time,
-    PerfStat,
-    FlameGraph {
-        flame_repo: PathBuf,
-        frequency: FlameFrequency,
-        store_dir: PathBuf,
-    },
-    Command(command::Command),
-}
-
-impl From<BenchMeasure> for MeasurementMethod {
-    fn from(value: BenchMeasure) -> Self {
-        match value {
-            BenchMeasure::Time => MeasurementMethod::Time,
-            BenchMeasure::PerfStat => MeasurementMethod::Perf,
-            BenchMeasure::FlameGraph { .. } => MeasurementMethod::Flamegraph,
-            BenchMeasure::Command(command) => MeasurementMethod::Command(command),
-        }
-    }
-}

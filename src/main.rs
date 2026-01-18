@@ -1,5 +1,6 @@
 use crate::parsing::App;
 use clap::Parser;
+use scylladb_drivers_benchmarker::benchmarking::BenchMeasure;
 use scylladb_drivers_benchmarker::config::backend::BackendConfig;
 use scylladb_drivers_benchmarker::config::benchmark::BenchmarkConfig;
 use scylladb_drivers_benchmarker::config::benchmark::BenchmarkData;
@@ -7,8 +8,7 @@ use scylladb_drivers_benchmarker::database::utilities::BenchmarkFilters;
 use scylladb_drivers_benchmarker::repo_with_commits::RepoNameWithTags;
 use scylladb_drivers_benchmarker::repo_with_commits::RepoPathWithCommits;
 use scylladb_drivers_benchmarker::{
-    PlotKind, PlotSettings, command, database::Database, flame_graph::BenchMeasure,
-    utilities::BenchmarkMode,
+    PlotKind, PlotSettings, command, database::Database, utilities::BenchmarkMode,
 };
 
 mod parsing;

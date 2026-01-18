@@ -1,6 +1,7 @@
 mod executor;
 
 use std::error::Error;
+use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -9,7 +10,7 @@ use crate::command::{Command, CommandParsingError};
 use crate::commit_hash::CommitHash;
 use crate::config::benchmark::BenchmarkData;
 use crate::database::utilities::BenchmarkFilters;
-use crate::flame_graph::BenchMeasure;
+use crate::flame_graph::FlameFrequency;
 use crate::measurement::MeasurementMethod;
 use crate::utilities::{BenchmarkMode, BenchmarkParamsBuilder, BenchmarkPoint};
 use executor::build_source;
@@ -17,6 +18,30 @@ use executor::build_source;
 use crate::config::backend::BackendConfig;
 
 use super::database::*;
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum BenchMeasure {
+    Time,
+    PerfStat,
+    FlameGraph {
+        flame_repo: PathBuf,
+        frequency: FlameFrequency,
+        store_dir: PathBuf,
+    },
+    Command(Command),
+}
+
+impl From<BenchMeasure> for MeasurementMethod {
+    fn from(value: BenchMeasure) -> Self {
+        match value {
+            BenchMeasure::Time => MeasurementMethod::Time,
+            BenchMeasure::PerfStat => MeasurementMethod::Perf,
+            BenchMeasure::FlameGraph { .. } => MeasurementMethod::Flamegraph,
+            BenchMeasure::Command(command) => MeasurementMethod::Command(command),
+        }
+    }
+}
+
 
 #[justerror::Error]
 pub enum BenchmarkingError {
