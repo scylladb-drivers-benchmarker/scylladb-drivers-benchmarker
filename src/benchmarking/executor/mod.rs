@@ -9,9 +9,9 @@ use std::process::Output;
 use std::str::FromStr;
 use std::time::Duration;
 
+use crate::benchmarking::BenchMeasure;
 use crate::benchmarking::executor::command_executor::CommandExecutor;
 use crate::benchmarking::executor::flame_executor::FlameExecutor;
-use crate::benchmarking::BenchMeasure;
 use crate::command;
 use crate::command::{Command, CommandParsingError, PrintableOutput};
 use crate::database::utilities::BenchmarkRecord;

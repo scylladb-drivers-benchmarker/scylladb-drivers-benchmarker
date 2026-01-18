@@ -64,15 +64,13 @@ pub fn plot_benchmarks(
 
     let commit_hashes = resolved.into_iter().flat_map(|repo| repo.git_hashes);
 
-    plotting::plot(
+    Ok(plotting::plot(
         plot_settings,
         database,
         benchmark_config,
         commit_hashes,
         &names,
-    )?;
-
-    Ok(())
+    )?)
 }
 
 pub fn drop_database(database: &Database, filters: BenchmarkFilters) -> Result<(), DatabaseError> {
