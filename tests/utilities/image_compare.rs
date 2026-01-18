@@ -7,7 +7,6 @@ use resvg::{tiny_skia, usvg};
 fn load_image(path: &Path) -> RgbaImage {
     let extension = path.extension().unwrap_or_default().to_str().unwrap();
 
-    println!("{}", path.display());
     match extension {
         "png" => open(path).unwrap().to_rgba8(),
         "svg" => svg_to_rgba(path.as_ref()),
