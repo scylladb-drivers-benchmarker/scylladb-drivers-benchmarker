@@ -39,7 +39,7 @@ impl<T: SeriesValue> LinearSeries<T> {
         self.y
             .iter()
             .cloned()
-            .map(|y| y.map(|v| v.into()))
+            .map(|y| y.map(Into::into))
             .collect()
     }
 
