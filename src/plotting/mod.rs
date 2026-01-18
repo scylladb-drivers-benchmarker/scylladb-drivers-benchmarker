@@ -64,7 +64,7 @@ impl PlotSettings {
 }
 
 pub(crate) fn plot_on_backend(plot: impl Plot, output: &str) -> Result<(), PlotError> {
-    let extension = output.rsplit('.').next().unwrap_or("").to_string();
+    let extension = output.rsplit('.').next().unwrap_or("").to_owned();
 
     match extension.as_str() {
         "png" => plot.plot(BitMapBackend::new(output, IMAGE_SIZE)),

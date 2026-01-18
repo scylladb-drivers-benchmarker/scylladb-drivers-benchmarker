@@ -234,8 +234,8 @@ where
             // and save the previous ones, to keep aspect ratio.
             flame_svg = size_re
                 .replace(&flame_svg, |captures: &regex::Captures| {
-                    captured_width = captures[2].to_string();
-                    captured_height = captures[3].to_string();
+                    captured_width = captures[2].to_owned();
+                    captured_height = captures[3].to_owned();
                     format!("<svg {} width=\"100%\" height=\"100%\"", &captures[1])
                 })
                 .into_owned();
