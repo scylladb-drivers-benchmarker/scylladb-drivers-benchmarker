@@ -21,7 +21,7 @@ cargo run -- -d ../test.db run regex -b ../config.yml
 Then, later to graph the results execute (from `tests/cpp_vs_rust_test`):
 
 ```sh
-cargo run -- -d test.db plot regex -b config.yml --from=cpp/:HEAD --from=rust/:HEAD series
+cargo run -- -d test.db plot regex -b config.yml --from=cpp/:HEAD --from=rust/:HEAD -o plot.png series
 ```
 
 Finally it is possible to print data to stdout:
@@ -65,7 +65,19 @@ There are two special measuring methods that get treated differently:
 
 ### Plotting options
 
-Single value outputs (from custom or `time` measuring) are plotted on a linear graph, while `perf` is plotted over multiple graphs, one for each requested event.
+Different data requires different plot types to be visualized correctly. Currently supported plot types:  
+  - `series`
+    - used for single value outputs (from custom or `time` measuring)
+    - generates a linear or logarithmic graph
+    - currently supported formats: `png`, `svg`
+  - `perf-stat`
+    - used for the results of a `perf` measurement method
+    - generates multiple graphs, one for each requested event
+    - currently supported formats: `png`, `svg`
+  - `flamegraph`
+    - used for the results of a `flame-graph` measurement method
+    - generates a single file containing all the generated graphs; if specified it is also possible to generate singular graphs
+    - currently supported formats: `html`
 
 ## Configuration files
 
@@ -129,20 +141,21 @@ Executes, measures, and stores to the database the results of the measurements. 
 
 ### Plot subcommand
 
-Visualizes and compares the results of previous `runs`, reading them from the database
-After `plot` benchmark name should be passed. Plot type (subcommand) and its possible flags should be provided after the common options.
+Visualizes and compares the results of previous `runs`, reading them from the database.
+After `plot` benchmark name should be passed.
+- `-b`, `--benchmark-config-path` — The path to the configuration file of the benchmark
+- `-o`, `--output` — The path where plot should be saved. The output file extension **implies** the selected format to comply with the [plotters](https://docs.rs/plotters/latest/plotters/) API. To see which formats are available for which plot type, see [Plotting options](#plotting-options).
+- `--from <repository_path:tag1,tag2,...>` — Specifies which tags should be used in the comparison and to which repository they refer. Including this option multiple times adds more to the comparison. Here tags are used broadly, and include things like branches, tags, `HEAD`, with relative versions of thereof.
+- Plot type (subcommand) and its possible flags should be provided after the common options:
+  - `series` plot
+    - `-m`, `--measurement-method` — The command used to measure the performance of the benchmark (e.g. time).
+    - `-v`, `--visualization-kind` — Controls the style of the plot line. Can be `linear` for a standard line plot or `log` for a logarithmic plot. This affects the visual representation but does not rescale the underlying data.
+  - `perf-stat` plot
+    - `-e` `--events` `<event1,event2,...>` — List of requested `perf` events.
+  - `flamegraph` plot
+    - `-a` `--artifacts_dir` — Directory path where the generated singular flamegraph `svg`'s will be saved. If omitted, the artifacts will not be generated.
+    - `f` `--flame-repo` — the path to the flame-graph repository of Brendan Gregg. This argument is **not** optional.
 
-- Common Options for `plot`
-  - `-m`, `--measurement-method` — the command to measure the performance of the benchmark (e.g. time).
-  - `-b`, `--benchmark-config-path` — the path to the configuration file of the benchmark
-  - `-o`, `--output` — the path where plot should be saved
-  - `--from <repository path:tag1,tag2,...>` — specifies which tags should be used in the comparison and to which repository they refer. Including this option multiple times adds more to the comparison. Here tags are used broadly, and include things like branches, tags, `HEAD`, with relative versions of thereof.
-  - `-f`, `--format` — Output format of the rendered plot. Currently supported formats: `png` and `svg`.The output file extension **must match** the selected format to comply with the [plotters](https://docs.rs/plotters/latest/plotters/) API.
-- Options specific to a `series` plot
-  - `-v`, `--visualization-kind` — Controls the style of the plot line. Can be `linear` for a standard line plot or `log` for a logarithmic plot. This affects the visual representation but does not rescale the underlying data.
-- Options specific to a `flamegraph` plot
-
-  - Currently no additional flags are required.
 
 ### Database subcommands
 
