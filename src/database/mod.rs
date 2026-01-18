@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use sqlite::{Connection, State, Statement};
 
 use crate::CommitHash;
-use crate::database::utilities::{BenchmarkParams, BenchmarkFilters, BenchmarkRecord};
+use crate::database::utilities::{BenchmarkFilters, BenchmarkParams, BenchmarkRecord};
 
 pub struct Database {
     connection: Connection,
@@ -64,10 +64,7 @@ impl Database {
         Ok(())
     }
 
-    fn bind_params(
-        stmt: &mut Statement<'_>,
-        params: BenchmarkParams,
-    ) -> Result<(), DatabaseError> {
+    fn bind_params(stmt: &mut Statement<'_>, params: BenchmarkParams) -> Result<(), DatabaseError> {
         stmt.bind((1, params.commit_hash.as_str()))?;
         stmt.bind((2, params.benchmark_name.as_str()))?;
         stmt.bind((3, params.benchmark_point as i64))?;

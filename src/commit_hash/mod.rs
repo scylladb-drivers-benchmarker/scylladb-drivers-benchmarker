@@ -17,7 +17,7 @@ impl Display for CommitHash {
 }
 
 impl CommitHash {
-    #[must_use] 
+    #[must_use]
     pub fn new_unchecked(value: String) -> Self {
         CommitHash(value)
     }
@@ -70,7 +70,7 @@ impl CommitHash {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         self.0.as_str()
     }

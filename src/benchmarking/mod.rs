@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use executor::build_source;
 
-use super::database::{DatabaseError, Database};
+use super::database::{Database, DatabaseError};
 use crate::benchmarking::executor::{Callback, CompileError, execute_all};
 use crate::command::{Command, CommandParsingError};
 use crate::commit_hash::CommitHash;
@@ -84,9 +84,7 @@ struct ExecutorCallback<'a, PointsType: Iterator<Item = BenchmarkPoint>> {
     param_generator: BenchmarkParamsBuilder,
 }
 
-impl<PointsType: Iterator<Item = BenchmarkPoint>> Callback
-    for ExecutorCallback<'_, PointsType>
-{
+impl<PointsType: Iterator<Item = BenchmarkPoint>> Callback for ExecutorCallback<'_, PointsType> {
     type ReturnType = Result<(), BenchmarkingError>;
 
     fn call(self, exec: impl executor::MeasuringEquipment) -> Self::ReturnType {
@@ -148,5 +146,5 @@ pub fn benchmark(
             database,
             param_generator,
         },
-    )?
+    )
 }

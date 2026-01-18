@@ -1,3 +1,5 @@
+use std::fmt::Write;
+
 use clap::ValueEnum;
 use fs_err as fs;
 use plotters::coord::types::RangedCoordu64;
@@ -17,7 +19,7 @@ pub struct BenchmarkParamsBuilder {
 }
 
 impl BenchmarkParamsBuilder {
-    #[must_use] 
+    #[must_use]
     pub fn new(
         commit_hash: CommitHash,
         benchmark_name: String,
@@ -30,7 +32,7 @@ impl BenchmarkParamsBuilder {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn finalize(&self, benchmark_point: BenchmarkPoint) -> BenchmarkParams {
         BenchmarkParams::new(
             self.commit_hash.clone(),
@@ -65,33 +67,27 @@ pub enum BenchmarkMode {
     ForceRerun,
 }
 
-#[must_use] 
+#[must_use]
 pub fn format_entry(params: &BenchmarkParams, record: &BenchmarkRecord) -> String {
     let mut out = String::new();
 
-    out.push_str("--- Benchmark Entry ---\n");
-    out.push_str(&format!("Commit Hash:         {}\n", params.commit_hash));
-    out.push_str(&format!("Benchmark Name:      {}\n", params.benchmark_name));
-    out.push_str(&format!(
-        "Benchmark Point:     {}\n",
-        params.benchmark_point
-    ));
-    out.push_str(&format!(
-        "Measurement Method:  {}\n",
-        params.measurement_method
-    ));
+    let _ = writeln!(out, "--- Benchmark Entry ---");
+    let _ = writeln!(out, "Commit Hash:         {}", params.commit_hash);
+    let _ = writeln!(out, "Benchmark Name:      {}", params.benchmark_name);
+    let _ = writeln!(out, "Benchmark Point:     {}", params.benchmark_point);
+    let _ = writeln!(out, "Measurement Method:  {}", params.measurement_method);
 
     match record {
         BenchmarkRecord::Data(s) => {
-            out.push_str("Record Type:         Data\n");
-            out.push_str(&format!("Data Content:        {s:?}\n"));
+            let _ = writeln!(out, "Record Type:         Data");
+            let _ = writeln!(out, "Data Content:        {s}");
         }
         BenchmarkRecord::FilePath(path) => {
-            out.push_str("Record Type:         FilePath\n");
-            out.push_str(&format!("Data Content:        {path:?}\n"));
+            let _ = writeln!(out, "Record Type:         FilePath");
+            let _ = writeln!(out, "Data Content:        {}", path.display());
         }
         BenchmarkRecord::Timeout => {
-            out.push_str("Record Type:         Timeout\n");
+            let _ = writeln!(out, "Record Type:         Timeout");
         }
     }
 

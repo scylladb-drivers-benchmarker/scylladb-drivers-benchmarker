@@ -75,11 +75,14 @@ impl App {
         let aliasing_config = self
             .aliasing_config_path
             .or_else(|| env::var_os("SDB_CONFIG").map(Into::into))
-            .map_or(Ok(AliasingConfig::default()), |path| AliasingConfig::read_config(&path))?;
+            .map_or(Ok(AliasingConfig::default()), |path| {
+                AliasingConfig::read_config(&path)
+            })?;
 
         let db_path = self
             .db_path
-            .or(aliasing_config.dp_path.clone()).map_or_else(default_db_path, Ok)?;
+            .or(aliasing_config.dp_path.clone())
+            .map_or_else(default_db_path, Ok)?;
 
         let database = Database::new(&db_path)?;
 

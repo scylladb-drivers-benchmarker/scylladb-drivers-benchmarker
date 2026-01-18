@@ -61,7 +61,10 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         for point in benchmark_config.benchmark_points() {
             let params = builder.finalize(point);
 
-            match database.get_result(params)?.map(crate::database::utilities::BenchmarkRecord::flatten) {
+            match database
+                .get_result(params)?
+                .map(crate::database::utilities::BenchmarkRecord::flatten)
+            {
                 Some(Ok(FlatBenchmarkRecord::Data(text))) => {
                     let value =
                         T::from_str(&text).map_err(|_| PlotError::InvalidData(text.clone()))?;

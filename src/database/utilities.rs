@@ -14,7 +14,7 @@ pub struct BenchmarkParams {
 }
 
 impl BenchmarkParams {
-    #[must_use] 
+    #[must_use]
     pub fn new(
         commit_hash: CommitHash,
         benchmark_name: String,
@@ -39,7 +39,7 @@ pub enum BenchmarkRecord {
 }
 
 impl BenchmarkRecord {
-    #[must_use] 
+    #[must_use]
     pub fn is_timeout(&self) -> bool {
         matches!(self, BenchmarkRecord::Timeout)
     }
@@ -53,7 +53,7 @@ pub struct BenchmarkFilters {
 }
 
 impl BenchmarkFilters {
-    #[must_use] 
+    #[must_use]
     pub fn all() -> Self {
         BenchmarkFilters {
             commit_hashes: Vec::new(),
@@ -63,7 +63,7 @@ impl BenchmarkFilters {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn filter_exact_param(params: &BenchmarkParams) -> Self {
         BenchmarkFilters {
             commit_hashes: vec![params.commit_hash.clone().to_string()],

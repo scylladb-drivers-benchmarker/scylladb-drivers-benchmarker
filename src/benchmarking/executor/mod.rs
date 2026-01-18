@@ -75,23 +75,21 @@ pub fn execute_all<CallbackType: Callback>(
     measurement_method: BenchMeasure,
     run_command: command::Command,
     callback: CallbackType,
-) -> Result<CallbackType::ReturnType, BenchmarkingError> {
+) -> CallbackType::ReturnType {
     match measurement_method {
-        BenchMeasure::Time => Ok(callback.call(CommandExecutor::new_time(run_command))),
-        BenchMeasure::PerfStat => Ok(callback.call(CommandExecutor::new_perf(run_command))),
+        BenchMeasure::Time => callback.call(CommandExecutor::new_time(run_command)),
+        BenchMeasure::PerfStat => callback.call(CommandExecutor::new_perf(run_command)),
         BenchMeasure::FlameGraph {
             flame_repo,
             frequency,
             store_dir,
-        } => Ok(callback.call(FlameExecutor::new(
+        } => callback.call(FlameExecutor::new(
             flame_repo,
             store_dir,
             frequency,
             run_command,
-        ))),
-        BenchMeasure::Command(command) => {
-            Ok(callback.call(CommandExecutor::new(command, run_command)))
-        }
+        )),
+        BenchMeasure::Command(command) => callback.call(CommandExecutor::new(command, run_command)),
     }
 }
 

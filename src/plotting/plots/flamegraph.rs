@@ -57,8 +57,7 @@ impl FlamegraphPlot {
         let mut stdout_str = String::from_utf8(output.stdout.clone())
             .map_err(|_| PlotError::Internal("stdout UTF-8 parsing failed".into()))?;
 
-        stdout_str =
-            stdout_str.replace(">Flame Graph<", format!(">{name} at {point}<").as_str());
+        stdout_str = stdout_str.replace(">Flame Graph<", format!(">{name} at {point}<").as_str());
 
         fs::write(artifact.path(), &stdout_str)?;
         Ok(())
@@ -81,8 +80,7 @@ impl FlamegraphPlot {
                 let artifact = match folded_data {
                     Some(point_data) => {
                         let artifact = if let Some(dir) = &artifacts_dir {
-                            let path =
-                                dir.join(format!("{benchmark_name}_{name}_{point}.svg"));
+                            let path = dir.join(format!("{benchmark_name}_{name}_{point}.svg"));
                             ArtifactFile::from_path(path)?
                         } else {
                             ArtifactFile::temp()
