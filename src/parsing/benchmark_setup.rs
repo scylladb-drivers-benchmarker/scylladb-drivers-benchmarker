@@ -19,11 +19,14 @@ impl BenchmarkSetup {
     pub fn into_config(self, name: &str) -> Result<BenchmarkData, ConfigError> {
         match self {
             BenchmarkSetup::Path(path) => Ok(find_config::<BenchmarkConfig>(name, &path)?.into()),
-            BenchmarkSetup::Points(points) => Ok(BenchmarkData {
-                name: name.to_owned(),
-                points,
-                timeout: None,
-            }),
+            BenchmarkSetup::Points(mut points) => {
+                points.sort();
+                Ok(BenchmarkData {
+                    name: name.to_owned(),
+                    points,
+                    timeout: None,
+                })
+            }
         }
     }
 }

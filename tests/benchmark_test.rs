@@ -218,11 +218,11 @@ fn utility_test() {
             BenchmarkParams::new(
                 commit_hash.clone(),
                 "utility".to_owned(),
-                5,
+                2,
                 "echo".to_owned()
             ),
-            BenchmarkRecord::Data("sleep 5".to_owned())
-        ),
+            BenchmarkRecord::Data("sleep 2".to_owned())
+        )
     );
     assert_eq!(
         data[2],
@@ -230,10 +230,10 @@ fn utility_test() {
             BenchmarkParams::new(
                 commit_hash.clone(),
                 "utility".to_owned(),
-                2,
+                5,
                 "echo".to_owned()
             ),
-            BenchmarkRecord::Data("sleep 2".to_owned())
-        )
+            BenchmarkRecord::Data("sleep 5".to_owned())
+        ),
     );
 }
