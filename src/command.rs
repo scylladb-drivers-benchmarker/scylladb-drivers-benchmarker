@@ -104,7 +104,7 @@ impl Command {
         self.program.as_str()
     }
 
-    pub fn args(&self) -> &Vec<String> {
+    pub fn args(&self) -> &[String] {
         &self.arguments
     }
 
@@ -246,7 +246,7 @@ mod test {
         );
         assert_eq!(command.program(), "git".to_owned());
 
-        let args: &Vec<String> = command.args();
+        let args = command.args();
         assert_eq!(args[0], "--author");
         assert_eq!(args[1], "Author");
         assert_eq!(args[2], "-m");

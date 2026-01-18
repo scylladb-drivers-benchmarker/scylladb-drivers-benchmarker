@@ -74,6 +74,7 @@ impl PlotCommand {
                 .to_owned(),
         );
 
+        // TODO rust idiomatic byloby tutaj zrobic plotKind i finalize do niego, czy warto?
         if let PlotKind::Flamegraph { flame_repo, .. } = &mut plot_settings.plot_kind
             && flame_repo.is_none()
         {

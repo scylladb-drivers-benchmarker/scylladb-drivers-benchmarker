@@ -36,6 +36,7 @@ impl Display for FlameFrequency {
     }
 }
 
+// TODO czemu to jest tu?
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum BenchMeasure {
     Time,

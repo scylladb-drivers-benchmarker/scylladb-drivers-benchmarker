@@ -2,7 +2,7 @@ use crate::parsing::App;
 use crate::parsing::AppSubcommands;
 use crate::parsing::BenchmarkCommand;
 use crate::parsing::PlotCommand;
-use crate::parsing::database::DatabaseCommandINPUT;
+use crate::parsing::database::DatabaseInputCommand;
 use clap::Parser;
 use scylladb_drivers_benchmarker::PlotKind;
 use scylladb_drivers_benchmarker::VisKind;
@@ -93,7 +93,7 @@ fn advanced_database() {
         panic!("Expected Database subcommand");
     };
 
-    let DatabaseCommandINPUT::Print { filters } = command.command else {
+    let DatabaseInputCommand::Print { filters } = command.command else {
         panic!("Expected DatabaseCommand::Print");
     };
 

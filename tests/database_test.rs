@@ -8,15 +8,23 @@ use scylladb_drivers_benchmarker::{
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
+use tempfile::Builder;
 
 mod utilities;
 use utilities::run_utilities::{run_no_output, run_only_stdout, sdb_command};
-// TODO only temp files for db here.
+
+fn test_dir() -> &'static Path {
+    Path::new("./tests/database_test")
+}
+
 #[test]
 fn database() {
-    let db_path = "./tests/database_test/test.db";
-    let db = database::Database::new(Path::new(db_path)).unwrap();
-    db.drop_all_data().unwrap();
+    let db_file = Builder::new()
+        .suffix(".db")
+        .tempfile_in(test_dir())
+        .unwrap();
+
+    let db = database::Database::new(db_file.path()).unwrap();
 
     let commits = [
         CommitHash::new_unchecked("commit1".to_owned()),
@@ -39,7 +47,7 @@ fn database() {
     let print_output = run_only_stdout(
         sdb_command()
             .arg("-d")
-            .arg(db_path)
+            .arg(db_file.path())
             .arg("database")
             .arg("print"),
     );
@@ -51,7 +59,7 @@ fn database() {
     run_no_output(
         sdb_command()
             .arg("-d")
-            .arg(db_path)
+            .arg(db_file.path())
             .arg("database")
             .arg("drop")
             .arg("--commit-hash")
@@ -61,7 +69,7 @@ fn database() {
     let print_output = run_only_stdout(
         sdb_command()
             .arg("-d")
-            .arg(db_path)
+            .arg(db_file.path())
             .arg("database")
             .arg("print"),
     );
@@ -72,9 +80,12 @@ fn database() {
 
 #[test]
 fn database_file() {
-    let db_path = "./tests/database_test/tmp_file_test.db";
-    let db = database::Database::new(Path::new(db_path)).unwrap();
-    db.drop_all_data().unwrap();
+    let db_file = Builder::new()
+        .suffix(".db")
+        .tempfile_in(test_dir())
+        .unwrap();
+
+    let db = database::Database::new(db_file.path()).unwrap();
 
     // Create file with some data and insert it to database.
     let tmp_file_path = Path::new("foo.txt");
@@ -122,7 +133,7 @@ fn database_file() {
         let print_output = run_only_stdout(
             sdb_command()
                 .arg("-d")
-                .arg(db_path)
+                .arg(db_file.path())
                 .arg("database")
                 .arg("print")
                 .arg("--benchmark-name")
@@ -147,7 +158,7 @@ fn database_file() {
         run_no_output(
             sdb_command()
                 .arg("-d")
-                .arg(db_path)
+                .arg(db_file.path())
                 .arg("database")
                 .arg("drop")
                 .arg("--commit-hash")

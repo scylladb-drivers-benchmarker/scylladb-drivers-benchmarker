@@ -11,11 +11,11 @@ use scylladb_drivers_benchmarker::utilities::BenchmarkPoint;
 #[derive(Debug, clap::Args)]
 pub struct DatabaseArgs {
     #[command(subcommand)]
-    pub command: DatabaseCommandINPUT,
+    pub command: DatabaseInputCommand,
 }
 
 #[derive(Subcommand, Debug)]
-pub enum DatabaseCommandINPUT {
+pub enum DatabaseInputCommand {
     Print {
         #[command(flatten)]
         filters: InputDatabaseFilters,
@@ -56,12 +56,12 @@ impl From<InputDatabaseFilters> for BenchmarkFilters {
 impl DatabaseArgs {
     pub fn finalize(self) -> Subcommands {
         match self.command {
-            DatabaseCommandINPUT::Print { filters } => {
+            DatabaseInputCommand::Print { filters } => {
                 Subcommands::PrintDatabase(PrintDatabaseParams {
                     filters: (filters.into()),
                 })
             }
-            DatabaseCommandINPUT::Drop { filters } => {
+            DatabaseInputCommand::Drop { filters } => {
                 Subcommands::DropDatabase(DropDatabaseParams {
                     filters: (filters.into()),
                 })
