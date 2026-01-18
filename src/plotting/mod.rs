@@ -19,9 +19,9 @@ use crate::database::Database;
 use crate::measurement::MeasurementMethod;
 use crate::perf_stat::PerfStatData;
 
-pub(crate) const IMAGE_WIDTH: u32 = 1920;
-pub(crate) const IMAGE_HEIGHT: u32 = 1080;
-pub(crate) const IMAGE_SIZE: (u32, u32) = (IMAGE_WIDTH, IMAGE_HEIGHT);
+const IMAGE_WIDTH: u32 = 1920;
+const IMAGE_HEIGHT: u32 = 1080;
+const IMAGE_SIZE: (u32, u32) = (IMAGE_WIDTH, IMAGE_HEIGHT);
 
 #[derive(Debug)]
 pub enum PlotKind {
@@ -52,7 +52,7 @@ impl PlotSettings {
     }
 }
 
-pub(crate) fn plot_on_backend(plot: impl Plot, output: &str) -> Result<(), PlotError> {
+fn plot_on_backend(plot: impl Plot, output: &str) -> Result<(), PlotError> {
     let extension = output.rsplit('.').next().unwrap_or("").to_owned();
 
     match extension.as_str() {
