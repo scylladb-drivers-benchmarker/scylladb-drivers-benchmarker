@@ -7,6 +7,8 @@ use tempfile::NamedTempFile;
 
 use crate::plotting::PlotError;
 
+use fs_err as fs;
+
 pub const MARGIN_SIZE: u32 = 20;
 pub const X_LABEL_AREA_SIZE: u32 = 40;
 pub const Y_LABEL_AREA_SIZE: u32 = 70;
@@ -97,7 +99,7 @@ pub struct ArtifactFile {
 impl ArtifactFile {
     pub fn from_path(path: PathBuf) -> std::io::Result<Self> {
         if !path.exists() {
-            std::fs::File::create(&path)?;
+            fs::File::create(&path)?;
         }
 
         Ok(Self { path, _tmp: None })

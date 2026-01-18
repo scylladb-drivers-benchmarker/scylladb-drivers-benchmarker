@@ -1,4 +1,3 @@
-use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -110,6 +109,8 @@ impl FlamegraphPlot {
             results.push(RenderableFlamegraph::new(output.clone(), artifacts));
         }
 
+        println!("from_dataset ran");
+
         Ok(FlamegraphPlot::new(benchmark_name, results, output))
     }
 }
@@ -123,7 +124,7 @@ impl Plot for FlamegraphPlot {
         DB::ErrorType: 'static,
     {
         {
-            let mut file = OpenOptions::new()
+            let mut file = fs::OpenOptions::new()
                 .create(true)
                 .write(true)
                 .truncate(true)
@@ -148,7 +149,7 @@ impl Plot for FlamegraphPlot {
             <RenderableFlamegraph as Renderable<'_, DB>>::add_to_plot(renderable, &mut [])?;
         }
 
-        let mut file = OpenOptions::new().append(true).open(&self.output)?;
+        let mut file = fs::OpenOptions::new().append(true).open(&self.output)?;
 
         let footer = r"</body></html>";
         writeln!(file, "{footer}")?;
