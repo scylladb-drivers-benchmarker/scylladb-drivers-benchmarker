@@ -1,13 +1,12 @@
 use std::path::{Path, PathBuf};
 
+use fs_err as fs;
 use plotters::backend::DrawingBackend;
 use plotters::prelude::*;
 use plotters_backend::DrawingErrorKind;
 use tempfile::NamedTempFile;
 
 use crate::plotting::PlotError;
-
-use fs_err as fs;
 
 pub const MARGIN_SIZE: u32 = 20;
 pub const X_LABEL_AREA_SIZE: u32 = 40;

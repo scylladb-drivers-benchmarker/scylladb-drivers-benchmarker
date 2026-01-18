@@ -1,4 +1,3 @@
-use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::PathBuf;
 
@@ -253,7 +252,7 @@ where
                 style="width:100%; aspect-ratio:{captured_width}/{captured_height}; border:none"></iframe>"#
             );
 
-            let mut file = OpenOptions::new().append(true).open(&self.output)?;
+            let mut file = fs::OpenOptions::new().append(true).open(&self.output)?;
 
             writeln!(file, "{iframe}")?;
         }

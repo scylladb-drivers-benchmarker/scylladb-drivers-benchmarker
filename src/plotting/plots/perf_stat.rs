@@ -77,8 +77,7 @@ impl PerfStatPlot {
                 for data in &values {
                     let event_data = data
                         .as_ref()
-                        .map(|perfstat| perfstat.filter_value(event_name))
-                        .flatten();
+                        .and_then(|perfstat| perfstat.filter_value(event_name));
 
                     if let Some(e) = event_data {
                         unit.entry(event_name.clone())

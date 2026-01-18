@@ -1,4 +1,3 @@
-use fs::OpenOptions;
 use fs_err as fs;
 use tempfile::NamedTempFile;
 
@@ -162,7 +161,7 @@ fn extract_failure() {
     );
 
     // In order to force db error, break db file by clearing it.
-    OpenOptions::new()
+    fs::OpenOptions::new()
         .write(true)
         .open(&path)
         .unwrap()
