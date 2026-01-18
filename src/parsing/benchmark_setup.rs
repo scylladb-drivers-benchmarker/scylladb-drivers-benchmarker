@@ -26,15 +26,6 @@ impl BenchmarkSetup {
             }),
         }
     }
-
-    pub fn into_points(self, name: &str) -> Result<Vec<BenchmarkPoint>, ConfigError> {
-        match self {
-            BenchmarkSetup::Path(path) => Ok(find_config::<BenchmarkConfig>(name, &path)?
-                .benchmark_points()
-                .collect()),
-            BenchmarkSetup::Points(points) => Ok(points),
-        }
-    }
 }
 
 #[justerror::Error]

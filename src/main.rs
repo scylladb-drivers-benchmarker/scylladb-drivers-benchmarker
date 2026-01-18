@@ -20,7 +20,7 @@ pub struct BenchmarkParams {
 }
 
 pub struct PlotParams {
-    pub benchmark_config: BenchmarkConfig,
+    pub benchmark_config: BenchmarkData,
 
     pub from: Vec<RepoNameWithTags>,
     pub resolved: Vec<RepoPathWithCommits>,

@@ -34,7 +34,7 @@ fn advanced_plot() {
 
     let AppSubcommands::Plot(PlotCommand {
         benchmark_name,
-        benchmark_config_path: _,
+        benchmark_setup: _,
         from,
         output,
         plot_kind,

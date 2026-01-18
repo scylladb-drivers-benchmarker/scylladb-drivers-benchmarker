@@ -49,7 +49,7 @@ pub fn run_benchmarks(
 pub fn plot_benchmarks(
     plot_settings: PlotSettings,
     database: &Database,
-    benchmark_config: BenchmarkConfig,
+    benchmark_config: BenchmarkData,
     from: Vec<RepoNameWithTags>,
     resolved: Vec<RepoPathWithCommits>,
 ) -> Result<(), PlotError> {

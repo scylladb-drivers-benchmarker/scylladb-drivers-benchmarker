@@ -10,6 +10,7 @@ use scylladb_drivers_benchmarker::repo_with_commits::{
 use scylladb_drivers_benchmarker::{PlotSettings, VisKind};
 
 use crate::parsing::aliasing::AliasingConfig;
+use crate::parsing::benchmark_setup::BenchmarkSetup;
 use crate::parsing::{ParsingError, Subcommands};
 use crate::{PlotKind, PlotParams, RepoNameWithTags};
 
@@ -18,7 +19,7 @@ pub struct PlotCommand {
     pub benchmark_name: String,
 
     #[arg(short, long, default_value = "./config.yml")]
-    pub benchmark_config_path: PathBuf,
+    pub benchmark_setup: Option<BenchmarkSetup>,
 
     /// The source of data for the plot
     #[arg(long, value_name = "REPOSITORY_PATH:TAG1,TAG2,...")]
@@ -134,7 +135,7 @@ impl PlotCommand {
             .collect::<Result<Vec<RepoPathWithCommits>, _>>()?;
 
         Ok(Subcommands::Plot(PlotParams {
-            benchmark_config: find_config(&self.benchmark_name, &self.benchmark_config_path)?,
+            benchmark_config: BenchmarkSetup::finalize(self.benchmark_setup, &self.benchmark_name, &aliasing_config)?,
             from: parsed,
             resolved,
             plot_settings: PlotSettings::new(
