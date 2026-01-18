@@ -162,6 +162,25 @@ fn plot_series() {
 }
 
 #[test]
+fn plot_series_points() {
+    let output_base = Path::new("./tests/plot_test/");
+    let expected_base = Path::new("./tests/plot_test/expected");
+
+    for vis_kind in [VisKind::Linear, VisKind::Log] {
+        for format in ["png", "svg"] {
+            let filename = PathBuf::from(format!("series_points_{vis_kind}.{format}"));
+
+            plot_series_generic_test(
+                &output_base.join(&filename),
+                "1,20,3",
+                &expected_base.join(&filename),
+                vis_kind,
+            );
+        }
+    }
+}
+
+#[test]
 fn plot_perf() {
     let output_base = Path::new("./tests/plot_test/");
     let expected_base = Path::new("./tests/plot_test/expected");
