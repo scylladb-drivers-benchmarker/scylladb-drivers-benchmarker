@@ -1,11 +1,10 @@
 use clap::Parser;
-use scylladb_drivers_benchmarker::benchmarking::BenchMeasure;
+use scylladb_drivers_benchmarker::benchmarking::{BenchMeasure, BenchmarkMode};
 use scylladb_drivers_benchmarker::config::backend::BackendConfig;
 use scylladb_drivers_benchmarker::config::benchmark::{BenchmarkConfig, BenchmarkData};
 use scylladb_drivers_benchmarker::database::Database;
 use scylladb_drivers_benchmarker::database::utilities::BenchmarkFilters;
 use scylladb_drivers_benchmarker::repo_with_commits::{RepoNameWithTags, RepoPathWithCommits};
-use scylladb_drivers_benchmarker::utilities::BenchmarkMode;
 use scylladb_drivers_benchmarker::{PlotKind, PlotSettings, command};
 
 use crate::parsing::App;

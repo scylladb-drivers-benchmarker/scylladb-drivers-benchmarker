@@ -1,6 +1,6 @@
 pub use plotting::{PlotKind, PlotSettings, VisKind};
 
-use crate::benchmarking::{BenchMeasure, BenchmarkingError};
+use crate::benchmarking::{BenchMeasure, BenchmarkMode, BenchmarkingError};
 use crate::commit_hash::CommitHash;
 use crate::config::backend::BackendConfig;
 use crate::config::benchmark::{BenchmarkConfig, BenchmarkData};
@@ -8,7 +8,7 @@ use crate::database::utilities::BenchmarkFilters;
 use crate::database::{Database, DatabaseError};
 use crate::plotting::error::PlotError;
 use crate::repo_with_commits::{RepoNameWithTags, RepoPathWithCommits};
-use crate::utilities::{BenchmarkMode, format_entry};
+use crate::utilities::format_entry;
 pub mod benchmarking;
 pub mod command;
 pub mod commit_hash;

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
-use clap::Args;
-use scylladb_drivers_benchmarker::benchmarking::BenchMeasure;
+use clap::{Args, ValueEnum};
+use scylladb_drivers_benchmarker::benchmarking::{BenchMeasure, BenchmarkMode};
 use scylladb_drivers_benchmarker::config::find_config;
 use scylladb_drivers_benchmarker::flame_graph::FlameFrequency;
 use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
@@ -9,7 +9,7 @@ use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
 use crate::parsing::aliasing::AliasingConfig;
 use crate::parsing::benchmark_setup::BenchmarkSetup;
 use crate::parsing::{ParsingError, Subcommands};
-use crate::{BenchmarkMode, BenchmarkParams, command};
+use crate::{BenchmarkParams, command};
 
 #[derive(Debug, Clone, clap::Args)]
 pub struct FlameOptions {
@@ -69,6 +69,21 @@ impl MeasureSubcommand {
     }
 }
 
+#[derive(Copy, Clone, Debug, ValueEnum)]
+pub enum InputBenchmarkMode {
+    UseCached,
+    ForceRerun,
+}
+
+impl From<InputBenchmarkMode> for BenchmarkMode {
+    fn from(value: InputBenchmarkMode) -> Self {
+        match value {
+            InputBenchmarkMode::UseCached => BenchmarkMode::UseCached,
+            InputBenchmarkMode::ForceRerun => BenchmarkMode::ForceRerun,
+        }
+    }
+}
+
 #[derive(Args, Debug)]
 pub struct BenchmarkCommand {
     pub benchmark_name: String,
@@ -76,8 +91,8 @@ pub struct BenchmarkCommand {
     pub backend_config_path: PathBuf,
     #[arg(short = 'b', long)]
     pub benchmark_configuration: Option<BenchmarkSetup>,
-    #[arg(long, short = 'M', value_enum, default_value_t = BenchmarkMode::UseCached)]
-    pub benchmark_mode: BenchmarkMode,
+    #[arg(long, short = 'M', value_enum, default_value_t = InputBenchmarkMode::UseCached)]
+    pub benchmark_mode: InputBenchmarkMode,
     #[clap(subcommand)]
     pub measure: Option<MeasureSubcommand>,
 }
@@ -97,7 +112,7 @@ impl BenchmarkCommand {
             bench_measure,
             backend_config: find_config(&self.benchmark_name, &self.backend_config_path)?,
             benchmark_config,
-            benchmark_mode: self.benchmark_mode,
+            benchmark_mode: self.benchmark_mode.into(),
         }))
     }
 }

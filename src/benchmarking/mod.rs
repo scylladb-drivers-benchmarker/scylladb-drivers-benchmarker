@@ -16,7 +16,7 @@ use crate::config::benchmark::BenchmarkData;
 use crate::database::utilities::BenchmarkFilters;
 use crate::flame_graph::FlameFrequency;
 use crate::measurement::MeasurementMethod;
-use crate::utilities::{BenchmarkMode, BenchmarkParamsBuilder, BenchmarkPoint};
+use crate::utilities::{BenchmarkParamsBuilder, BenchmarkPoint};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum BenchMeasure {
@@ -39,6 +39,12 @@ impl From<BenchMeasure> for MeasurementMethod {
             BenchMeasure::Command(command) => MeasurementMethod::Command(command),
         }
     }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum BenchmarkMode {
+    UseCached,
+    ForceRerun,
 }
 
 #[justerror::Error]
