@@ -36,3 +36,15 @@ pub fn run_safe(cmd: &mut std::process::Command, verifier: impl Fn(&Output) -> b
     }
     output
 }
+
+pub fn print_flamegraph_information(flame_config_path: &std::path::Path) {
+    println!("This test requires manual setup.");
+    println!(
+        "Make sure you specified the path to the FlameGraph repository in {},\
+        as well as allowed access to performance monitoring (needed by perf to run)",
+        flame_config_path.display()
+    );
+    println!("It may be necessary to run: ");
+    println!("sudo sh -c 'echo \"-1\" > /proc/sys/kernel/perf_event_paranoid'");
+    println!("sudo sh -c 'echo \"0\" > /proc/sys/kernel/kptr_restrict'");
+}
