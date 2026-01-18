@@ -1,6 +1,9 @@
-use crate::{database::DatabaseError, utilities::BenchmarkPoint};
-use plotters::prelude::DrawingAreaErrorKind;
 use std::error::Error;
+
+use plotters::prelude::DrawingAreaErrorKind;
+
+use crate::database::DatabaseError;
+use crate::utilities::BenchmarkPoint;
 
 #[justerror::Error(desc = "plotting failed")]
 pub enum PlotError {

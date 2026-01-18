@@ -1,15 +1,13 @@
 use fs::OpenOptions;
-
-use crate::CommitHash;
-use crate::Database;
-use crate::config;
-use crate::database::utilities::{BenchmarkFilters, BenchmarkParams, BenchmarkRecord};
-use crate::measurement::MeasurementMethod;
-use crate::plotting::{BenchmarkConfig, PlotError, core::BenchmarkDataset};
-use crate::utilities::BenchmarkPoint;
+use fs_err as fs;
 use tempfile::NamedTempFile;
 
-use fs_err as fs;
+use crate::database::utilities::{BenchmarkFilters, BenchmarkParams, BenchmarkRecord};
+use crate::measurement::MeasurementMethod;
+use crate::plotting::core::BenchmarkDataset;
+use crate::plotting::{BenchmarkConfig, PlotError};
+use crate::utilities::BenchmarkPoint;
+use crate::{CommitHash, Database, config};
 
 // Insert record to database, with provided commit_hash, config, point and result
 // Measurement method is always "time".
@@ -182,8 +180,7 @@ fn extract_failure() {
 
 #[test]
 fn extract_perfstat_dataset() {
-    use crate::assert_perf;
-    use crate::perf_stat;
+    use crate::{assert_perf, perf_stat};
 
     let (db, _file) = {
         let file = NamedTempFile::new().unwrap();

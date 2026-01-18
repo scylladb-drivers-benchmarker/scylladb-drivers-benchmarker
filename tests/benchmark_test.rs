@@ -1,22 +1,17 @@
-use std::{io::Write, path::Path};
+use std::io::Write;
+use std::path::Path;
 
 use fs::File;
-
-use scylladb_drivers_benchmarker::{
-    commit_hash::CommitHash,
-    database::{
-        Database,
-        utilities::{BenchmarkParams, BenchmarkRecord},
-    },
-    utilities::{BenchmarkParamsBuilder, FlatBenchmarkRecord},
-};
+use fs_err as fs;
+use scylladb_drivers_benchmarker::commit_hash::CommitHash;
+use scylladb_drivers_benchmarker::database::Database;
+use scylladb_drivers_benchmarker::database::utilities::{BenchmarkParams, BenchmarkRecord};
+use scylladb_drivers_benchmarker::utilities::{BenchmarkParamsBuilder, FlatBenchmarkRecord};
 use serial_test::file_serial;
-
 use utilities::run_utilities::{run, run_safe, sdb_command};
 
-use crate::utilities::{db_utils::open_clean_db, git_utils::setup_git};
-
-use fs_err as fs;
+use crate::utilities::db_utils::open_clean_db;
+use crate::utilities::git_utils::setup_git;
 
 mod utilities;
 

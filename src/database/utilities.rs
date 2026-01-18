@@ -1,8 +1,9 @@
-use crate::CommitHash;
-use crate::utilities::BenchmarkPoint;
+use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+
+use crate::CommitHash;
+use crate::utilities::BenchmarkPoint;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BenchmarkParams {

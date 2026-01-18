@@ -1,5 +1,7 @@
+use std::fmt::Display;
+use std::num::ParseIntError;
 use std::path::PathBuf;
-use std::{fmt::Display, num::ParseIntError, str::FromStr};
+use std::str::FromStr;
 
 use crate::command;
 use crate::measurement::MeasurementMethod;

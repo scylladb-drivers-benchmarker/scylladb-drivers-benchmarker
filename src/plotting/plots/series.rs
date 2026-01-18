@@ -1,16 +1,13 @@
-use crate::plotting::{
-    PlotError, VisKind,
-    core::{
-        BACKGROUND_COLOR, BackendWithKind, BenchmarkDataset, LABEL_FONT, LEGEND_BORDER_COLOR,
-        LEGEND_BORDER_SIZE, LinearSeries, LogSeries, MARGIN_SIZE, Plot, Renderable,
-        RenderableSeries, SeriesValue, TITLE_FONT, ValueTransformation, X_LABEL_AREA_SIZE,
-        Y_LABEL_AREA_SIZE,
-    },
+use plotters::drawing::DrawingArea;
+use plotters::prelude::*;
+
+use crate::plotting::core::{
+    BACKGROUND_COLOR, BackendWithKind, BenchmarkDataset, LABEL_FONT, LEGEND_BORDER_COLOR,
+    LEGEND_BORDER_SIZE, LinearSeries, LogSeries, MARGIN_SIZE, Plot, Renderable, RenderableSeries,
+    SeriesValue, TITLE_FONT, ValueTransformation, X_LABEL_AREA_SIZE, Y_LABEL_AREA_SIZE,
 };
-
+use crate::plotting::{PlotError, VisKind};
 use crate::utilities::calc_min_max;
-
-use plotters::{drawing::DrawingArea, prelude::*};
 
 pub struct SeriesPlot {
     benchmark_name: String,

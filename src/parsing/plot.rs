@@ -1,17 +1,16 @@
-use crate::PlotKind;
-use crate::PlotParams;
-use crate::RepoNameWithTags;
-use crate::parsing::ParsingError;
-use crate::parsing::Subcommands;
-use crate::parsing::aliasing::AliasingConfig;
+use std::path::PathBuf;
+use std::str::FromStr;
+
 use clap::Args;
 use scylladb_drivers_benchmarker::PlotSettings;
 use scylladb_drivers_benchmarker::config::find_config;
-use scylladb_drivers_benchmarker::repo_with_commits::RepoNameWithCommitsParsingError;
-use scylladb_drivers_benchmarker::repo_with_commits::RepoPathWithCommits;
-use scylladb_drivers_benchmarker::repo_with_commits::resolve_repo_tags;
-use std::path::PathBuf;
-use std::str::FromStr;
+use scylladb_drivers_benchmarker::repo_with_commits::{
+    RepoNameWithCommitsParsingError, RepoPathWithCommits, resolve_repo_tags,
+};
+
+use crate::parsing::aliasing::AliasingConfig;
+use crate::parsing::{ParsingError, Subcommands};
+use crate::{PlotKind, PlotParams, RepoNameWithTags};
 
 #[derive(Args, Debug)]
 pub struct PlotCommand {

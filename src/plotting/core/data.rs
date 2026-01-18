@@ -1,12 +1,12 @@
+use std::fmt::Debug;
+use std::str::FromStr;
+
 use crate::commit_hash::CommitHash;
 use crate::config::benchmark::BenchmarkConfig;
 use crate::database::Database;
 use crate::measurement::MeasurementMethod;
 use crate::plotting::PlotError;
 use crate::utilities::{BenchmarkParamsBuilder, BenchmarkPoint, FlatBenchmarkRecord};
-
-use std::fmt::Debug;
-use std::str::FromStr;
 
 pub(crate) trait PlottableValue: FromStr + Debug + Clone {}
 

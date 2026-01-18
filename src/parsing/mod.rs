@@ -6,27 +6,20 @@ mod plot;
 #[cfg(test)]
 mod tests;
 
-use crate::BenchmarkParams;
-use crate::Database;
-use crate::DropDatabaseParams;
-use crate::PlotParams;
-use crate::PrintDatabaseParams;
-use crate::parsing::aliasing::AliasingConfig;
-use crate::parsing::aliasing::MainConfigError;
-use crate::parsing::benchmark::BenchmarkCommand;
-use crate::parsing::database::DatabaseArgs;
-use crate::parsing::database::DbPathError;
-use crate::parsing::database::default_db_path;
-use crate::parsing::plot::PlotCommand;
+use std::path::PathBuf;
+use std::{env, io};
+
 use clap::Parser;
 use scylladb_drivers_benchmarker::config::ConfigError;
 use scylladb_drivers_benchmarker::database::DatabaseError;
 use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
 use scylladb_drivers_benchmarker::repo_with_commits::RepoNameWithCommitsParsingError;
 
-use std::env;
-use std::io;
-use std::path::PathBuf;
+use crate::parsing::aliasing::{AliasingConfig, MainConfigError};
+use crate::parsing::benchmark::BenchmarkCommand;
+use crate::parsing::database::{DatabaseArgs, DbPathError, default_db_path};
+use crate::parsing::plot::PlotCommand;
+use crate::{BenchmarkParams, Database, DropDatabaseParams, PlotParams, PrintDatabaseParams};
 
 #[derive(Debug, Parser)]
 #[clap(name = "my-app", version, about)]

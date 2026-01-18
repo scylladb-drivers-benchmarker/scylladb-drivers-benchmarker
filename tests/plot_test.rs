@@ -1,23 +1,17 @@
 mod utilities;
-use utilities::{
-    image_compare::check_files_equality,
-    run_utilities::{run, run_no_output, sdb_command},
-};
-
-use scylladb_drivers_benchmarker::{
-    VisKind,
-    commit_hash::CommitHash,
-    database::{
-        self,
-        utilities::{BenchmarkParams, BenchmarkRecord},
-    },
-    utilities::BenchmarkPoint,
-};
+use std::io::Write;
+use std::path::Path;
 
 use fs::File;
 use fs_err as fs;
-use std::{io::Write, path::Path};
+use scylladb_drivers_benchmarker::VisKind;
+use scylladb_drivers_benchmarker::commit_hash::CommitHash;
+use scylladb_drivers_benchmarker::database::utilities::{BenchmarkParams, BenchmarkRecord};
+use scylladb_drivers_benchmarker::database::{self};
+use scylladb_drivers_benchmarker::utilities::BenchmarkPoint;
 use tempfile::{Builder, NamedTempFile, TempDir};
+use utilities::image_compare::check_files_equality;
+use utilities::run_utilities::{run, run_no_output, sdb_command};
 
 fn init_git_repo(path: &Path, num_commits: usize) -> Vec<CommitHash> {
     if !path.join(".git").exists() {

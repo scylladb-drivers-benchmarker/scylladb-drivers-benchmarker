@@ -1,13 +1,12 @@
-use fs_err::exists;
-use scylladb_drivers_benchmarker::{
-    commit_hash::CommitHash,
-    database::utilities::{BenchmarkParams, BenchmarkRecord},
-    database::{self},
-    utilities::FlatBenchmarkRecord,
-};
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
+
+use fs_err::exists;
+use scylladb_drivers_benchmarker::commit_hash::CommitHash;
+use scylladb_drivers_benchmarker::database::utilities::{BenchmarkParams, BenchmarkRecord};
+use scylladb_drivers_benchmarker::database::{self};
+use scylladb_drivers_benchmarker::utilities::FlatBenchmarkRecord;
 use tempfile::Builder;
 
 mod utilities;

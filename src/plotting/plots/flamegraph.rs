@@ -1,16 +1,15 @@
-use crate::plotting::{
-    IMAGE_WIDTH, PlotError,
-    core::{
-        ArtifactFile, BackendWithKind, BenchmarkDataset, Plot, Renderable, RenderableFlamegraph,
-    },
-};
-use crate::utilities::BenchmarkPoint;
-
-use fs_err as fs;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+
+use fs_err as fs;
+
+use crate::plotting::core::{
+    ArtifactFile, BackendWithKind, BenchmarkDataset, Plot, Renderable, RenderableFlamegraph,
+};
+use crate::plotting::{IMAGE_WIDTH, PlotError};
+use crate::utilities::BenchmarkPoint;
 
 pub struct FlamegraphPlot {
     benchmark_name: String,

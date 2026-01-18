@@ -1,13 +1,11 @@
-use crate::plotting::{
-    PlotError, VisKind,
-    core::BenchmarkDataset,
-    plot_on_backend,
-    plots::{PerfStatPlot, SeriesPlot},
-};
+use std::str::FromStr;
 
 use fs_err as fs;
-use std::str::FromStr;
 use tempfile::NamedTempFile;
+
+use crate::plotting::core::BenchmarkDataset;
+use crate::plotting::plots::{PerfStatPlot, SeriesPlot};
+use crate::plotting::{PlotError, VisKind, plot_on_backend};
 
 #[derive(Clone, Debug, PartialOrd, PartialEq)]
 struct Dummy(f64);
@@ -59,9 +57,10 @@ fn series_plot_fails_file_not_found() {
 #[cfg(unix)]
 #[test]
 fn series_plot_fails_on_permission_denied() {
-    use fs::File;
     use std::fs::Permissions;
     use std::os::unix::fs::PermissionsExt;
+
+    use fs::File;
     use tempfile::Builder;
 
     let tmp = Builder::new().suffix(".png").tempfile().unwrap();

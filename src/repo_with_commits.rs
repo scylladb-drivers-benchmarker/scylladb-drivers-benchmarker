@@ -1,7 +1,7 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::collections::HashMap;
+use std::path::PathBuf;
 
-use crate::commit_hash::CommitHash;
-use crate::commit_hash::FailedToRetrieveCommitHash;
+use crate::commit_hash::{CommitHash, FailedToRetrieveCommitHash};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RepoPathWithCommits {

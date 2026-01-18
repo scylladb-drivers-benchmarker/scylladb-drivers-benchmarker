@@ -1,15 +1,12 @@
-use crate::parsing::App;
-use crate::parsing::AppSubcommands;
-use crate::parsing::BenchmarkCommand;
-use crate::parsing::PlotCommand;
-use crate::parsing::database::DatabaseInputCommand;
-use clap::Parser;
-use scylladb_drivers_benchmarker::PlotKind;
-use scylladb_drivers_benchmarker::VisKind;
-use scylladb_drivers_benchmarker::{
-    measurement::MeasurementMethod, repo_with_commits::RepoNameWithTags,
-};
 use std::path::PathBuf;
+
+use clap::Parser;
+use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
+use scylladb_drivers_benchmarker::repo_with_commits::RepoNameWithTags;
+use scylladb_drivers_benchmarker::{PlotKind, VisKind};
+
+use crate::parsing::database::DatabaseInputCommand;
+use crate::parsing::{App, AppSubcommands, BenchmarkCommand, PlotCommand};
 
 #[test]
 fn basic_run() {

@@ -3,13 +3,12 @@ pub mod utilities;
 #[cfg(test)]
 mod tests;
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use sqlite::{Connection, State, Statement};
 
 use crate::CommitHash;
 use crate::database::utilities::*;
-use std::path::PathBuf;
 
 pub struct Database {
     connection: Connection,

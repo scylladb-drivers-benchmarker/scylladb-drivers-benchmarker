@@ -1,15 +1,13 @@
-use std::{num::ParseIntError, path::PathBuf, str::FromStr};
+use std::num::ParseIntError;
+use std::path::PathBuf;
+use std::str::FromStr;
 
-use scylladb_drivers_benchmarker::{
-    config::{
-        ConfigError,
-        benchmark::{BenchmarkConfig, BenchmarkData},
-        find_config,
-    },
-    utilities::BenchmarkPoint,
-};
+use scylladb_drivers_benchmarker::config::benchmark::{BenchmarkConfig, BenchmarkData};
+use scylladb_drivers_benchmarker::config::{ConfigError, find_config};
+use scylladb_drivers_benchmarker::utilities::BenchmarkPoint;
 
-use crate::parsing::{ParsingError, aliasing::AliasingConfig};
+use crate::parsing::ParsingError;
+use crate::parsing::aliasing::AliasingConfig;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BenchmarkSetup {

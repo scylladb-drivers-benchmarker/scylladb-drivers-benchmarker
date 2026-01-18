@@ -1,9 +1,8 @@
-use crate::plotting::core::{Renderable, RenderablePerfStat, RenderableSeries};
-
+use fs_err as fs;
 use plotters::prelude::*;
 use tempfile::NamedTempFile;
 
-use fs_err as fs;
+use crate::plotting::core::{Renderable, RenderablePerfStat, RenderableSeries};
 
 #[test]
 fn renderable_series_runs() {
@@ -110,9 +109,10 @@ fn renderable_perf_stat_runs() {
 #[cfg(unix)]
 #[test]
 fn renderable_perf_stat_view() {
-    use fs::{self, File};
     use std::os::unix::fs::PermissionsExt;
     use std::path::Path;
+
+    use fs::{self, File};
 
     let path = Path::new("test.png");
     File::create(path).unwrap();

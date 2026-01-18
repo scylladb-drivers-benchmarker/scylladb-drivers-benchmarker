@@ -1,7 +1,8 @@
+use std::fmt;
+
 use super::data::PlottableValue;
 use crate::plotting::PlotError;
 use crate::utilities::calc_min_max;
-use std::fmt;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, clap::ValueEnum)]
 pub enum VisKind {
@@ -36,11 +37,7 @@ pub enum ValueTransformation<T: SeriesValue> {
 
 impl<T: SeriesValue> LinearSeries<T> {
     fn series(&self) -> Vec<Option<f64>> {
-        self.y
-            .iter()
-            .cloned()
-            .map(|y| y.map(Into::into))
-            .collect()
+        self.y.iter().cloned().map(|y| y.map(Into::into)).collect()
     }
 
     fn range(&self) -> Option<(f64, f64)> {
@@ -96,8 +93,9 @@ impl<T: SeriesValue> ValueTransformation<T> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::str::FromStr;
+
+    use super::*;
 
     #[derive(Clone, Debug, PartialOrd)]
     struct Dummy(f64);

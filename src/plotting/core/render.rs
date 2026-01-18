@@ -1,15 +1,16 @@
-use crate::plotting::{PlotError, core::ArtifactFile};
-use crate::utilities::{BenchmarkPoint, RangedCoordBenchmarkPoint};
-
-use html_escape::encode_safe;
-use plotters::{coord::types::RangedCoordf64, prelude::*};
-use regex::Regex;
-
-use fs_err as fs;
 use std::fs::OpenOptions;
-
 use std::io::Write;
 use std::path::PathBuf;
+
+use fs_err as fs;
+use html_escape::encode_safe;
+use plotters::coord::types::RangedCoordf64;
+use plotters::prelude::*;
+use regex::Regex;
+
+use crate::plotting::PlotError;
+use crate::plotting::core::ArtifactFile;
+use crate::utilities::{BenchmarkPoint, RangedCoordBenchmarkPoint};
 
 const LEGEND_LINE_LENGTH: i32 = 20;
 const CROSS_SIZE: u32 = 5;

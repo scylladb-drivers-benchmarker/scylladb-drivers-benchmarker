@@ -5,19 +5,18 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
 
+use executor::build_source;
+
+use super::database::*;
 use crate::benchmarking::executor::{Callback, CompileError, execute_all};
 use crate::command::{Command, CommandParsingError};
 use crate::commit_hash::CommitHash;
+use crate::config::backend::BackendConfig;
 use crate::config::benchmark::BenchmarkData;
 use crate::database::utilities::BenchmarkFilters;
 use crate::flame_graph::FlameFrequency;
 use crate::measurement::MeasurementMethod;
 use crate::utilities::{BenchmarkMode, BenchmarkParamsBuilder, BenchmarkPoint};
-use executor::build_source;
-
-use crate::config::backend::BackendConfig;
-
-use super::database::*;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum BenchMeasure {
@@ -41,7 +40,6 @@ impl From<BenchMeasure> for MeasurementMethod {
         }
     }
 }
-
 
 #[justerror::Error]
 pub enum BenchmarkingError {

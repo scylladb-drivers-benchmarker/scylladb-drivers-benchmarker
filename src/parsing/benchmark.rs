@@ -1,16 +1,15 @@
 use std::path::PathBuf;
 
 use clap::Args;
-use scylladb_drivers_benchmarker::{
-    benchmarking::BenchMeasure, config::find_config, flame_graph::FlameFrequency, measurement::MeasurementMethod
-};
+use scylladb_drivers_benchmarker::benchmarking::BenchMeasure;
+use scylladb_drivers_benchmarker::config::find_config;
+use scylladb_drivers_benchmarker::flame_graph::FlameFrequency;
+use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
 
-use crate::{
-    BenchmarkMode, BenchmarkParams, command,
-    parsing::{
-        ParsingError, Subcommands, aliasing::AliasingConfig, benchmark_setup::BenchmarkSetup,
-    },
-};
+use crate::parsing::aliasing::AliasingConfig;
+use crate::parsing::benchmark_setup::BenchmarkSetup;
+use crate::parsing::{ParsingError, Subcommands};
+use crate::{BenchmarkMode, BenchmarkParams, command};
 
 #[derive(Debug, Clone, clap::Args)]
 pub struct FlameOptions {

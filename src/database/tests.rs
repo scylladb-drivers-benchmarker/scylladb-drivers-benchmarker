@@ -1,6 +1,9 @@
-use crate::{commit_hash::CommitHash, database::*};
 use std::path::PathBuf;
+
 use tempfile::NamedTempFile;
+
+use crate::commit_hash::CommitHash;
+use crate::database::*;
 
 fn get_db() -> (Database, NamedTempFile) {
     let file = NamedTempFile::new().unwrap();

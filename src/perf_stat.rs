@@ -1,6 +1,6 @@
-use serde::Deserialize;
-use serde::Deserializer;
 use std::str::FromStr;
+
+use serde::{Deserialize, Deserializer};
 
 // Numbers returned by perf-stat can use dot or coma as decimal point, depending on system.
 // This function parses to number, replacing comas with dots.

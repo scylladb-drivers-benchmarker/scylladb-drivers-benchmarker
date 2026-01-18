@@ -1,10 +1,9 @@
 use clap::ValueEnum;
+use fs_err as fs;
+use plotters::coord::types::RangedCoordu64;
 
 use crate::commit_hash::CommitHash;
 use crate::database::utilities::{BenchmarkParams, BenchmarkRecord};
-use plotters::coord::types::RangedCoordu64;
-
-use fs_err as fs;
 
 pub type BenchmarkPoint = u64;
 pub type RangedCoordBenchmarkPoint = RangedCoordu64;

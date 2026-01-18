@@ -1,12 +1,9 @@
-use crate::parsing::Subcommands;
-
-use clap::Args;
-use clap::Subcommand;
-
-use crate::DropDatabaseParams;
-use crate::PrintDatabaseParams;
+use clap::{Args, Subcommand};
 use scylladb_drivers_benchmarker::database::utilities::BenchmarkFilters;
 use scylladb_drivers_benchmarker::utilities::BenchmarkPoint;
+
+use crate::parsing::Subcommands;
+use crate::{DropDatabaseParams, PrintDatabaseParams};
 
 #[derive(Debug, clap::Args)]
 pub struct DatabaseArgs {

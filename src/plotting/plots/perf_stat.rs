@@ -1,18 +1,17 @@
 use std::collections::HashMap;
 
-use crate::plotting::{
-    PlotError,
-    core::{
-        BACKGROUND_COLOR, BackendKind, BackendWithKind, BenchmarkDataset, CAPTION_FONT, LABEL_FONT,
-        LEGEND_BORDER_COLOR, LEGEND_BORDER_SIZE, MARGIN_SIZE, Plot, Renderable, RenderablePerfStat,
-        TITLE_FONT, X_LABEL_AREA_SIZE, Y_LABEL_AREA_SIZE,
-    },
-};
+use plotters::coord::Shift;
+use plotters::drawing::DrawingArea;
+use plotters::prelude::*;
 
 use crate::perf_stat::PerfStatData;
+use crate::plotting::PlotError;
+use crate::plotting::core::{
+    BACKGROUND_COLOR, BackendKind, BackendWithKind, BenchmarkDataset, CAPTION_FONT, LABEL_FONT,
+    LEGEND_BORDER_COLOR, LEGEND_BORDER_SIZE, MARGIN_SIZE, Plot, Renderable, RenderablePerfStat,
+    TITLE_FONT, X_LABEL_AREA_SIZE, Y_LABEL_AREA_SIZE,
+};
 use crate::utilities::calc_min_max;
-
-use plotters::{coord::Shift, drawing::DrawingArea, prelude::*};
 
 pub struct PerfStatPlot {
     benchmark_name: String,

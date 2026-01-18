@@ -5,7 +5,6 @@ pub mod config_traits;
 use std::path::{Path, PathBuf};
 
 use config_traits::{Configuration, ConfigurationList};
-
 use fs_err as fs;
 
 #[justerror::Error(desc = "error reading from config")]
@@ -47,10 +46,12 @@ pub fn find_config<ConfigType: Configuration>(
 
 #[cfg(test)]
 mod tests {
+    use std::io::Write;
+
+    use tempfile::NamedTempFile;
+
     use crate::config::backend::BackendConfig;
     use crate::config::{ConfigError, find_config};
-    use std::io::Write;
-    use tempfile::NamedTempFile;
 
     fn create_backend_tmp_file() -> NamedTempFile {
         let mut file = NamedTempFile::with_suffix(".yml").unwrap();
