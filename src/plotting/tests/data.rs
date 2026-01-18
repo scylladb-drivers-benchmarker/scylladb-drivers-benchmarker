@@ -4,8 +4,8 @@ use tempfile::NamedTempFile;
 use crate::config::benchmark::BenchmarkData;
 use crate::database::utilities::{BenchmarkFilters, BenchmarkParams, BenchmarkRecord};
 use crate::measurement::MeasurementMethod;
-use crate::plotting::core::BenchmarkDataset;
 use crate::plotting::PlotError;
+use crate::plotting::core::BenchmarkDataset;
 use crate::utilities::BenchmarkPoint;
 use crate::{CommitHash, Database};
 

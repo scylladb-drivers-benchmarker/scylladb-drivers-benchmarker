@@ -9,7 +9,7 @@ fn load_image(path: &Path) -> RgbaImage {
 
     match extension {
         "png" => open(path).unwrap().to_rgba8(),
-        "svg" => svg_to_rgba(path.as_ref()),
+        "svg" => svg_to_rgba(path),
         "html" => panic!("Comparing HTML files is not supported"),
         _ => panic!("unknown extension/format type"),
     }
