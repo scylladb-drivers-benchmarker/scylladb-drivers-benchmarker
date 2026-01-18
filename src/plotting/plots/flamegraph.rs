@@ -109,8 +109,6 @@ impl FlamegraphPlot {
             results.push(RenderableFlamegraph::new(output.clone(), artifacts));
         }
 
-        println!("from_dataset ran");
-
         Ok(FlamegraphPlot::new(benchmark_name, results, output))
     }
 }

@@ -1,7 +1,7 @@
 use clap::Parser;
 use scylladb_drivers_benchmarker::benchmarking::{BenchMeasure, BenchmarkMode};
 use scylladb_drivers_benchmarker::config::backend::BackendConfig;
-use scylladb_drivers_benchmarker::config::benchmark::{BenchmarkConfig, BenchmarkData};
+use scylladb_drivers_benchmarker::config::benchmark::BenchmarkData;
 use scylladb_drivers_benchmarker::database::Database;
 use scylladb_drivers_benchmarker::database::utilities::BenchmarkFilters;
 use scylladb_drivers_benchmarker::repo_with_commits::{RepoNameWithTags, RepoPathWithCommits};

@@ -3,11 +3,11 @@ pub use plotting::{PlotKind, PlotSettings, VisKind};
 use crate::benchmarking::{BenchMeasure, BenchmarkMode, BenchmarkingError};
 use crate::commit_hash::CommitHash;
 use crate::config::backend::BackendConfig;
-use crate::config::benchmark::{BenchmarkConfig, BenchmarkData};
+use crate::config::benchmark::BenchmarkData;
 use crate::database::utilities::BenchmarkFilters;
 use crate::database::{Database, DatabaseError};
 use crate::plotting::error::PlotError;
-use crate::repo_with_commits::{RepoNameWithTags, RepoPathWithCommits};
+use crate::repo_with_commits::{RepoNameWithTags, RepoPathWithCommits, SafeRepoNameWithTags};
 use crate::utilities::format_entry;
 pub mod benchmarking;
 pub mod command;
@@ -56,9 +56,11 @@ pub fn plot_benchmarks(
     let names = from
         .into_iter()
         .flat_map(|repo| {
+            let repo: SafeRepoNameWithTags = repo.into();
+
             repo.tags
                 .into_iter()
-                .map(move |commit| format!("{}@{}", repo.name, commit))
+                .map(move |commit| format!("{}@{}", repo.safe_name, commit))
         })
         .collect::<Vec<String>>();
 

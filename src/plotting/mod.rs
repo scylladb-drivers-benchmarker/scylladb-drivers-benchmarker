@@ -14,7 +14,7 @@ use plots::{FlamegraphPlot, PerfStatPlot, SeriesPlot};
 use plotters::backend::{BitMapBackend, SVGBackend};
 
 use crate::commit_hash::CommitHash;
-use crate::config::benchmark::{BenchmarkConfig, BenchmarkData};
+use crate::config::benchmark::BenchmarkData;
 use crate::database::Database;
 use crate::measurement::MeasurementMethod;
 use crate::perf_stat::PerfStatData;

@@ -214,6 +214,8 @@ fn plot_flamegraph() {
         "-o",
         output,
         "flamegraph",
+        "-a",
+        "./tests/plot_test",
     ]));
 
     assert!(fs::exists(output).unwrap());

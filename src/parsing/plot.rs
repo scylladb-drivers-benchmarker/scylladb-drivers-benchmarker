@@ -2,7 +2,6 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use clap::Args;
-use scylladb_drivers_benchmarker::config::find_config;
 use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
 use scylladb_drivers_benchmarker::repo_with_commits::{
     RepoNameWithCommitsParsingError, RepoPathWithCommits, resolve_repo_tags,
@@ -135,7 +134,11 @@ impl PlotCommand {
             .collect::<Result<Vec<RepoPathWithCommits>, _>>()?;
 
         Ok(Subcommands::Plot(PlotParams {
-            benchmark_config: BenchmarkSetup::finalize(self.benchmark_setup, &self.benchmark_name, &aliasing_config)?,
+            benchmark_config: BenchmarkSetup::finalize(
+                self.benchmark_setup,
+                &self.benchmark_name,
+                &aliasing_config,
+            )?,
             from: parsed,
             resolved,
             plot_settings: PlotSettings::new(

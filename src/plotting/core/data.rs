@@ -36,7 +36,10 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
             })
             .collect::<Result<_, _>>()?;
 
-        Ok(BenchmarkDataset { points: benchmark_config.points.clone(), results })
+        Ok(BenchmarkDataset {
+            points: benchmark_config.points.clone(),
+            results,
+        })
     }
 
     fn get_benchmark_results(
@@ -73,7 +76,7 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         }
 
         if !missing.is_empty() {
-            if missing.len() == benchmark_config.points.len() as usize {
+            if missing.len() == benchmark_config.points.len() {
                 return Err(PlotError::MissingBenchmark {
                     commit_hash: commit_hash.as_str().to_owned(),
                     benchmark: benchmark_config.name.clone(),

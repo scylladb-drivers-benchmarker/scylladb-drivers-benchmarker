@@ -15,6 +15,30 @@ pub struct RepoNameWithTags {
     pub tags: Vec<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SafeRepoNameWithTags {
+    pub safe_name: String,
+    pub tags: Vec<String>,
+}
+
+impl From<RepoNameWithTags> for SafeRepoNameWithTags {
+    fn from(value: RepoNameWithTags) -> Self {
+        let safe_name = value
+            .name
+            .rsplit(['/', '\\'])
+            .next()
+            .unwrap_or(&value.name)
+            .trim_matches('.')
+            .replace(['/', '\\', ':'], "_")
+            .to_owned();
+
+        Self {
+            safe_name,
+            tags: value.tags.clone(),
+        }
+    }
+}
+
 #[justerror::Error]
 pub enum RepoNameWithCommitsParsingError {
     PathNotSupplied,
