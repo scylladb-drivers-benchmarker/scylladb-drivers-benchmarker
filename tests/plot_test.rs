@@ -90,19 +90,24 @@ fn setup_initial_data(
     }
 }
 
-fn plot_series_generic_test(output: &str, expected_output: &str, vis_kind: VisKind) {
+fn plot_series_generic_test(
+    output: &Path,
+    config: &str,
+    expected_output: &Path,
+    vis_kind: VisKind,
+) {
     let test_data = setup_initial_data(101, generate_series_data);
 
     run_no_output(sdb_command().args([
         "-d",
-        &test_data.db_file.path().to_string_lossy(),
+        test_data.db_file.path().to_str().unwrap(),
         "plot",
         "test-bench",
         "-b",
-        "./tests/plot_test/config.yml",
+        config,
         &build_from_arg(&test_data.repo_dir, test_data.repo_hashes),
         "-o",
-        output,
+        output.to_str().unwrap(),
         "series",
         "-v",
         &vis_kind.to_string(),
@@ -115,7 +120,7 @@ fn plot_series_generic_test(output: &str, expected_output: &str, vis_kind: VisKi
     fs::remove_file(output).unwrap();
 }
 
-fn plot_perf_generic_test(output: &str, expected_output: &str) {
+fn plot_perf_generic_test(output: &Path, expected_output: &Path) {
     let test_data = setup_initial_data(101, generate_perf_data);
 
     run_no_output(sdb_command().args([
@@ -127,7 +132,7 @@ fn plot_perf_generic_test(output: &str, expected_output: &str) {
         "./tests/plot_test/config.yml",
         &build_from_arg(&test_data.repo_dir, test_data.repo_hashes),
         "-o",
-        output,
+        output.to_str().unwrap(),
         "perf-stat",
         "-e",
         "task-clock,context-switches,page-faults",
@@ -139,20 +144,18 @@ fn plot_perf_generic_test(output: &str, expected_output: &str) {
 
 #[test]
 fn plot_series() {
-    let output_base = "./tests/plot_test/series";
-    let expected_base = "./tests/plot_test/expected_series";
+    let output_base = Path::new("./tests/plot_test/");
+    let expected_base = Path::new("./tests/plot_test/expected");
 
-    let vis_kinds = [VisKind::Linear, VisKind::Log];
-    let formats = ["png", "svg"];
-
-    for vis_kind in &vis_kinds {
-        for format in &formats {
-            let sufix = format!("_{}.{}", vis_kind, format);
+    for vis_kind in [VisKind::Linear, VisKind::Log] {
+        for format in ["png", "svg"] {
+            let filename = PathBuf::from(format!("series_{vis_kind}.{format}"));
 
             plot_series_generic_test(
-                &(output_base.to_owned() + &sufix),
-                &(expected_base.to_owned() + &sufix),
-                *vis_kind,
+                &output_base.join(&filename),
+                "./tests/plot_test/config.yml",
+                &expected_base.join(&filename),
+                vis_kind,
             );
         }
     }
@@ -160,18 +163,13 @@ fn plot_series() {
 
 #[test]
 fn plot_perf() {
-    let output_base = "./tests/plot_test/perf";
-    let expected_base = "./tests/plot_test/expected_perf";
+    let output_base = Path::new("./tests/plot_test/");
+    let expected_base = Path::new("./tests/plot_test/expected");
 
-    let formats = ["png", "svg"];
+    for format in ["png", "svg"] {
+        let filename = PathBuf::from(format!("perf.{format}"));
 
-    for format in &formats {
-        let sufix = format!(".{}", format);
-
-        plot_perf_generic_test(
-            &(output_base.to_owned() + &sufix),
-            &(expected_base.to_owned() + &sufix),
-        );
+        plot_perf_generic_test(&output_base.join(&filename), &expected_base.join(&filename));
     }
 }
 
