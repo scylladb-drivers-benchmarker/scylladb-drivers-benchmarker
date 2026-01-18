@@ -1,6 +1,7 @@
 mod utilities;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use fs::File;
 use fs_err as fs;
@@ -11,7 +12,7 @@ use scylladb_drivers_benchmarker::database::{self};
 use scylladb_drivers_benchmarker::utilities::BenchmarkPoint;
 use tempfile::{Builder, NamedTempFile, TempDir};
 use utilities::image_compare::check_files_equality;
-use utilities::run_utilities::{run, run_no_output, sdb_command};
+use utilities::run_utilities::{print_flamegraph_information, run, run_no_output, sdb_command};
 
 fn init_git_repo(path: &Path, num_commits: usize) -> Vec<CommitHash> {
     if !path.join(".git").exists() {
@@ -64,6 +65,7 @@ fn build_from_arg(path: &TempDir, commits: Vec<CommitHash>) -> String {
 }
 
 fn setup_initial_data(
+    max: u64,
     data_generator: fn(usize, &CommitHash, BenchmarkPoint) -> (BenchmarkParams, BenchmarkRecord),
 ) -> TestData {
     let db_file = Builder::new().suffix(".db").tempfile().unwrap();
@@ -73,7 +75,7 @@ fn setup_initial_data(
     let repo_dir = TempDir::new().unwrap();
     let repo_hashes = init_git_repo(repo_dir.path(), 3);
 
-    let points = 1u64..101u64;
+    let points = 1u64..max;
 
     for (commit_idx, commit) in repo_hashes.iter().enumerate() {
         for point in points.clone() {
@@ -89,7 +91,7 @@ fn setup_initial_data(
 }
 
 fn plot_series_generic_test(output: &str, expected_output: &str, vis_kind: VisKind) {
-    let test_data = setup_initial_data(generate_series_data);
+    let test_data = setup_initial_data(101, generate_series_data);
 
     run_no_output(sdb_command().args([
         "-d",
@@ -114,7 +116,7 @@ fn plot_series_generic_test(output: &str, expected_output: &str, vis_kind: VisKi
 }
 
 fn plot_perf_generic_test(output: &str, expected_output: &str) {
-    let test_data = setup_initial_data(generate_perf_data);
+    let test_data = setup_initial_data(101, generate_perf_data);
 
     run_no_output(sdb_command().args([
         "-d",
@@ -171,6 +173,35 @@ fn plot_perf() {
             &(expected_base.to_owned() + &sufix),
         );
     }
+}
+
+#[test]
+fn plot_flamegraph() {
+    print_flamegraph_information(Path::new("./tests/plot_test/flame-path.yml"));
+
+    let test_data = setup_initial_data(5, generate_flame_data);
+
+    let output = "./tests/plot_test/flame_output.html";
+    let _expected_output = "./tests/plot_test/expected_flame.html";
+
+    run_no_output(sdb_command().args([
+        "-d",
+        test_data.db_file.path().to_str().unwrap(),
+        "-a",
+        "./tests/plot_test/flame-path.yml",
+        "plot",
+        "flame-bench",
+        "-b",
+        "./tests/plot_test/config.yml",
+        &build_from_arg(&test_data.repo_dir, test_data.repo_hashes),
+        "-o",
+        output,
+        "flamegraph",
+    ]));
+
+    assert!(fs::exists(output).unwrap());
+    // It is hard to compare generated html files (they may differ as they contain svg with floating numbers).
+    fs::remove_file(output).unwrap();
 }
 
 fn generate_series_data(
@@ -240,4 +271,32 @@ fn generate_perf_data(
         core_cycles_metric = value * 3.904359,
     );
     (params, BenchmarkRecord::Data(json_value.to_string()))
+}
+
+fn generate_flame_data(
+    _commit_idx: usize,
+    commit: &CommitHash,
+    point: BenchmarkPoint,
+) -> (BenchmarkParams, BenchmarkRecord) {
+    static CALL_COUNT: AtomicUsize = AtomicUsize::new(0);
+
+    static INPUTS: [&str; 2] = [
+        "./tests/plot_test/input_flame_0",
+        "./tests/plot_test/input_flame_1",
+    ];
+
+    let params = BenchmarkParams::new(
+        commit.clone(),
+        "flame-bench".to_owned(),
+        point,
+        "flamegraph".to_owned(),
+    );
+
+    let idx = CALL_COUNT.fetch_add(1, Ordering::Relaxed) % INPUTS.len();
+
+    let path: PathBuf = INPUTS[idx].into();
+    (
+        params,
+        BenchmarkRecord::FilePath(path.canonicalize().unwrap()),
+    )
 }

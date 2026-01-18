@@ -12,6 +12,7 @@ use utilities::run_utilities::{run, run_safe, sdb_command};
 
 use crate::utilities::db_utils::open_clean_db;
 use crate::utilities::git_utils::setup_git;
+use crate::utilities::run_utilities::print_flamegraph_information;
 
 mod utilities;
 
@@ -117,20 +118,13 @@ fn aliasing_db() {
 
 #[test]
 fn flame_graph() {
-    let test_dir = Path::new("./tests/flamegraph/");
+    let test_dir = Path::new("./tests/flamegraph_bench_test/");
     let benchmark_name = "recurse";
     let config_name = Path::new("flame-path.yml");
     let db = open_clean_db(&test_dir.join("test.db"));
 
-    println!("This test requires manual setup.");
-    println!(
-        "Make sure you specified the path to the FlameGraph repository in {},\
-        as well as allowed access to performance monitoring (needed by perf to run)",
-        test_dir.join(config_name).display()
-    );
-    println!("It may be necessary to run: ");
-    println!("sudo sh -c 'echo \"-1\" > /proc/sys/kernel/perf_event_paranoid'");
-    println!("sudo sh -c 'echo \"0\" > /proc/sys/kernel/kptr_restrict'");
+    print_flamegraph_information(&test_dir.join(config_name));
+
     run(sdb_command()
         .args([
             "-d",
