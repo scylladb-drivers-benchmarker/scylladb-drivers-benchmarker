@@ -8,11 +8,11 @@ use crate::{DropDatabaseParams, PrintDatabaseParams};
 #[derive(Debug, clap::Args)]
 pub struct DatabaseArgs {
     #[command(subcommand)]
-    pub command: DatabaseInputCommand,
+    pub command: InputDatabaseCommand,
 }
 
 #[derive(Subcommand, Debug)]
-pub enum DatabaseInputCommand {
+pub enum InputDatabaseCommand {
     Print {
         #[command(flatten)]
         filters: InputDatabaseFilters,
@@ -53,12 +53,12 @@ impl From<InputDatabaseFilters> for BenchmarkFilters {
 impl DatabaseArgs {
     pub fn finalize(self) -> Subcommands {
         match self.command {
-            DatabaseInputCommand::Print { filters } => {
+            InputDatabaseCommand::Print { filters } => {
                 Subcommands::PrintDatabase(PrintDatabaseParams {
                     filters: (filters.into()),
                 })
             }
-            DatabaseInputCommand::Drop { filters } => {
+            InputDatabaseCommand::Drop { filters } => {
                 Subcommands::DropDatabase(DropDatabaseParams {
                     filters: (filters.into()),
                 })

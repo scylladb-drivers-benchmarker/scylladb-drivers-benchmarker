@@ -75,9 +75,9 @@ pub enum InputBenchmarkMode {
     ForceRerun,
 }
 
-impl From<InputBenchmarkMode> for BenchmarkMode {
-    fn from(value: InputBenchmarkMode) -> Self {
-        match value {
+impl InputBenchmarkMode {
+    fn finalize(self) -> BenchmarkMode {
+        match self {
             InputBenchmarkMode::UseCached => BenchmarkMode::UseCached,
             InputBenchmarkMode::ForceRerun => BenchmarkMode::ForceRerun,
         }
@@ -112,7 +112,7 @@ impl BenchmarkCommand {
             bench_measure,
             backend_config: find_config(&self.benchmark_name, &self.backend_config_path)?,
             benchmark_config,
-            benchmark_mode: self.benchmark_mode.into(),
+            benchmark_mode: self.benchmark_mode.finalize(),
         }))
     }
 }

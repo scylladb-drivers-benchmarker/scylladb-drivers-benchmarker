@@ -2,11 +2,12 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use clap::Args;
-use scylladb_drivers_benchmarker::PlotSettings;
 use scylladb_drivers_benchmarker::config::find_config;
+use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
 use scylladb_drivers_benchmarker::repo_with_commits::{
     RepoNameWithCommitsParsingError, RepoPathWithCommits, resolve_repo_tags,
 };
+use scylladb_drivers_benchmarker::{PlotSettings, VisKind};
 
 use crate::parsing::aliasing::AliasingConfig;
 use crate::parsing::{ParsingError, Subcommands};
@@ -29,7 +30,7 @@ pub struct PlotCommand {
 
     // Type of plot to generate
     #[clap(subcommand)]
-    pub plot_kind: PlotKind,
+    pub plot_kind: InputPlotKind,
 }
 
 #[derive(Debug, Clone)]
@@ -56,6 +57,73 @@ impl FromStr for ParsableRepoNameWithTags {
     }
 }
 
+#[derive(Debug, clap::Subcommand)]
+pub enum InputPlotKind {
+    /// Generate a series plot
+    Series {
+        #[arg(short, long, default_value_t = MeasurementMethod::Time)]
+        measurement_method: MeasurementMethod,
+
+        #[arg(short, long, value_enum, default_value_t = InputVisKind::Linear)]
+        visualization_kind: InputVisKind,
+    },
+
+    /// Generate a flamegraph plot
+    Flamegraph {
+        #[arg(short, long, value_name = "DIR")]
+        artifacts_dir: Option<PathBuf>,
+
+        #[arg(short, long, value_name = "DIR")]
+        flame_repo: Option<PathBuf>,
+    },
+
+    /// Generate a perf-stat plot
+    PerfStat {
+        #[arg(short, long)]
+        #[clap(value_delimiter=',', num_args(1..))]
+        events: Vec<String>,
+    },
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy, clap::ValueEnum)]
+pub enum InputVisKind {
+    Linear,
+    Log,
+}
+
+impl InputVisKind {
+    pub fn finalize(self) -> VisKind {
+        match self {
+            InputVisKind::Linear => VisKind::Linear,
+            InputVisKind::Log => VisKind::Log,
+        }
+    }
+}
+
+impl InputPlotKind {
+    pub fn finalize(self, aliasing_config: AliasingConfig) -> Result<PlotKind, ParsingError> {
+        match self {
+            InputPlotKind::Series {
+                measurement_method,
+                visualization_kind,
+            } => Ok(PlotKind::Series {
+                measurement_method,
+                visualization_kind: visualization_kind.finalize(),
+            }),
+            InputPlotKind::Flamegraph {
+                artifacts_dir,
+                flame_repo,
+            } => Ok(PlotKind::Flamegraph {
+                artifacts_dir,
+                flame_repo: flame_repo
+                    .or(aliasing_config.flame_path)
+                    .ok_or(ParsingError::NoFlamegraphRepository)?,
+            }),
+            InputPlotKind::PerfStat { events } => Ok(PlotKind::PerfStat { events }),
+        }
+    }
+}
+
 impl PlotCommand {
     pub fn finalize(self, aliasing_config: AliasingConfig) -> Result<Subcommands, ParsingError> {
         let parsed: Vec<RepoNameWithTags> = self.from.into_iter().map(Into::into).collect();
@@ -65,21 +133,14 @@ impl PlotCommand {
             .map(|repo| resolve_repo_tags(repo.clone(), &aliasing_config.repo_path))
             .collect::<Result<Vec<RepoPathWithCommits>, _>>()?;
 
-        let mut plot_settings =
-            PlotSettings::new(self.plot_kind, self.output.to_string_lossy().to_string());
-
-        // TODO rust idiomatic byloby tutaj zrobic plotKind i finalize do niego, czy warto?
-        if let PlotKind::Flamegraph { flame_repo, .. } = &mut plot_settings.plot_kind
-            && flame_repo.is_none()
-        {
-            *flame_repo = aliasing_config.flame_path.clone();
-        }
-
         Ok(Subcommands::Plot(PlotParams {
             benchmark_config: find_config(&self.benchmark_name, &self.benchmark_config_path)?,
             from: parsed,
             resolved,
-            plot_settings,
+            plot_settings: PlotSettings::new(
+                self.plot_kind.finalize(aliasing_config)?,
+                self.output.to_string_lossy().to_string(),
+            ),
         }))
     }
 }

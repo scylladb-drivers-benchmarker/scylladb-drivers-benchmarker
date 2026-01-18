@@ -23,30 +23,19 @@ pub(crate) const IMAGE_WIDTH: u32 = 1920;
 pub(crate) const IMAGE_HEIGHT: u32 = 1080;
 pub(crate) const IMAGE_SIZE: (u32, u32) = (IMAGE_WIDTH, IMAGE_HEIGHT);
 
-#[derive(Debug, clap::Subcommand)]
+#[derive(Debug)]
 pub enum PlotKind {
-    /// Generate a series plot
     Series {
-        #[arg(short, long, default_value_t = MeasurementMethod::Time)]
         measurement_method: MeasurementMethod,
-
-        #[arg(short, long, value_enum, default_value_t = VisKind::Linear)]
         visualization_kind: VisKind,
     },
 
-    /// Generate a flamegraph plot
     Flamegraph {
-        #[arg(short, long, value_name = "DIR")]
         artifacts_dir: Option<PathBuf>,
-
-        #[arg(short, long, value_name = "DIR")]
-        flame_repo: Option<PathBuf>,
+        flame_repo: PathBuf,
     },
 
-    /// Generate a perf-stat plot
     PerfStat {
-        #[arg(short, long)]
-        #[clap(value_delimiter=',', num_args(1..))]
         events: Vec<String>,
     },
 }
@@ -110,12 +99,6 @@ pub fn plot(
             artifacts_dir,
             flame_repo,
         } => {
-            let flame_repo = flame_repo.ok_or_else(|| {
-                PlotError::InvalidData(
-                    "Flamegraph repository path is missing; please provide `--flame-repo` or configure it in the global config".to_owned(),
-                )
-            })?;
-
             let dataset: BenchmarkDataset<String> = BenchmarkDataset::new(
                 database,
                 &benchmark_config,

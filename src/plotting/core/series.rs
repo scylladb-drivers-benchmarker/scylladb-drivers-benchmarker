@@ -4,7 +4,7 @@ use super::data::PlottableValue;
 use crate::plotting::PlotError;
 use crate::utilities::calc_min_max;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, clap::ValueEnum)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum VisKind {
     Linear,
     Log,

@@ -3,9 +3,9 @@ use std::path::PathBuf;
 use clap::Parser;
 use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
 use scylladb_drivers_benchmarker::repo_with_commits::RepoNameWithTags;
-use scylladb_drivers_benchmarker::{PlotKind, VisKind};
 
-use crate::parsing::database::DatabaseInputCommand;
+use crate::parsing::database::InputDatabaseCommand;
+use crate::parsing::plot::{InputPlotKind, InputVisKind};
 use crate::parsing::{App, AppSubcommands, BenchmarkCommand, PlotCommand};
 
 #[test]
@@ -47,14 +47,14 @@ fn advanced_plot() {
 
     assert_eq!(benchmark_name, "select");
 
-    assert!(matches!(plot_kind, PlotKind::Series { .. }));
+    assert!(matches!(plot_kind, InputPlotKind::Series { .. }));
     match plot_kind {
-        PlotKind::Series {
+        InputPlotKind::Series {
             measurement_method,
             visualization_kind,
         } => {
             assert!(matches!(measurement_method, MeasurementMethod::Time));
-            assert!(matches!(visualization_kind, VisKind::Linear));
+            assert!(matches!(visualization_kind, InputVisKind::Linear));
         }
         _ => panic!("Expected PlotKind::Series"),
     }
@@ -90,7 +90,7 @@ fn advanced_database() {
         panic!("Expected Database subcommand");
     };
 
-    let DatabaseInputCommand::Print { filters } = command.command else {
+    let InputDatabaseCommand::Print { filters } = command.command else {
         panic!("Expected DatabaseCommand::Print");
     };
 
