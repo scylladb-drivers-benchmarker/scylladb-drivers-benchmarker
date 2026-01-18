@@ -105,7 +105,7 @@ where
 
         for (&x, y_opt) in self.points.iter().zip(self.series.iter()) {
             if let Some(y) = y_opt {
-                line_points.push((x, *y))
+                line_points.push((x, *y));
             } else {
                 line_points.push((x, y_max));
                 chart.draw_series(std::iter::once(Cross::new((x, y_max), CROSS_SIZE, color)))?;
@@ -178,7 +178,7 @@ where
 
             for (&x, y_opt) in self.points.iter().zip(self.values[id].iter()) {
                 if let Some(y) = y_opt {
-                    line_points.push((x, *y))
+                    line_points.push((x, *y));
                 } else {
                     line_points.push((x, y_max));
                     chart.draw_series(std::iter::once(Cross::new(
