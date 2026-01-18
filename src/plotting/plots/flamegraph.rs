@@ -54,7 +54,7 @@ impl FlamegraphPlot {
             )));
         }
 
-        let mut stdout_str = String::from_utf8(output.stdout.clone())
+        let mut stdout_str = String::from_utf8(output.stdout)
             .map_err(|_| PlotError::Internal("stdout UTF-8 parsing failed".into()))?;
 
         stdout_str = stdout_str.replace(">Flame Graph<", format!(">{name} at {point}<").as_str());
@@ -74,7 +74,7 @@ impl FlamegraphPlot {
         let mut results = Vec::new();
 
         for (name, data) in names.iter().zip(dataset.results.into_iter()) {
-            let make_artifact = |folded_data: &Option<_>,
+            let make_artifact = |folded_data: Option<&_>,
                                  point: BenchmarkPoint|
              -> Result<ArtifactFile, PlotError> {
                 let artifact = match folded_data {
@@ -104,7 +104,7 @@ impl FlamegraphPlot {
             let artifacts: Vec<ArtifactFile> = data
                 .iter()
                 .zip(dataset.points.iter())
-                .map(|(folded_data, point)| make_artifact(folded_data, *point))
+                .map(|(folded_data, point)| make_artifact(folded_data.as_ref(), *point))
                 .collect::<Result<_, PlotError>>()?;
 
             results.push(RenderableFlamegraph::new(output.clone(), artifacts));
