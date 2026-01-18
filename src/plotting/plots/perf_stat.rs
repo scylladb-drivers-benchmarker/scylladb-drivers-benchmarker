@@ -69,31 +69,36 @@ impl PerfStatPlot {
                 }
             }
 
-            let values_per_event: Vec<Vec<Option<f64>>> = events
-                .iter()
-                .map(|event_name| {
-                    values
-                        .iter()
-                        .map(|data| {
-                            data.as_ref().and_then(|perfstat| {
-                                perfstat.filter_value(event_name).map(|e| {
-                                    unit.entry(event_name.clone())
-                                        .and_modify(|existing| {
-                                            if let Ok(existing_unit) = existing
-                                                && existing_unit != &e.unit
-                                            {
-                                                *existing = Err(());
-                                            }
-                                        })
-                                        .or_insert_with(|| Ok(e.unit.clone()));
+            let mut values_per_event = Vec::new();
 
-                                    e.value
-                                })
+            for event_name in &events {
+                let mut values_for_event = Vec::new();
+
+                for data in &values {
+                    let event_data = data
+                        .as_ref()
+                        .map(|perfstat| perfstat.filter_value(event_name))
+                        .flatten();
+
+                    if let Some(e) = event_data {
+                        unit.entry(event_name.clone())
+                            .and_modify(|existing| {
+                                if let Ok(existing_unit) = existing
+                                    && existing_unit != &e.unit
+                                {
+                                    *existing = Err(())
+                                }
                             })
-                        })
-                        .collect::<Vec<Option<f64>>>()
-                })
-                .collect();
+                            .or_insert_with(|| Ok(e.unit.clone()));
+
+                        values_for_event.push(Some(e.value));
+                    } else {
+                        values_for_event.push(None);
+                    }
+                }
+
+                values_per_event.push(values_for_event);
+            }
 
             let color = Palette99::pick(id);
 
