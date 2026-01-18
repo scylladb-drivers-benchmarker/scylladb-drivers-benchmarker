@@ -1,10 +1,7 @@
 use std::fmt::Display;
 use std::num::ParseIntError;
-use std::path::PathBuf;
 use std::str::FromStr;
 
-use crate::command;
-use crate::measurement::MeasurementMethod;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FlameFrequency {
