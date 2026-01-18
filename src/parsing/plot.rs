@@ -65,13 +65,8 @@ impl PlotCommand {
             .map(|repo| resolve_repo_tags(repo.clone(), &aliasing_config.repo_path))
             .collect::<Result<Vec<RepoPathWithCommits>, _>>()?;
 
-        let mut plot_settings = PlotSettings::new(
-            self.plot_kind,
-            self.output
-                .to_str()
-                .expect("Invalid UTF-8 path") // TODO probably error not panic
-                .to_owned(),
-        );
+        let mut plot_settings =
+            PlotSettings::new(self.plot_kind, self.output.to_string_lossy().to_string());
 
         // TODO rust idiomatic byloby tutaj zrobic plotKind i finalize do niego, czy warto?
         if let PlotKind::Flamegraph { flame_repo, .. } = &mut plot_settings.plot_kind
