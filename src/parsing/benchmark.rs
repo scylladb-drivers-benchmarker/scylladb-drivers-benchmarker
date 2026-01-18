@@ -1,16 +1,18 @@
-use crate::BenchmarkMode;
-use crate::BenchmarkParams;
-use crate::command;
-use crate::parsing::ParsingError;
-use crate::parsing::Subcommands;
-use crate::parsing::aliasing::AliasingConfig;
-use crate::parsing::benchmark_setup::BenchmarkSetup;
-use clap::Args;
-use scylladb_drivers_benchmarker::config::find_config;
-use scylladb_drivers_benchmarker::flame_graph::BenchMeasure;
-use scylladb_drivers_benchmarker::flame_graph::FlameFrequency;
-use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
 use std::path::PathBuf;
+
+use clap::Args;
+use scylladb_drivers_benchmarker::{
+    config::find_config,
+    flame_graph::{BenchMeasure, FlameFrequency},
+    measurement::MeasurementMethod,
+};
+
+use crate::{
+    BenchmarkMode, BenchmarkParams, command,
+    parsing::{
+        ParsingError, Subcommands, aliasing::AliasingConfig, benchmark_setup::BenchmarkSetup,
+    },
+};
 
 #[derive(Debug, Clone, clap::Args)]
 pub struct FlameOptions {
@@ -24,24 +26,16 @@ pub struct FlameOptions {
 }
 
 impl FlameOptions {
-    pub fn finalize(
-        mut self,
-        aliasing_config: AliasingConfig,
-    ) -> Result<BenchMeasure, ParsingError> {
-        self.store_dir = self.store_dir.or(aliasing_config.store_dir);
-
-        let Some(mut store_dir) = self.store_dir else {
-            return Err(ParsingError::NoStoreDir {
-                needed_by: MeasurementMethod::Flamegraph,
-            });
-        };
+    pub fn finalize(self, aliasing_config: AliasingConfig) -> Result<BenchMeasure, ParsingError> {
+        let mut store_dir =
+            self.store_dir
+                .or(aliasing_config.store_dir)
+                .ok_or(ParsingError::NoStoreDir {
+                    needed_by: MeasurementMethod::Flamegraph,
+                })?;
 
         if !store_dir.is_absolute() {
             store_dir = store_dir.canonicalize()?;
-        }
-
-        if !store_dir.is_absolute() {
-            return Err(ParsingError::StoreDirNotAbsolute);
         }
 
         if !store_dir.is_dir() {
@@ -51,7 +45,7 @@ impl FlameOptions {
         Ok(BenchMeasure::FlameGraph {
             flame_repo: self
                 .flame_repo
-                .or(aliasing_config.flame_path.clone())
+                .or(aliasing_config.flame_path)
                 .unwrap_or_default(),
             frequency: self.frequency,
             store_dir,

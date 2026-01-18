@@ -71,8 +71,6 @@ pub enum ParsingError {
         needed_by: MeasurementMethod,
     },
     FailedCanonicalizing(#[from] io::Error),
-    #[error(desc = "Even after canonicalizing, the store directory path is not absolute")]
-    StoreDirNotAbsolute,
     #[error(desc = "Given path to store is not a directory")]
     StoreDirNotADir,
     #[error(desc = "Benchmark configuration not found")]
