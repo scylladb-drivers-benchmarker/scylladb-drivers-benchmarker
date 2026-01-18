@@ -1,6 +1,5 @@
 use std::fmt::Write;
 
-use clap::ValueEnum;
 use fs_err as fs;
 use plotters::coord::types::RangedCoordu64;
 
@@ -59,12 +58,6 @@ impl BenchmarkRecord {
             BenchmarkRecord::Timeout => FlatBenchmarkRecord::Timeout,
         })
     }
-}
-
-#[derive(Copy, Clone, Debug, ValueEnum)] // TODO again rust idiomatic, input benchmark mode and real
-pub enum BenchmarkMode {
-    UseCached,
-    ForceRerun,
 }
 
 #[must_use]
