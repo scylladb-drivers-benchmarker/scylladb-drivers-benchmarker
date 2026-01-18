@@ -1,11 +1,13 @@
+use std::path::Path;
+
 use fs_err as fs;
 use image::{RgbaImage, open};
 use resvg::{tiny_skia, usvg};
 
-fn load_image(path: &str) -> RgbaImage {
-    let extension = path.rsplit('.').next().unwrap_or("").to_string();
+fn load_image(path: &Path) -> RgbaImage {
+    let extension = path.extension().unwrap_or_default().to_str().unwrap();
 
-    match extension.as_str() {
+    match extension {
         "png" => open(path).unwrap().to_rgba8(),
         "svg" => svg_to_rgba(path.as_ref()),
         "html" => panic!("Comparing HTML files is not supported"),
@@ -26,7 +28,7 @@ fn svg_to_rgba(path: &std::path::Path) -> RgbaImage {
     RgbaImage::from_raw(pixmap.width(), pixmap.height(), pixmap.data().to_vec()).unwrap()
 }
 
-pub fn check_files_equality(output: &str, expected_output: &str) {
+pub fn check_files_equality(output: &Path, expected_output: &Path) {
     let result =
         image_compare::rgba_hybrid_compare(&load_image(output), &load_image(expected_output))
             .expect("Images had different dimensions");

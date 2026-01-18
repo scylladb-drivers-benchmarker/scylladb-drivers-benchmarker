@@ -2,7 +2,7 @@ use std::fmt::Debug;
 use std::str::FromStr;
 
 use crate::commit_hash::CommitHash;
-use crate::config::benchmark::BenchmarkConfig;
+use crate::config::benchmark::BenchmarkData;
 use crate::database::Database;
 use crate::measurement::MeasurementMethod;
 use crate::plotting::PlotError;
@@ -21,14 +21,10 @@ pub struct BenchmarkDataset<T: PlottableValue> {
 impl<T: PlottableValue> BenchmarkDataset<T> {
     pub fn new(
         database: &Database,
-        benchmark_config: &BenchmarkConfig,
+        benchmark_config: &BenchmarkData,
         commit_hashes: impl Iterator<Item = CommitHash>,
         measurement_method: &MeasurementMethod,
     ) -> Result<BenchmarkDataset<T>, PlotError> {
-        let points = benchmark_config
-            .benchmark_points()
-            .collect::<Vec<BenchmarkPoint>>();
-
         let results = commit_hashes
             .map(|commit_hash| {
                 Self::get_benchmark_results(
@@ -40,13 +36,13 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
             })
             .collect::<Result<_, _>>()?;
 
-        Ok(BenchmarkDataset { points, results })
+        Ok(BenchmarkDataset { points: benchmark_config.points.clone(), results })
     }
 
     fn get_benchmark_results(
         database: &Database,
         commit_hash: &CommitHash,
-        benchmark_config: &BenchmarkConfig,
+        benchmark_config: &BenchmarkData,
         measurement_method: &MeasurementMethod,
     ) -> Result<Vec<Option<T>>, PlotError> {
         let builder = BenchmarkParamsBuilder {
@@ -58,7 +54,7 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         let mut results = Vec::new();
         let mut missing = Vec::new();
 
-        for point in benchmark_config.benchmark_points() {
+        for point in benchmark_config.points.iter().cloned() {
             let params = builder.finalize(point);
 
             match database
@@ -77,7 +73,7 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         }
 
         if !missing.is_empty() {
-            if missing.len() == benchmark_config.no_steps as usize {
+            if missing.len() == benchmark_config.points.len() as usize {
                 return Err(PlotError::MissingBenchmark {
                     commit_hash: commit_hash.as_str().to_owned(),
                     benchmark: benchmark_config.name.clone(),

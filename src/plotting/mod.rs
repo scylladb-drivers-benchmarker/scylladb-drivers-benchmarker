@@ -14,7 +14,7 @@ use plots::{FlamegraphPlot, PerfStatPlot, SeriesPlot};
 use plotters::backend::{BitMapBackend, SVGBackend};
 
 use crate::commit_hash::CommitHash;
-use crate::config::benchmark::BenchmarkConfig;
+use crate::config::benchmark::{BenchmarkConfig, BenchmarkData};
 use crate::database::Database;
 use crate::measurement::MeasurementMethod;
 use crate::perf_stat::PerfStatData;
@@ -69,7 +69,7 @@ pub(crate) fn plot_on_backend(plot: impl Plot, output: &str) -> Result<(), PlotE
 pub fn plot(
     plot_settings: PlotSettings,
     database: &Database,
-    benchmark_config: BenchmarkConfig,
+    benchmark_config: BenchmarkData,
     commit_hashes: impl Iterator<Item = CommitHash>,
     names: &[String],
 ) -> Result<(), PlotError> {

@@ -2,6 +2,7 @@ use fs::OpenOptions;
 use fs_err as fs;
 use tempfile::NamedTempFile;
 
+use crate::config::benchmark::BenchmarkData;
 use crate::database::utilities::{BenchmarkFilters, BenchmarkParams, BenchmarkRecord};
 use crate::measurement::MeasurementMethod;
 use crate::plotting::core::BenchmarkDataset;
@@ -14,7 +15,7 @@ use crate::{CommitHash, Database, config};
 fn insert_bench(
     db: &Database,
     hash: &CommitHash,
-    conf: &BenchmarkConfig,
+    conf: &BenchmarkData,
     step: BenchmarkPoint,
     val: &str,
 ) {
@@ -29,7 +30,7 @@ struct TestSetup {
     db: Database,
     file: NamedTempFile,
     path: std::path::PathBuf,
-    configs: Vec<BenchmarkConfig>,
+    configs: Vec<BenchmarkData>,
     hashes: Vec<CommitHash>,
     measure: MeasurementMethod,
 }
@@ -41,20 +42,14 @@ fn init_db() -> TestSetup {
     let db = Database::new(&path).unwrap();
 
     let configs = vec![
-        BenchmarkConfig {
+        BenchmarkData {
             name: "benchmark1".to_owned(),
-            starting_step: 1,
-            no_steps: 3,
-            step_progress: 1,
-            progress_type: config::benchmark::ProgressType::Additive,
+            points: vec![1, 2, 3],
             timeout: None,
         },
-        BenchmarkConfig {
+        BenchmarkData {
             name: "benchmark2".to_owned(),
-            starting_step: 10,
-            no_steps: 1,
-            step_progress: 1,
-            progress_type: config::benchmark::ProgressType::Additive,
+            points: vec![10],
             timeout: None,
         },
     ];
@@ -188,12 +183,9 @@ fn extract_perfstat_dataset() {
         (Database::new(&path).unwrap(), file)
     };
 
-    let config = BenchmarkConfig {
+    let config = BenchmarkData {
         name: "benchmark_perf".to_owned(),
-        starting_step: 1,
-        no_steps: 2,
-        step_progress: 1,
-        progress_type: config::benchmark::ProgressType::Additive,
+        points: vec![1, 2],
         timeout: None,
     };
 

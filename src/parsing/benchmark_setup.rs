@@ -19,20 +19,14 @@ impl BenchmarkSetup {
     pub fn into_config(self, name: &str) -> Result<BenchmarkData, ConfigError> {
         match self {
             BenchmarkSetup::Path(path) => Ok(find_config::<BenchmarkConfig>(name, &path)?.into()),
-            BenchmarkSetup::Points(points) => Ok(BenchmarkData {
-                name: name.to_owned(),
-                points,
-                timeout: None,
-            }),
-        }
-    }
-
-    pub fn into_points(self, name: &str) -> Result<Vec<BenchmarkPoint>, ConfigError> {
-        match self {
-            BenchmarkSetup::Path(path) => Ok(find_config::<BenchmarkConfig>(name, &path)?
-                .benchmark_points()
-                .collect()),
-            BenchmarkSetup::Points(points) => Ok(points),
+            BenchmarkSetup::Points(mut points) => {
+                points.sort();
+                Ok(BenchmarkData {
+                    name: name.to_owned(),
+                    points,
+                    timeout: None,
+                })
+            }
         }
     }
 }
