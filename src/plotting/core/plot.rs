@@ -70,13 +70,13 @@ pub trait BackendWithKind {
     fn kind(&self) -> BackendKind;
 }
 
-impl<'a> BackendWithKind for BitMapBackend<'a> {
+impl BackendWithKind for BitMapBackend<'_> {
     fn kind(&self) -> BackendKind {
         BackendKind::Bitmap
     }
 }
 
-impl<'a> BackendWithKind for SVGBackend<'a> {
+impl BackendWithKind for SVGBackend<'_> {
     fn kind(&self) -> BackendKind {
         BackendKind::Svg
     }

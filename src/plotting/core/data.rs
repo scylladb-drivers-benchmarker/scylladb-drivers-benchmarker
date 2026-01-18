@@ -61,7 +61,7 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         for point in benchmark_config.benchmark_points() {
             let params = builder.finalize(point);
 
-            match database.get_result(params)?.map(|r| r.flatten()) {
+            match database.get_result(params)?.map(crate::database::utilities::BenchmarkRecord::flatten) {
                 Some(Ok(FlatBenchmarkRecord::Data(text))) => {
                     let value =
                         T::from_str(&text).map_err(|_| PlotError::InvalidData(text.clone()))?;
@@ -80,14 +80,13 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
                     benchmark: benchmark_config.name.clone(),
                     measurement_method: measurement_method.to_string(),
                 });
-            } else {
-                return Err(PlotError::MissingRecords {
-                    commit_hash: commit_hash.as_str().to_owned(),
-                    benchmark: benchmark_config.name.clone(),
-                    points: missing,
-                    measurement_method: measurement_method.to_string(),
-                });
             }
+            return Err(PlotError::MissingRecords {
+                commit_hash: commit_hash.as_str().to_owned(),
+                benchmark: benchmark_config.name.clone(),
+                points: missing,
+                measurement_method: measurement_method.to_string(),
+            });
         }
 
         Ok(results)

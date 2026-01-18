@@ -20,7 +20,7 @@ impl fmt::Display for Command {
         write!(f, "{}", self.program)?;
 
         for arg in &self.arguments {
-            write!(f, " {}", arg)?;
+            write!(f, " {arg}")?;
         }
 
         Ok(())
@@ -82,6 +82,7 @@ impl Command {
         }
     }
 
+    #[must_use] 
     pub fn with_arg(mut self, argument: String) -> Self {
         self.add_arg(argument);
         self
@@ -96,19 +97,23 @@ impl Command {
         self
     }
 
+    #[must_use] 
     pub fn with_cmd_arg(self, argument: Command) -> Self {
         self.with_arg(argument.program)
             .with_args(argument.arguments.into_iter())
     }
 
+    #[must_use] 
     pub fn program(&self) -> &str {
         self.program.as_str()
     }
 
+    #[must_use] 
     pub fn args(&self) -> &[String] {
         &self.arguments
     }
 
+    #[must_use] 
     pub fn process(self) -> std::process::Command {
         let mut command = std::process::Command::new(self.program());
         command.args(self.arguments);

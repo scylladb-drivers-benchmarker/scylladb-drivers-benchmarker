@@ -17,6 +17,7 @@ impl Display for CommitHash {
 }
 
 impl CommitHash {
+    #[must_use] 
     pub fn new_unchecked(value: String) -> Self {
         CommitHash(value)
     }
@@ -61,14 +62,15 @@ impl CommitHash {
         let mut value = String::from_utf8(output.stdout)?;
         value.pop(); // Remove endl
 
-        if !Self::validate(&value) {
+        if Self::validate(&value) {
+            Ok(CommitHash(value))
+        } else {
             // basic validation
             Err(ErrorSource::InvalidHash { hash: value })
-        } else {
-            Ok(CommitHash(value))
         }
     }
 
+    #[must_use] 
     pub fn as_str(&self) -> &str {
         self.0.as_str()
     }

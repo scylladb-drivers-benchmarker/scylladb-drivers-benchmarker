@@ -61,8 +61,7 @@ impl MeasuringEquipment for CommandExecutor {
             .with_arg(point.to_string())
             .process()
             .output_with_timeout(timeout)?
-            .map(Self::handle_output)
-            .unwrap_or(Ok(BenchmarkRecord::Timeout))
+            .map_or(Ok(BenchmarkRecord::Timeout), Self::handle_output)
     }
 }
 

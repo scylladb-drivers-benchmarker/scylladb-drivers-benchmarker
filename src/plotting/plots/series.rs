@@ -80,7 +80,7 @@ impl Plot for SeriesPlot {
             .and_then(|r| r.points.last())
             .unwrap_or(&1);
         let (y_min, y_max) =
-            calc_min_max(self.results.iter().filter_map(|r| r.range())).unwrap_or((0.0, 1.0));
+            calc_min_max(self.results.iter().filter_map(super::super::core::render::RenderableSeries::range)).unwrap_or((0.0, 1.0));
 
         let log_text = match self.visualization_kind {
             VisKind::Log => " (log scale)",

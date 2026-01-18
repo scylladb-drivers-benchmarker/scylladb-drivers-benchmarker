@@ -65,8 +65,8 @@ impl RenderableSeries {
         range: Option<(f64, f64)>,
     ) -> Self {
         RenderableSeries {
-            name,
             points,
+            name,
             series,
             color,
             range,
@@ -104,16 +104,13 @@ where
         let mut line_points: Vec<(BenchmarkPoint, f64)> = Vec::new();
 
         for (&x, y_opt) in self.points.iter().zip(self.series.iter()) {
-            match y_opt {
-                Some(y) => line_points.push((x, *y)),
-                None => {
-                    line_points.push((x, y_max));
-                    chart.draw_series(std::iter::once(Cross::new(
-                        (x, y_max),
-                        CROSS_SIZE,
-                        color,
-                    )))?;
-                }
+            if let Some(y) = y_opt { line_points.push((x, *y)) } else {
+                line_points.push((x, y_max));
+                chart.draw_series(std::iter::once(Cross::new(
+                    (x, y_max),
+                    CROSS_SIZE,
+                    color,
+                )))?;
             }
         }
 
@@ -137,10 +134,10 @@ impl RenderablePerfStat {
         ranges: Vec<Option<(f64, f64)>>,
     ) -> Self {
         RenderablePerfStat {
-            name,
             points,
-            values,
             color,
+            name,
+            values,
             ranges,
         }
     }
@@ -182,16 +179,13 @@ where
             let mut line_points: Vec<(BenchmarkPoint, f64)> = Vec::new();
 
             for (&x, y_opt) in self.points.iter().zip(self.values[id].iter()) {
-                match y_opt {
-                    Some(y) => line_points.push((x, *y)),
-                    None => {
-                        line_points.push((x, y_max));
-                        chart.draw_series(std::iter::once(Cross::new(
-                            (x, y_max),
-                            CROSS_SIZE,
-                            color,
-                        )))?;
-                    }
+                if let Some(y) = y_opt { line_points.push((x, *y)) } else {
+                    line_points.push((x, y_max));
+                    chart.draw_series(std::iter::once(Cross::new(
+                        (x, y_max),
+                        CROSS_SIZE,
+                        color,
+                    )))?;
                 }
             }
 
@@ -255,9 +249,8 @@ where
             let escaped = encode_safe(flame_svg.as_str());
 
             let iframe = format!(
-                r#"<iframe srcdoc='&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;body&gt;{}&lt;&#47;body&gt;&lt;&#47;html&gt;'
-                style="width:100%; aspect-ratio:{}/{}; border:none"></iframe>"#,
-                escaped, captured_width, captured_height
+                r#"<iframe srcdoc='&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;body&gt;{escaped}&lt;&#47;body&gt;&lt;&#47;html&gt;'
+                style="width:100%; aspect-ratio:{captured_width}/{captured_height}; border:none"></iframe>"#
             );
 
             let mut file = OpenOptions::new().append(true).open(&self.output)?;

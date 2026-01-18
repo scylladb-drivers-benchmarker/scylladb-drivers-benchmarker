@@ -29,7 +29,7 @@ impl FromStr for FlameFrequency {
 impl Display for FlameFrequency {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Number(number) => write!(f, "{}", number),
+            Self::Number(number) => write!(f, "{number}"),
             Self::Max => write!(f, "max"),
         }
     }

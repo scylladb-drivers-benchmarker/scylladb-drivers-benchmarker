@@ -38,7 +38,7 @@ pub struct DropDatabaseParams {
 }
 
 fn print_error<T>(err: impl std::error::Error) -> T {
-    eprintln!("{}", err);
+    eprintln!("{err}");
     std::process::exit(1);
 }
 
@@ -76,11 +76,11 @@ fn main() {
         .unwrap_or_else(print_error),
         crate::parsing::Subcommands::PrintDatabase(PrintDatabaseParams { filters }) => {
             scylladb_drivers_benchmarker::print_database(&input.database, filters)
-                .unwrap_or_else(print_error)
+                .unwrap_or_else(print_error);
         }
         crate::parsing::Subcommands::DropDatabase(DropDatabaseParams { filters }) => {
             scylladb_drivers_benchmarker::drop_database(&input.database, filters)
-                .unwrap_or_else(print_error)
+                .unwrap_or_else(print_error);
         }
     }
 }

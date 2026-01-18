@@ -82,7 +82,7 @@ pub fn drop_database(database: &Database, filters: BenchmarkFilters) -> Result<(
 
 pub fn print_database(database: &Database, filters: BenchmarkFilters) -> Result<(), DatabaseError> {
     let results = database.get_data(&filters)?;
-    for (params, result) in results.into_iter() {
+    for (params, result) in results {
         print!("{}", format_entry(&params, &result));
     }
     Ok(())

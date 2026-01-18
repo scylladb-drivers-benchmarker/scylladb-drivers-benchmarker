@@ -55,9 +55,8 @@ impl<T: SeriesValue> LogSeries<T> {
                     let f = (*v).clone().into();
                     if f <= 0.0 {
                         return Err(PlotError::InvalidLogValue(f));
-                    } else {
-                        result.push(Some(f.log10()));
                     }
+                    result.push(Some(f.log10()));
                 }
                 None => result.push(None),
             }

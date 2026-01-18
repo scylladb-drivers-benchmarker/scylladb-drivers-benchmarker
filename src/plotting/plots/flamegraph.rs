@@ -50,16 +50,15 @@ impl FlamegraphPlot {
 
         if !output.status.success() {
             return Err(PlotError::Internal(format!(
-                "flamegraph.pl failed on {} data point {}",
-                name, point
+                "flamegraph.pl failed on {name} data point {point}"
             )));
         }
 
-        let mut stdout_str = String::from_utf8(output.stdout.to_vec())
+        let mut stdout_str = String::from_utf8(output.stdout.clone())
             .map_err(|_| PlotError::Internal("stdout UTF-8 parsing failed".into()))?;
 
         stdout_str =
-            stdout_str.replace(">Flame Graph<", format!(">{} at {}<", name, point).as_str());
+            stdout_str.replace(">Flame Graph<", format!(">{name} at {point}<").as_str());
 
         fs::write(artifact.path(), &stdout_str)?;
         Ok(())
@@ -83,7 +82,7 @@ impl FlamegraphPlot {
                     Some(point_data) => {
                         let artifact = if let Some(dir) = &artifacts_dir {
                             let path =
-                                dir.join(format!("{}_{}_{}.svg", benchmark_name, name, point));
+                                dir.join(format!("{benchmark_name}_{name}_{point}.svg"));
                             ArtifactFile::from_path(path)?
                         } else {
                             ArtifactFile::temp()
@@ -153,7 +152,7 @@ impl Plot for FlamegraphPlot {
 
         let mut file = OpenOptions::new().append(true).open(&self.output)?;
 
-        let footer = r#"</body></html>"#;
+        let footer = r"</body></html>";
         writeln!(file, "{footer}")?;
 
         Ok(())

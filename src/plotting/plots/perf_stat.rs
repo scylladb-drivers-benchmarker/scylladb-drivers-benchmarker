@@ -64,8 +64,7 @@ impl PerfStatPlot {
 
                 if !any_data {
                     return Err(PlotError::InvalidData(format!(
-                        "Event '{}' not found in dataset",
-                        event_name
+                        "Event '{event_name}' not found in dataset"
                     )));
                 }
             }
@@ -117,10 +116,9 @@ impl PerfStatPlot {
         for event in &events {
             match unit.get(event) {
                 Some(Ok(u)) => units_per_event.push(u.clone()),
-                Some(Err(_)) => {
+                Some(Err(())) => {
                     return Err(PlotError::InvalidData(format!(
-                        "different units for event {}",
-                        event
+                        "different units for event {event}"
                     )));
                 }
                 None => {
@@ -161,7 +159,7 @@ impl PerfStatPlot {
             .unwrap_or(50);
 
         // So we scale it in this terrible, hacky, heuristic way
-        let text_width = max_label_width as f64 * scale_factor;
+        let text_width = f64::from(max_label_width) * scale_factor;
 
         let entry_height = Self::LEGEND_MARKER_HEIGHT.max(Self::LEGEND_CHAR_HEIGHT);
 

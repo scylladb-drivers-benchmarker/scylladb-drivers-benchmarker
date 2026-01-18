@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use sqlite::{Connection, State, Statement};
 
 use crate::CommitHash;
-use crate::database::utilities::*;
+use crate::database::utilities::{BenchmarkParams, BenchmarkFilters, BenchmarkRecord};
 
 pub struct Database {
     connection: Connection,
@@ -57,15 +57,15 @@ impl Database {
         }
         if found != expected {
             return Err(DatabaseError::WrongTableExists(
-                format!("{:?}", expected),
-                format!("{:?}", found),
+                format!("{expected:?}"),
+                format!("{found:?}"),
             ));
         }
         Ok(())
     }
 
-    fn bind_params<'stmt>(
-        stmt: &mut Statement<'stmt>,
+    fn bind_params(
+        stmt: &mut Statement<'_>,
         params: BenchmarkParams,
     ) -> Result<(), DatabaseError> {
         stmt.bind((1, params.commit_hash.as_str()))?;
@@ -76,7 +76,7 @@ impl Database {
     }
 
     /// Returns WHERE clause:
-    /// "WHERE commit_hash IN (...) AND benchmark_name IN (...) ..."
+    /// "WHERE `commit_hash` IN (...) AND `benchmark_name` IN (...) ..."
     /// or empty string if no filters.
     fn data_filtration(&self, filters: &BenchmarkFilters) -> String {
         // Helper function to build in clause for one column.
@@ -116,7 +116,7 @@ impl Database {
         .collect();
 
         if clauses.is_empty() {
-            "".to_owned()
+            String::new()
         } else {
             format!("WHERE {}", clauses.join(" AND "))
         }
@@ -206,7 +206,7 @@ impl Database {
     }
 
     /// Drops data matching filters from database.
-    /// If any of the dropped records is FilePath, also removes the file.
+    /// If any of the dropped records is `FilePath`, also removes the file.
     pub fn drop_data(&self, filters: &BenchmarkFilters) -> Result<(), DatabaseError> {
         let to_be_dropped = self.get_data(filters)?;
         for (_, record) in to_be_dropped {
@@ -224,7 +224,7 @@ impl Database {
     }
 
     /// Drops all data from database.
-    /// If any of the dropped records is FilePath, also removes the file.
+    /// If any of the dropped records is `FilePath`, also removes the file.
     pub fn drop_all_data(&self) -> Result<(), DatabaseError> {
         self.drop_data(&BenchmarkFilters::all())
     }

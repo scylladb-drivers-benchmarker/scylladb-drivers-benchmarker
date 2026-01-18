@@ -44,6 +44,7 @@ impl FromStr for PerfStatData {
 }
 
 impl PerfStatData {
+    #[must_use] 
     pub fn filter_value(&self, event_name: &str) -> Option<&PerfEvent> {
         self.events.iter().find(|e| e.event == event_name)
     }

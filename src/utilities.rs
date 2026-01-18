@@ -8,7 +8,7 @@ use crate::database::utilities::{BenchmarkParams, BenchmarkRecord};
 pub type BenchmarkPoint = u64;
 pub type RangedCoordBenchmarkPoint = RangedCoordu64;
 
-/// Often BenchmarkParams params differ only by benchmarkPoint.
+/// Often `BenchmarkParams` params differ only by benchmarkPoint.
 /// This struct makes it easier to create them.
 pub struct BenchmarkParamsBuilder {
     pub commit_hash: CommitHash,
@@ -17,6 +17,7 @@ pub struct BenchmarkParamsBuilder {
 }
 
 impl BenchmarkParamsBuilder {
+    #[must_use] 
     pub fn new(
         commit_hash: CommitHash,
         benchmark_name: String,
@@ -29,6 +30,7 @@ impl BenchmarkParamsBuilder {
         }
     }
 
+    #[must_use] 
     pub fn finalize(&self, benchmark_point: BenchmarkPoint) -> BenchmarkParams {
         BenchmarkParams::new(
             self.commit_hash.clone(),
@@ -63,6 +65,7 @@ pub enum BenchmarkMode {
     ForceRerun,
 }
 
+#[must_use] 
 pub fn format_entry(params: &BenchmarkParams, record: &BenchmarkRecord) -> String {
     let mut out = String::new();
 
@@ -81,11 +84,11 @@ pub fn format_entry(params: &BenchmarkParams, record: &BenchmarkRecord) -> Strin
     match record {
         BenchmarkRecord::Data(s) => {
             out.push_str("Record Type:         Data\n");
-            out.push_str(&format!("Data Content:        {:?}\n", s));
+            out.push_str(&format!("Data Content:        {s:?}\n"));
         }
         BenchmarkRecord::FilePath(path) => {
             out.push_str("Record Type:         FilePath\n");
-            out.push_str(&format!("Data Content:        {:?}\n", path));
+            out.push_str(&format!("Data Content:        {path:?}\n"));
         }
         BenchmarkRecord::Timeout => {
             out.push_str("Record Type:         Timeout\n");

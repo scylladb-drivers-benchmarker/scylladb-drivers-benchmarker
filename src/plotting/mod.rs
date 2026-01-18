@@ -57,6 +57,7 @@ pub struct PlotSettings {
 }
 
 impl PlotSettings {
+    #[must_use] 
     pub fn new(plot_kind: PlotKind, output: String) -> Self {
         PlotSettings { plot_kind, output }
     }
