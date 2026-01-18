@@ -1,0 +1,6 @@
+backends:
+  - name: sleeper
+    benchmark-name: utility
+    build-command: sleep 0
+    run-command: sleep
+

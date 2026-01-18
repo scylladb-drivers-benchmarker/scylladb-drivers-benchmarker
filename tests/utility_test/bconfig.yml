@@ -1,0 +1,7 @@
+benchmarks:
+  - name: utility
+    starting-step: 100
+    no-steps: 10
+    step-progress: 1000
+    progress-type: additive
+    timeout: "100ms"
