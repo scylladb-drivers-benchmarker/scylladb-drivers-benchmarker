@@ -171,7 +171,6 @@ fn flame_graph() {
     }
 }
 
-#[file_serial]
 #[test]
 fn utility_test() {
     let path = Path::new(file!())
