@@ -103,7 +103,6 @@ benchmarks:
 ### Example backend configuration file
 
 ```YAML
-
 backends:
   - name: regex-cpp
     benchmark-name: regex
@@ -114,6 +113,23 @@ backends:
     build-command: make dictionary
     run-command: ./dictionary
 ```
+
+Additionally one may specify the aliasing config to ease the usage of the application, by naming the paths to the global resources used by the benchmarker. Each of them can of course be overwritten by passing a matching command line argument.
+
+The path to the aliasing config should be available in an environment variable named `SDB_CONFIG`. This makes it possible to set the configuration once, permanently.
+
+### Example of a full aliasing config
+
+```YAML
+db-path: ~/sdb/db
+repo-path:
+  rust: ~/.../scylla-db-rust
+  nodejs: ~/.../nodejs-rs-driver
+flame-path: ~/FlameGraph/
+store-dir: ~/sdb/store/
+benchmark-config: ~/sdb/bench.yml
+```
+
 
 ## In-depth CLI
 
