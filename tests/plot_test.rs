@@ -12,7 +12,7 @@ use scylladb_drivers_benchmarker::database::{self};
 use scylladb_drivers_benchmarker::utilities::BenchmarkPoint;
 use tempfile::{Builder, NamedTempFile, TempDir};
 use utilities::image_compare::check_files_equality;
-use utilities::run_utilities::{print_flamegraph_information, run, run_no_output, sdb_command};
+use utilities::run_utilities::{print_flame_graph_information, run, run_no_output, sdb_command};
 
 fn init_git_repo(path: &Path, num_commits: usize) -> Vec<CommitHash> {
     if !path.join(".git").exists() {
@@ -193,8 +193,8 @@ fn plot_perf() {
 }
 
 #[test]
-fn plot_flamegraph() {
-    print_flamegraph_information(Path::new("./tests/plot_test/flame-path.yml"));
+fn plot_flame_graph() {
+    print_flame_graph_information(Path::new("./tests/plot_test/flame-path.yml"));
 
     let test_data = setup_initial_data(5, generate_flame_data);
 
@@ -213,7 +213,7 @@ fn plot_flamegraph() {
         &build_from_arg(&test_data.repo_dir, test_data.repo_hashes),
         "-o",
         output,
-        "flamegraph",
+        "flame-graph",
     ]));
 
     assert!(fs::exists(output).unwrap());
@@ -306,7 +306,7 @@ fn generate_flame_data(
         commit.clone(),
         "flame-bench".to_owned(),
         point,
-        "flamegraph".to_owned(),
+        "flame-graph".to_owned(),
     );
 
     let idx = CALL_COUNT.fetch_add(1, Ordering::Relaxed) % INPUTS.len();

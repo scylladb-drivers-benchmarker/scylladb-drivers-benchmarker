@@ -10,7 +10,7 @@ use core::{BenchmarkDataset, NullBackend, Plot};
 use std::path::PathBuf;
 
 use error::PlotError;
-use plots::{FlamegraphPlot, PerfStatPlot, SeriesPlot};
+use plots::{FlameGraphPlot, PerfStatPlot, SeriesPlot};
 use plotters::backend::{BitMapBackend, SVGBackend};
 
 use crate::commit_hash::CommitHash;
@@ -30,7 +30,7 @@ pub enum PlotKind {
         visualization_kind: VisKind,
     },
 
-    Flamegraph {
+    FlameGraph {
         artifacts_dir: Option<PathBuf>,
         flame_repo: PathBuf,
     },
@@ -95,7 +95,7 @@ pub fn plot(
             plot_on_backend(plot, &plot_settings.output)
         }
 
-        PlotKind::Flamegraph {
+        PlotKind::FlameGraph {
             artifacts_dir,
             flame_repo,
         } => {
@@ -103,10 +103,10 @@ pub fn plot(
                 database,
                 &benchmark_config,
                 commit_hashes,
-                &MeasurementMethod::Flamegraph,
+                &MeasurementMethod::FlameGraph,
             )?;
 
-            let plot = FlamegraphPlot::from_dataset(
+            let plot = FlameGraphPlot::from_dataset(
                 dataset,
                 benchmark_config.name,
                 names,

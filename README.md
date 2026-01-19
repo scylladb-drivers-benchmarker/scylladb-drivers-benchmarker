@@ -62,6 +62,7 @@ There are two special measuring methods that get treated differently:
 
 - `time` - measures the elapsed real time
 - `perf` - captures events given by `perf-stat` (architecture dependant)
+- `flame-graph` - captures and stack-folds the data to be plotted as a flame graph
 
 ### Plotting options
 

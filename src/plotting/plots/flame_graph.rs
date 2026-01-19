@@ -5,20 +5,20 @@ use std::process::{Command, Stdio};
 use fs_err as fs;
 
 use crate::plotting::core::{
-    ArtifactFile, BackendWithKind, BenchmarkDataset, Plot, Renderable, RenderableFlamegraph,
+    ArtifactFile, BackendWithKind, BenchmarkDataset, Plot, Renderable, RenderableFlameGraph,
 };
 use crate::plotting::{IMAGE_WIDTH, PlotError};
 use crate::utilities::BenchmarkPoint;
 
-pub struct FlamegraphPlot {
+pub struct FlameGraphPlot {
     benchmark_name: String,
-    results: Vec<RenderableFlamegraph>,
+    results: Vec<RenderableFlameGraph>,
     output: PathBuf,
 }
 
-impl FlamegraphPlot {
-    fn new(benchmark_name: String, results: Vec<RenderableFlamegraph>, output: PathBuf) -> Self {
-        FlamegraphPlot {
+impl FlameGraphPlot {
+    fn new(benchmark_name: String, results: Vec<RenderableFlameGraph>, output: PathBuf) -> Self {
+        FlameGraphPlot {
             benchmark_name,
             results,
             output,
@@ -85,7 +85,7 @@ impl FlamegraphPlot {
                             ArtifactFile::temp()
                         };
 
-                        FlamegraphPlot::populate_artifact(
+                        FlameGraphPlot::populate_artifact(
                             &artifact,
                             point_data,
                             &flame_repo,
@@ -106,14 +106,14 @@ impl FlamegraphPlot {
                 .map(|(folded_data, point)| make_artifact(folded_data.as_ref(), *point))
                 .collect::<Result<_, PlotError>>()?;
 
-            results.push(RenderableFlamegraph::new(output.clone(), artifacts));
+            results.push(RenderableFlameGraph::new(output.clone(), artifacts));
         }
 
-        Ok(FlamegraphPlot::new(benchmark_name, results, output))
+        Ok(FlameGraphPlot::new(benchmark_name, results, output))
     }
 }
 
-impl Plot for FlamegraphPlot {
+impl Plot for FlameGraphPlot {
     fn plot<DB: plotters_backend::DrawingBackend + BackendWithKind>(
         &self,
         _: DB,
@@ -144,7 +144,7 @@ impl Plot for FlamegraphPlot {
         }
 
         for renderable in &self.results {
-            <RenderableFlamegraph as Renderable<'_, DB>>::add_to_plot(renderable, &mut [])?;
+            <RenderableFlameGraph as Renderable<'_, DB>>::add_to_plot(renderable, &mut [])?;
         }
 
         let mut file = fs::OpenOptions::new().append(true).open(&self.output)?;
@@ -156,6 +156,6 @@ impl Plot for FlamegraphPlot {
     }
 
     fn name(&self) -> &'static str {
-        "flamegraph plot"
+        "flame-graph plot"
     }
 }

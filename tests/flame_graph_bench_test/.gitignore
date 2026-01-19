@@ -1,4 +1,4 @@
 *.o
 main
 flame-path.yml
-flamegraph/*
+flame-graph/*

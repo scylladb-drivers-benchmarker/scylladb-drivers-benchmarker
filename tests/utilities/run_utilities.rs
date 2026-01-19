@@ -37,7 +37,7 @@ pub fn run_safe(cmd: &mut std::process::Command, verifier: impl Fn(&Output) -> b
     output
 }
 
-pub fn print_flamegraph_information(flame_config_path: &std::path::Path) {
+pub fn print_flame_graph_information(flame_config_path: &std::path::Path) {
     println!("This test requires manual setup.");
     println!(
         "Make sure you specified the path to the FlameGraph repository in {},\

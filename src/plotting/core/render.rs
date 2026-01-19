@@ -50,7 +50,7 @@ pub struct RenderablePerfStat {
     ranges: Vec<Option<(f64, f64)>>,
 }
 
-pub struct RenderableFlamegraph {
+pub struct RenderableFlameGraph {
     output: PathBuf,
     artifacts: Vec<ArtifactFile>,
 }
@@ -200,13 +200,13 @@ where
     }
 }
 
-impl RenderableFlamegraph {
+impl RenderableFlameGraph {
     pub fn new(output: PathBuf, artifacts: Vec<ArtifactFile>) -> Self {
-        RenderableFlamegraph { output, artifacts }
+        RenderableFlameGraph { output, artifacts }
     }
 }
 
-impl<'a, DB> Renderable<'a, DB> for RenderableFlamegraph
+impl<'a, DB> Renderable<'a, DB> for RenderableFlameGraph
 where
     DB: DrawingBackend + 'a,
     <DB as DrawingBackend>::ErrorType: 'static,

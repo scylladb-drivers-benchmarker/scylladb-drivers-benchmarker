@@ -68,8 +68,8 @@ pub enum InputPlotKind {
         visualization_kind: InputVisKind,
     },
 
-    /// Generate a flamegraph plot
-    Flamegraph {
+    /// Generate a flame-graph plot
+    FlameGraph {
         #[arg(short, long, value_name = "DIR")]
         artifacts_dir: Option<PathBuf>,
 
@@ -110,14 +110,14 @@ impl InputPlotKind {
                 measurement_method,
                 visualization_kind: visualization_kind.finalize(),
             }),
-            InputPlotKind::Flamegraph {
+            InputPlotKind::FlameGraph {
                 artifacts_dir,
                 flame_repo,
-            } => Ok(PlotKind::Flamegraph {
+            } => Ok(PlotKind::FlameGraph {
                 artifacts_dir,
                 flame_repo: flame_repo
                     .or(aliasing_config.flame_path)
-                    .ok_or(ParsingError::NoFlamegraphRepository)?,
+                    .ok_or(ParsingError::NoFlameGraphRepository)?,
             }),
             InputPlotKind::PerfStat { events } => Ok(PlotKind::PerfStat { events }),
         }

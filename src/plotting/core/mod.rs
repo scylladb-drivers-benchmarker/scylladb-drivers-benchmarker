@@ -9,5 +9,5 @@ pub use plot::{
     LEGEND_BORDER_COLOR, LEGEND_BORDER_SIZE, MARGIN_SIZE, NullBackend, Plot, TITLE_FONT,
     X_LABEL_AREA_SIZE, Y_LABEL_AREA_SIZE,
 };
-pub use render::{Renderable, RenderableFlamegraph, RenderablePerfStat, RenderableSeries};
+pub use render::{Renderable, RenderableFlameGraph, RenderablePerfStat, RenderableSeries};
 pub use series::{LinearSeries, LogSeries, SeriesValue, ValueTransformation, VisKind};

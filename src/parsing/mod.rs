@@ -68,8 +68,8 @@ pub enum ParsingError {
     StoreDirNotADir,
     #[error(desc = "Benchmark configuration not found")]
     NoBenchmarkConfiguration,
-    #[error(desc = "Flamegraph repository path not provided")]
-    NoFlamegraphRepository,
+    #[error(desc = "Flame graph repository path not provided")]
+    NoFlameGraphRepository,
 }
 
 impl App {

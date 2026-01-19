@@ -7,7 +7,7 @@ use crate::command::{self, CommandParsingError};
 pub enum MeasurementMethod {
     Time,
     Perf,
-    Flamegraph,
+    FlameGraph,
     Command(command::Command),
 }
 
@@ -15,14 +15,14 @@ pub enum MeasurementMethod {
 pub enum MeasurementMethodParsingError {
     #[error(desc = "measuring method, not one of default, and not a command")]
     ParsingFailed(#[from] CommandParsingError),
-    #[error(desc = "given flamegraph path is not a directory")]
-    FlamegraphNotInADirectory(String),
+    #[error(desc = "given flame-graph path is not a directory")]
+    FlameGraphNotInADirectory(String),
 }
 
 impl Display for MeasurementMethod {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            MeasurementMethod::Flamegraph => write!(f, "flamegraph"),
+            MeasurementMethod::FlameGraph => write!(f, "flame-graph"),
             MeasurementMethod::Perf => write!(f, "perf"),
             MeasurementMethod::Time => write!(f, "time"),
             MeasurementMethod::Command(command) => write!(f, "{command}"),
@@ -36,7 +36,7 @@ impl FromStr for MeasurementMethod {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "perf" => Ok(MeasurementMethod::Perf),
-            "flamegraph" => Ok(MeasurementMethod::Flamegraph),
+            "flame-graph" => Ok(MeasurementMethod::FlameGraph),
             "time" => Ok(MeasurementMethod::Time),
             value => Ok(MeasurementMethod::Command(value.parse()?)),
         }

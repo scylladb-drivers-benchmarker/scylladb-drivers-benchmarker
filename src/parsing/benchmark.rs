@@ -28,7 +28,7 @@ impl FlameOptions {
             self.store_dir
                 .or(aliasing_config.store_dir)
                 .ok_or(ParsingError::NoStoreDir {
-                    needed_by: MeasurementMethod::Flamegraph,
+                    needed_by: MeasurementMethod::FlameGraph,
                 })?;
 
         if !store_dir.is_absolute() {

@@ -12,7 +12,7 @@ use utilities::run_utilities::{run, run_safe, sdb_command};
 
 use crate::utilities::db_utils::open_clean_db;
 use crate::utilities::git_utils::setup_git;
-use crate::utilities::run_utilities::print_flamegraph_information;
+use crate::utilities::run_utilities::print_flame_graph_information;
 
 mod utilities;
 
@@ -118,12 +118,12 @@ fn aliasing_db() {
 
 #[test]
 fn flame_graph() {
-    let test_dir = Path::new("./tests/flamegraph_bench_test/");
+    let test_dir = Path::new("./tests/flame_graph_bench_test/");
     let benchmark_name = "recurse";
     let config_name = Path::new("flame-path.yml");
     let db = open_clean_db(&test_dir.join("test.db"));
 
-    print_flamegraph_information(&test_dir.join(config_name));
+    print_flame_graph_information(&test_dir.join(config_name));
 
     run(sdb_command()
         .args([
@@ -146,7 +146,7 @@ fn flame_graph() {
     let param_builder = BenchmarkParamsBuilder::new(
         CommitHash::new(test_dir, "HEAD".to_owned()).unwrap(),
         benchmark_name.to_owned(),
-        "flamegraph".to_owned(),
+        "flame-graph".to_owned(),
     );
 
     let all_data = db.get_all_data().unwrap();

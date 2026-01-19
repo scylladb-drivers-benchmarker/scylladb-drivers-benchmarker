@@ -35,7 +35,7 @@ impl From<BenchMeasure> for MeasurementMethod {
         match value {
             BenchMeasure::Time => MeasurementMethod::Time,
             BenchMeasure::PerfStat => MeasurementMethod::Perf,
-            BenchMeasure::FlameGraph { .. } => MeasurementMethod::Flamegraph,
+            BenchMeasure::FlameGraph { .. } => MeasurementMethod::FlameGraph,
             BenchMeasure::Command(command) => MeasurementMethod::Command(command),
         }
     }
