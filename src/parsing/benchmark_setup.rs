@@ -120,7 +120,7 @@ mod test {
         });
 
         let aconfig = AliasingConfig {
-            dp_path: None,
+            db_path: None,
             repo_path: HashMap::new(),
             flame_path: None,
             store_dir: None,

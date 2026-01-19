@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct AliasingConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub dp_path: Option<PathBuf>,
+    pub db_path: Option<PathBuf>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub repo_path: HashMap<String, PathBuf>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

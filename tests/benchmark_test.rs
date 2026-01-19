@@ -106,6 +106,7 @@ fn aliasing_db() {
         .write_all(format!("dp-path: {dp_path:?}\n").as_bytes())
         .unwrap();
     let mut command = sdb_command();
+
     command
         .env("SDB_CONFIG", config_path)
         .arg("run")
@@ -170,6 +171,7 @@ fn flame_graph() {
     }
 }
 
+#[file_serial]
 #[test]
 fn utility_test() {
     let path = Path::new(file!())
