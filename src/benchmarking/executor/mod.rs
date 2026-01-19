@@ -23,7 +23,7 @@ mod flame_executor;
 /// This is a token proving that the code being executed was compiled earlier.
 /// Getting this from outside of this module happens only by invoking `build_source`.
 #[must_use]
-pub struct BuiltSource(());
+pub(crate) struct BuiltSource(());
 
 impl BuiltSource {
     fn new_unchecked() -> Self {
@@ -40,7 +40,7 @@ pub enum CompileError {
 
 /// Builds the source code, using the provided command.
 /// This is the only way to receive `BuiltSource` from outside.
-pub fn build_source(build_command: &str) -> Result<BuiltSource, CompileError> {
+pub(crate) fn build_source(build_command: &str) -> Result<BuiltSource, CompileError> {
     let command = Command::from_str(build_command)?;
     let mut command = command.process();
 
@@ -53,7 +53,7 @@ pub fn build_source(build_command: &str) -> Result<BuiltSource, CompileError> {
 }
 
 /// The executor collects data according to its internals (time, perf, ...)
-pub trait MeasuringEquipment {
+pub(crate) trait MeasuringEquipment {
     type MeasurementError: Error + 'static;
 
     fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, Self::MeasurementError>;
@@ -64,13 +64,13 @@ pub trait MeasuringEquipment {
     ) -> Result<BenchmarkRecord, Self::MeasurementError>;
 }
 
-pub trait Callback {
+pub(crate) trait Callback {
     type ReturnType;
 
     fn call(self, value: impl MeasuringEquipment) -> Self::ReturnType;
 }
 
-pub fn execute_all<CallbackType: Callback>(
+pub(crate) fn execute_all<CallbackType: Callback>(
     _: BuiltSource,
     measurement_method: BenchMeasure,
     run_command: command::Command,
@@ -94,7 +94,7 @@ pub fn execute_all<CallbackType: Callback>(
 }
 
 #[justerror::Error(desc = "measuring failed")]
-pub enum CommandMeasurementError {
+pub(crate) enum CommandMeasurementError {
     #[error(fmt = debug)]
     ExecutionFailed(Output),
     /// I named it such as no documentation is provided for how and when

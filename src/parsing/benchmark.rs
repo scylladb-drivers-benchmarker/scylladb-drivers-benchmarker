@@ -12,7 +12,7 @@ use crate::parsing::{ParsingError, Subcommands};
 use crate::{BenchmarkParams, command};
 
 #[derive(Debug, Clone, clap::Args)]
-pub struct FlameOptions {
+pub(crate) struct FlameOptions {
     #[arg(short = 'r', long)]
     flame_repo: Option<PathBuf>,
     #[arg(short, long, default_value_t = FlameFrequency::Number(99))]
@@ -23,7 +23,7 @@ pub struct FlameOptions {
 }
 
 impl FlameOptions {
-    pub fn finalize(self, aliasing_config: AliasingConfig) -> Result<BenchMeasure, ParsingError> {
+    fn finalize(self, aliasing_config: AliasingConfig) -> Result<BenchMeasure, ParsingError> {
         let mut store_dir =
             self.store_dir
                 .or(aliasing_config.store_dir)
@@ -51,7 +51,7 @@ impl FlameOptions {
 }
 
 #[derive(Debug, Clone, clap::Subcommand)]
-pub enum MeasureSubcommand {
+pub(crate) enum MeasureSubcommand {
     Time,
     PerfStat,
     FlameGraph(#[command(flatten)] FlameOptions),
@@ -59,7 +59,7 @@ pub enum MeasureSubcommand {
 }
 
 impl MeasureSubcommand {
-    pub fn finalize(self, aliasing_config: AliasingConfig) -> Result<BenchMeasure, ParsingError> {
+    fn finalize(self, aliasing_config: AliasingConfig) -> Result<BenchMeasure, ParsingError> {
         match self {
             MeasureSubcommand::Time => Ok(BenchMeasure::Time),
             MeasureSubcommand::PerfStat => Ok(BenchMeasure::PerfStat),
@@ -70,7 +70,7 @@ impl MeasureSubcommand {
 }
 
 #[derive(Copy, Clone, Debug, ValueEnum)]
-pub enum InputBenchmarkMode {
+pub(crate) enum InputBenchmarkMode {
     UseCached,
     ForceRerun,
 }
@@ -85,7 +85,7 @@ impl InputBenchmarkMode {
 }
 
 #[derive(Args, Debug)]
-pub struct BenchmarkCommand {
+pub(crate) struct BenchmarkCommand {
     pub benchmark_name: String,
     #[arg(short = 'B', long, default_value = "./config.yml")]
     pub backend_config_path: PathBuf,
@@ -98,7 +98,10 @@ pub struct BenchmarkCommand {
 }
 
 impl BenchmarkCommand {
-    pub fn finalize(self, aliasing_config: AliasingConfig) -> Result<Subcommands, ParsingError> {
+    pub(crate) fn finalize(
+        self,
+        aliasing_config: AliasingConfig,
+    ) -> Result<Subcommands, ParsingError> {
         let benchmark_config = BenchmarkSetup::finalize(
             self.benchmark_configuration,
             &self.benchmark_name,

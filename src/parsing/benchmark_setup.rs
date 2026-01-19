@@ -10,13 +10,13 @@ use crate::parsing::ParsingError;
 use crate::parsing::aliasing::AliasingConfig;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BenchmarkSetup {
+pub(crate) enum BenchmarkSetup {
     Path(PathBuf),
     Points(Vec<BenchmarkPoint>),
 }
 
 impl BenchmarkSetup {
-    pub fn into_config(self, name: &str) -> Result<BenchmarkData, ConfigError> {
+    fn into_config(self, name: &str) -> Result<BenchmarkData, ConfigError> {
         match self {
             BenchmarkSetup::Path(path) => Ok(find_config::<BenchmarkConfig>(name, &path)?.into()),
             BenchmarkSetup::Points(mut points) => {
@@ -32,7 +32,7 @@ impl BenchmarkSetup {
 }
 
 #[justerror::Error]
-pub enum BenchmarkSetupError {
+pub(crate) enum BenchmarkSetupError {
     FailedParsingPoint(#[from] ParseIntError),
 }
 
@@ -54,7 +54,7 @@ impl FromStr for BenchmarkSetup {
 }
 
 impl BenchmarkSetup {
-    pub fn finalize(
+    pub(crate) fn finalize(
         benchmark_setup: Option<Self>,
         benchmark_name: &str,
         aliasing_config: &AliasingConfig,

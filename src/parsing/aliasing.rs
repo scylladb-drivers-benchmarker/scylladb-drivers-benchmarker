@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Default)]
 #[serde(rename_all = "kebab-case")]
-pub struct AliasingConfig {
+pub(crate) struct AliasingConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dp_path: Option<PathBuf>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
@@ -20,7 +20,7 @@ pub struct AliasingConfig {
 }
 
 #[justerror::Error(desc = "Failed reading the main config file")]
-pub enum MainConfigError {
+pub(crate) enum MainConfigError {
     FailedOpening(#[from] std::io::Error),
     FailedParsing(#[from] serde_yml::Error),
 }

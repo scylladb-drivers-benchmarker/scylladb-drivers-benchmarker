@@ -23,7 +23,7 @@ use crate::{BenchmarkParams, Database, DropDatabaseParams, PlotParams, PrintData
 
 #[derive(Debug, Parser)]
 #[clap(name = "my-app", version, about)]
-pub struct App {
+pub(crate) struct App {
     #[arg(short, long)]
     db_path: Option<PathBuf>,
 
@@ -35,18 +35,18 @@ pub struct App {
 }
 
 #[derive(Debug, clap::Subcommand)]
-pub enum AppSubcommands {
+pub(crate) enum AppSubcommands {
     Run(BenchmarkCommand),
     Plot(PlotCommand),
     Database(DatabaseArgs),
 }
 
-pub struct ParsedParams {
+pub(crate) struct ParsedParams {
     pub database: Database,
     pub params: Subcommands,
 }
 
-pub enum Subcommands {
+pub(crate) enum Subcommands {
     Benchmark(BenchmarkParams),
     Plot(PlotParams),
     PrintDatabase(PrintDatabaseParams),
@@ -54,7 +54,7 @@ pub enum Subcommands {
 }
 
 #[justerror::Error(desc = "Failed to parse or obtain necessary parameters")]
-pub enum ParsingError {
+pub(crate) enum ParsingError {
     AliasingConfig(#[from] MainConfigError),
     DatabasePathAccess(#[from] DbPathError),
     DatabaseInitialization(#[from] DatabaseError),

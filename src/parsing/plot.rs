@@ -14,7 +14,7 @@ use crate::parsing::{ParsingError, Subcommands};
 use crate::{PlotKind, PlotParams, RepoNameWithTags};
 
 #[derive(Args, Debug)]
-pub struct PlotCommand {
+pub(crate) struct PlotCommand {
     pub benchmark_name: String,
 
     #[arg(short, long, default_value = "./config.yml")]
@@ -34,7 +34,7 @@ pub struct PlotCommand {
 }
 
 #[derive(Debug, Clone)]
-pub struct ParsableRepoNameWithTags(RepoNameWithTags);
+pub(crate) struct ParsableRepoNameWithTags(RepoNameWithTags);
 
 impl From<ParsableRepoNameWithTags> for RepoNameWithTags {
     fn from(value: ParsableRepoNameWithTags) -> Self {
@@ -58,7 +58,7 @@ impl FromStr for ParsableRepoNameWithTags {
 }
 
 #[derive(Debug, clap::Subcommand)]
-pub enum InputPlotKind {
+pub(crate) enum InputPlotKind {
     /// Generate a series plot
     Series {
         #[arg(short, long, default_value_t = MeasurementMethod::Time)]
@@ -86,7 +86,7 @@ pub enum InputPlotKind {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, clap::ValueEnum)]
-pub enum InputVisKind {
+pub(crate) enum InputVisKind {
     Linear,
     Log,
 }

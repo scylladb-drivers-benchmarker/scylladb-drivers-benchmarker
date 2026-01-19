@@ -6,13 +6,13 @@ use crate::parsing::Subcommands;
 use crate::{DropDatabaseParams, PrintDatabaseParams};
 
 #[derive(Debug, clap::Args)]
-pub struct DatabaseArgs {
+pub(crate) struct DatabaseArgs {
     #[command(subcommand)]
     pub command: InputDatabaseCommand,
 }
 
 #[derive(Subcommand, Debug)]
-pub enum InputDatabaseCommand {
+pub(crate) enum InputDatabaseCommand {
     Print {
         #[command(flatten)]
         filters: InputDatabaseFilters,
@@ -25,7 +25,7 @@ pub enum InputDatabaseCommand {
 }
 
 #[derive(Args, Debug)]
-pub struct InputDatabaseFilters {
+pub(crate) struct InputDatabaseFilters {
     #[arg(long = "commit-hash", value_delimiter = ':', num_args(1..))]
     pub commit_hashes: Vec<String>,
 
@@ -68,11 +68,11 @@ impl DatabaseArgs {
 }
 
 #[justerror::Error(desc = "Failed to obtain default database location. Provide one.")]
-pub enum DbPathError {
+pub(crate) enum DbPathError {
     NoHomeDir,
 }
 
-pub fn default_db_path() -> Result<std::path::PathBuf, DbPathError> {
+pub(crate) fn default_db_path() -> Result<std::path::PathBuf, DbPathError> {
     Ok(home::home_dir()
         .ok_or(DbPathError::NoHomeDir)?
         .join("SDB_benchmarker.db"))
