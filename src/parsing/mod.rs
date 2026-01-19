@@ -83,7 +83,7 @@ impl App {
 
         let db_path = self
             .db_path
-            .or(aliasing_config.dp_path.clone())
+            .or(aliasing_config.db_path.clone())
             .map_or_else(default_db_path, Ok)?;
 
         let database = Database::new(&db_path)?;

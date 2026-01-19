@@ -52,10 +52,10 @@ struct TestData {
     repo_hashes: Vec<CommitHash>,
 }
 
-fn build_from_arg(path: &TempDir, commits: Vec<CommitHash>) -> String {
+fn build_from_arg(repo_name: String, commits: Vec<CommitHash>) -> String {
     format!(
         "--from={}:{}",
-        path.path().to_str().unwrap(),
+        repo_name,
         commits
             .into_iter()
             .map(|x| x.as_str().to_owned())
@@ -105,7 +105,10 @@ fn plot_series_generic_test(
         "test-bench",
         "-b",
         config,
-        &build_from_arg(&test_data.repo_dir, test_data.repo_hashes),
+        &build_from_arg(
+            test_data.repo_dir.path().to_str().unwrap().to_owned(),
+            test_data.repo_hashes,
+        ),
         "-o",
         output.to_str().unwrap(),
         "series",
@@ -130,7 +133,10 @@ fn plot_perf_generic_test(output: &Path, expected_output: &Path) {
         "test-bench",
         "-b",
         "./tests/plot_test/config.yml",
-        &build_from_arg(&test_data.repo_dir, test_data.repo_hashes),
+        &build_from_arg(
+            test_data.repo_dir.path().to_str().unwrap().to_owned(),
+            test_data.repo_hashes,
+        ),
         "-o",
         output.to_str().unwrap(),
         "perf-stat",
@@ -181,6 +187,46 @@ fn plot_series_points() {
 }
 
 #[test]
+fn plot_series_with_alias() {
+    let test_data = setup_initial_data(101, generate_series_data);
+    let expected_output = "./tests/plot_test/expected/series_with_alias.png";
+    let output = "./tests/plot_test/series_with_alias.png";
+    let mut alias_file = NamedTempFile::new().unwrap();
+
+    writeln!(
+        alias_file,
+        r#"
+db-path: {}
+repo-path:
+  myrepo: {}
+"#,
+        test_data.db_file.path().to_str().unwrap(),
+        test_data.repo_dir.path().to_str().unwrap()
+    )
+    .unwrap();
+
+    let alias_path = alias_file.path().to_str().unwrap();
+
+    run_no_output(sdb_command().args([
+        "-a",
+        alias_path,
+        "plot",
+        "test-bench",
+        "-b",
+        "./tests/plot_test/config.yml",
+        &build_from_arg("myrepo".to_owned(), test_data.repo_hashes),
+        "-o",
+        output,
+        "series",
+        "-m",
+        "time",
+    ]));
+
+    check_files_equality(Path::new(output), Path::new(expected_output));
+    fs::remove_file(output).unwrap();
+}
+
+#[test]
 fn plot_perf() {
     let output_base = Path::new("./tests/plot_test/");
     let expected_base = Path::new("./tests/plot_test/expected");
@@ -210,7 +256,10 @@ fn plot_flame_graph() {
         "flame-bench",
         "-b",
         "./tests/plot_test/config.yml",
-        &build_from_arg(&test_data.repo_dir, test_data.repo_hashes),
+        &build_from_arg(
+            test_data.repo_dir.path().to_str().unwrap().to_owned(),
+            test_data.repo_hashes,
+        ),
         "-o",
         output,
         "flame-graph",

@@ -97,15 +97,16 @@ fn simple() {
 fn aliasing_db() {
     let path = Path::new(file!()).parent().unwrap().canonicalize().unwrap();
 
-    let dp_path = path.join("cpp_vs_rust_test").join("test.db");
+    let db_path = path.join("cpp_vs_rust_test").join("test.db");
     let config_path = path.join("cpp_vs_rust_test").join("aliasing.yml");
 
     let mut config_file = File::create("./tests/cpp_vs_rust_test/aliasing.yml")
         .expect("Cannot create and write an aliasing file");
     config_file
-        .write_all(format!("dp-path: {dp_path:?}\n").as_bytes())
+        .write_all(format!("db-path: {db_path:?}\n").as_bytes())
         .unwrap();
     let mut command = sdb_command();
+
     command
         .env("SDB_CONFIG", config_path)
         .arg("run")
@@ -185,7 +186,7 @@ fn utility_test() {
 
     write!(
         File::create(&ac_path).unwrap(),
-        "dp-path: {dp_path:?}\nbenchmark-config: {bc_path:?}"
+        "db-path: {dp_path:?}\nbenchmark-config: {bc_path:?}"
     )
     .unwrap();
 
