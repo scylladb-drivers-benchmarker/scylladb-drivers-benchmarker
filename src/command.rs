@@ -82,6 +82,10 @@ impl Command {
         }
     }
 
+    pub fn ignore_output(self) -> Self {
+        self.with_arg(">/dev/null".to_owned())
+    }
+
     #[must_use]
     pub fn with_arg(mut self, argument: String) -> Self {
         self.add_arg(argument);

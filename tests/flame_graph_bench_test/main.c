@@ -21,6 +21,7 @@ int main(int argc, char* argv[]) {
         printf("Usage: %s <N>", argv[0]);
         return -1;
     }
+    printf("Some log to test if it is ignored");
 
     int n = atoi(argv[1]);
     int result = 0;

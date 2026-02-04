@@ -46,6 +46,7 @@ impl MeasuringEquipment for CommandExecutor {
             self.0
                 .clone()
                 .with_arg(point.to_string())
+                .ignore_output()
                 .process()
                 .output()?,
         )

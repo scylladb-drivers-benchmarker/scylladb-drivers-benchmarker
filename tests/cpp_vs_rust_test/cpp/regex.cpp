@@ -6,6 +6,8 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
+    std::cout << "Some logging to test if it is ignored";
+
     size_t size;
     std::stringstream{argv[1]} >> size;
     std::string str(size, 'a');

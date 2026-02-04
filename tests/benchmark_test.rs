@@ -24,11 +24,16 @@ fn check_data(
         BenchmarkParamsBuilder::new(commit_hash.clone(), "regex".to_owned(), "time".to_owned());
 
     assert_eq!(data.by_ref().count(), 8usize);
-    for (params, _record) in data {
+    for (params, record) in data {
         if params != param_builder.finalize(params.benchmark_point) {
             println!("{:?}", params);
             assert!(params == param_builder.finalize(params.benchmark_point));
         }
+        let BenchmarkRecord::Data(record) = record else {
+            panic!("Not data in database: {record:?}");
+        };
+
+        record.parse::<f64>().expect("Should be parsable");
     }
 }
 
@@ -210,7 +215,7 @@ fn utility_test() {
                 1,
                 "echo".to_owned()
             ),
-            BenchmarkRecord::Data("sleep 1".to_owned())
+            BenchmarkRecord::Data("sleep 1 >/dev/null".to_owned())
         ),
     );
     assert_eq!(
@@ -222,7 +227,7 @@ fn utility_test() {
                 2,
                 "echo".to_owned()
             ),
-            BenchmarkRecord::Data("sleep 2".to_owned())
+            BenchmarkRecord::Data("sleep 2 >/dev/null".to_owned())
         )
     );
     assert_eq!(
@@ -234,7 +239,7 @@ fn utility_test() {
                 5,
                 "echo".to_owned()
             ),
-            BenchmarkRecord::Data("sleep 5".to_owned())
+            BenchmarkRecord::Data("sleep 5 >/dev/null".to_owned())
         ),
     );
 }
