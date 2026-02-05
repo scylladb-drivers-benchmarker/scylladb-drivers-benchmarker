@@ -1,5 +1,5 @@
 use clap::Parser;
-use log::{Log, error, info, log};
+use log::error;
 use scylladb_drivers_benchmarker::benchmarking::{BenchMeasure, BenchmarkMode};
 use scylladb_drivers_benchmarker::config::backend::BackendConfig;
 use scylladb_drivers_benchmarker::config::benchmark::BenchmarkData;
