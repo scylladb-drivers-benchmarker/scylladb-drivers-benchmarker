@@ -1,5 +1,5 @@
 use std::path::Path;
-use std::process::{self, Output};
+use std::process::Output;
 use std::time::Duration;
 use std::{fs, io};
 
