@@ -37,7 +37,6 @@ fn check_data(
             BenchmarkRecord::Timeout => continue,
         };
 
-        println!("ddd{record}ddd");
         record.parse::<f64>().expect("Should be parsable");
     }
 }

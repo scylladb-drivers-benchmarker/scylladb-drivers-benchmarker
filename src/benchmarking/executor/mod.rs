@@ -4,8 +4,6 @@
 //! output of the build command.
 
 use std::error::Error;
-use std::io;
-use std::process::Output;
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -93,14 +91,4 @@ pub(crate) fn execute_all<CallbackType: Callback>(
         )),
         BenchMeasure::Command(command) => callback.call(CommandExecutor::new(command, run_command)),
     }
-}
-
-#[justerror::Error(desc = "measuring failed")]
-pub(crate) enum CommandMeasurementError {
-    #[error(fmt = debug)]
-    ExecutionFailed(Output),
-    /// I named it such as no documentation is provided for how and when
-    /// this error is thrown by Command.output.
-    RustFailed(#[from] io::Error),
-    WrongOutputFormat(#[from] std::string::FromUtf8Error),
 }

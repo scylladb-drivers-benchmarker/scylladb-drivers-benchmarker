@@ -1,11 +1,11 @@
 use std::path::Path;
-use std::process::Output;
+use std::process::{self, Output};
 use std::time::Duration;
 use std::{fs, io};
 
 use tempfile::NamedTempFile;
 
-use crate::benchmarking::executor::{CommandMeasurementError, MeasuringEquipment};
+use crate::benchmarking::executor::MeasuringEquipment;
 use crate::command::OutputWithTimeout;
 use crate::database::utilities::BenchmarkRecord;
 use crate::utilities::BenchmarkPoint;
@@ -15,6 +15,15 @@ use crate::{cmd, command};
 pub(crate) struct OutputExecutor {
     make_command: fn(&Path, command::Command) -> command::Command,
     run_command: command::Command,
+}
+
+#[justerror::Error(desc = "measuring failed")]
+pub(crate) enum OutputExecutorError {
+    TempFile(#[source] io::Error),
+    FileReadingFailed(#[source] io::Error),
+    CommandBuildingFailed(#[source] io::Error),
+    #[error(fmt = debug)]
+    ExecutionFailed(Output),
 }
 
 impl OutputExecutor {
@@ -39,29 +48,31 @@ impl OutputExecutor {
     fn handle_output(
         output: Output,
         file: &fs::File,
-    ) -> Result<BenchmarkRecord, CommandMeasurementError> {
+    ) -> Result<BenchmarkRecord, OutputExecutorError> {
         if output.status.success() {
-            let mut measured = io::read_to_string(file).unwrap();
+            let mut measured = io::read_to_string(file)
+                .map_err(|err| OutputExecutorError::FileReadingFailed(err))?;
             measured.truncate(measured.trim_end().len());
             Ok(BenchmarkRecord::Data(measured))
         } else {
-            Err(CommandMeasurementError::ExecutionFailed(output))
+            Err(OutputExecutorError::ExecutionFailed(output))
         }
     }
 }
 
 impl MeasuringEquipment for OutputExecutor {
-    type MeasurementError = CommandMeasurementError;
+    type MeasurementError = OutputExecutorError;
 
-    fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, CommandMeasurementError> {
-        let output_file = NamedTempFile::new().unwrap();
+    fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, OutputExecutorError> {
+        let output_file = NamedTempFile::new().map_err(|err| OutputExecutorError::TempFile(err))?;
         Self::handle_output(
             (self.make_command)(
                 output_file.path(),
                 self.run_command.clone().with_arg(point.to_string()),
             )
             .process()
-            .output()?,
+            .output()
+            .map_err(|err| OutputExecutorError::CommandBuildingFailed(err))?,
             output_file.as_file(),
         )
     }
@@ -70,14 +81,15 @@ impl MeasuringEquipment for OutputExecutor {
         &self,
         point: BenchmarkPoint,
         timeout: Duration,
-    ) -> Result<BenchmarkRecord, CommandMeasurementError> {
-        let output_file = NamedTempFile::new().unwrap();
+    ) -> Result<BenchmarkRecord, OutputExecutorError> {
+        let output_file = NamedTempFile::new().map_err(|err| OutputExecutorError::TempFile(err))?;
         (self.make_command)(
             output_file.path(),
             self.run_command.clone().with_arg(point.to_string()),
         )
         .process()
-        .output_with_timeout(timeout)?
+        .output_with_timeout(timeout)
+        .map_err(|err| OutputExecutorError::CommandBuildingFailed(err))?
         .map_or(Ok(BenchmarkRecord::Timeout), |output| {
             Self::handle_output(output, output_file.as_file())
         })
@@ -92,7 +104,7 @@ mod test {
     fn test_execution_error() {
         let executor = OutputExecutor::new_time(cmd!("git", "fail"));
         let error = executor.execute(0).unwrap_err();
-        assert!(matches!(error, CommandMeasurementError::ExecutionFailed(_)));
+        assert!(matches!(error, OutputExecutorError::ExecutionFailed(_)));
     }
 
     #[test]

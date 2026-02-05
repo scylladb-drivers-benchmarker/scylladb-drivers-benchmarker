@@ -1,14 +1,23 @@
+use std::io;
 use std::process::Output;
 use std::time::Duration;
 
-use crate::benchmarking::executor::{CommandMeasurementError, MeasuringEquipment};
+use crate::benchmarking::executor::MeasuringEquipment;
+use crate::command;
 use crate::command::OutputWithTimeout;
 use crate::database::utilities::BenchmarkRecord;
 use crate::utilities::BenchmarkPoint;
-use crate::command;
 
 #[derive(Debug)]
 pub(crate) struct CommandExecutor(command::Command);
+
+#[justerror::Error(desc = "measuring failed")]
+pub(crate) enum CommandMeasurementError {
+    #[error(fmt = debug)]
+    ExecutionFailed(Output),
+    CommandBuildingFailed(#[from] io::Error),
+    WrongOutputFormat(#[from] std::string::FromUtf8Error),
+}
 
 impl CommandExecutor {
     pub(crate) fn new(command: command::Command, run_command: command::Command) -> Self {
@@ -36,7 +45,11 @@ impl MeasuringEquipment for CommandExecutor {
     fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, CommandMeasurementError> {
         let command = self.0.clone().with_arg(point.to_string()).ignore_output();
         println!("{command}");
-        Self::handle_output(command.process().output()?)
+        Self::handle_output(
+            command
+                .process()
+                .output()?,
+        )
     }
 
     fn execute_with_timeout(
