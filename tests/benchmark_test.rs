@@ -18,22 +18,27 @@ mod utilities;
 
 fn check_data(
     commit_hash: &CommitHash,
-    mut data: impl Iterator<Item = (BenchmarkParams, BenchmarkRecord)>,
+    data: Vec<(BenchmarkParams, BenchmarkRecord)>,
 ) {
     let param_builder =
         BenchmarkParamsBuilder::new(commit_hash.clone(), "regex".to_owned(), "time".to_owned());
 
-    assert_eq!(data.by_ref().count(), 8usize);
+    assert_eq!(data.len(), 8usize);
     for (params, record) in data {
         if params != param_builder.finalize(params.benchmark_point) {
             println!("{:?}", params);
             assert!(params == param_builder.finalize(params.benchmark_point));
         }
-        let BenchmarkRecord::Data(record) = record else {
-            panic!("Not data in database: {record:?}");
+
+        
+        let record=  match record {
+            BenchmarkRecord::Data(data) => data,
+            BenchmarkRecord::FilePath(file) => panic!("File in database: {}", file.display()),
+            BenchmarkRecord::Timeout => continue,
         };
 
-        record.parse::<f64>().expect("Should be parsable");
+        println!("{record}");
+        record.parse::<f64>().expect_err("Should be parsable");
     }
 }
 
@@ -69,13 +74,13 @@ impl CppVsRust {
             .iter()
             .filter(|(params, _)| params.commit_hash == hash_cpp)
             .map(Clone::clone);
-        check_data(&hash_cpp, data_cpp);
+        check_data(&hash_cpp, data_cpp.collect());
 
         let data_rust = db_data
             .iter()
             .filter(|(params, _)| params.commit_hash == hash_rust)
             .map(Clone::clone);
-        check_data(&hash_rust, data_rust);
+        check_data(&hash_rust, data_rust.collect());
     }
 }
 
