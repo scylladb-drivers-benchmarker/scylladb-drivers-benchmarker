@@ -8,7 +8,10 @@ use std::time::Duration;
 use executor::build_source;
 
 use super::database::{Database, DatabaseError};
-use crate::benchmarking::executor::{Callback, CompileError, execute_all};
+use crate::benchmarking::executor::command_executor::CommandExecutor;
+use crate::benchmarking::executor::flame_executor::FlameExecutor;
+use crate::benchmarking::executor::output_executor::OutputExecutor;
+use crate::benchmarking::executor::{CompileError, MeasuringEquipment};
 use crate::command::{Command, CommandParsingError};
 use crate::commit_hash::CommitHash;
 use crate::config::backend::BackendConfig;
@@ -90,27 +93,6 @@ struct ExecutorCallback<'a, PointsType: Iterator<Item = BenchmarkPoint>> {
     param_generator: BenchmarkParamsBuilder,
 }
 
-impl<PointsType: Iterator<Item = BenchmarkPoint>> Callback for ExecutorCallback<'_, PointsType> {
-    type ReturnType = Result<(), BenchmarkingError>;
-
-    fn call(self, exec: impl executor::MeasuringEquipment) -> Self::ReturnType {
-        let execute = |point| {
-            if let Some(timeout) = self.timeout {
-                exec.execute_with_timeout(point, timeout)
-            } else {
-                exec.execute(point)
-            }
-        };
-
-        for point in self.points {
-            let record = execute(point).map_err(|e| BenchmarkingError::Measurement(Box::new(e)))?;
-            self.database
-                .insert_data(self.param_generator.finalize(point), record)?;
-        }
-        Ok(())
-    }
-}
-
 pub fn benchmark(
     database: &Database,
     commit_hash: CommitHash,
@@ -141,16 +123,32 @@ pub fn benchmark(
     }
 
     let built_source = build_source(&backend_config.build_command)?;
+    let run_command = Command::from_str(&backend_config.run_command)?;
 
-    execute_all(
-        built_source,
-        bench_measure,
-        Command::from_str(&backend_config.run_command)?,
-        ExecutorCallback {
-            points: points.into_iter(),
-            timeout,
-            database,
-            param_generator,
-        },
-    )
+    let exec: &dyn MeasuringEquipment = match bench_measure {
+        BenchMeasure::Time => &OutputExecutor::new_time(run_command),
+        BenchMeasure::PerfStat => &OutputExecutor::new_perf_stat(run_command),
+        BenchMeasure::FlameGraph {
+            flame_repo,
+            frequency,
+            store_dir,
+        } => &FlameExecutor::new(flame_repo, store_dir, frequency, run_command),
+        BenchMeasure::Command(command) => &CommandExecutor::new(command, run_command),
+    };
+
+    let execute = |point| {
+        if let Some(timeout) = timeout {
+            exec.execute_with_timeout(point, timeout)
+                .map_err(|e| BenchmarkingError::Measurement(Box::new(e)))
+        } else {
+            exec.execute(point)
+                .map_err(|e| BenchmarkingError::Measurement(Box::new(e)))
+        }
+    };
+
+    for point in points {
+        let record = execute(point)?;
+        database.insert_data(param_generator.finalize(point), record)?;
+    }
+    Ok(())
 }

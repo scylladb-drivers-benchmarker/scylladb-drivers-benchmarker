@@ -7,18 +7,13 @@ use std::error::Error;
 use std::str::FromStr;
 use std::time::Duration;
 
-use crate::benchmarking::BenchMeasure;
-use crate::benchmarking::executor::command_executor::CommandExecutor;
-use crate::benchmarking::executor::flame_executor::FlameExecutor;
-use crate::benchmarking::executor::output_executor::OutputExecutor;
-use crate::command;
 use crate::command::{Command, CommandParsingError, PrintableOutput};
 use crate::database::utilities::BenchmarkRecord;
 use crate::utilities::BenchmarkPoint;
 
-mod command_executor;
-mod flame_executor;
-mod output_executor;
+pub(crate) mod command_executor;
+pub(crate) mod flame_executor;
+pub(crate) mod output_executor;
 
 /// This is a token proving that the code being executed was compiled earlier.
 /// Getting this from outside of this module happens only by invoking `build_source`.
@@ -62,33 +57,4 @@ pub(crate) trait MeasuringEquipment {
         point: BenchmarkPoint,
         timeout: Duration,
     ) -> Result<BenchmarkRecord, Self::MeasurementError>;
-}
-
-pub(crate) trait Callback {
-    type ReturnType;
-
-    fn call(self, value: impl MeasuringEquipment) -> Self::ReturnType;
-}
-
-pub(crate) fn execute_all<CallbackType: Callback>(
-    _: BuiltSource,
-    measurement_method: BenchMeasure,
-    run_command: command::Command,
-    callback: CallbackType,
-) -> CallbackType::ReturnType {
-    match measurement_method {
-        BenchMeasure::Time => callback.call(OutputExecutor::new_time(run_command)),
-        BenchMeasure::PerfStat => callback.call(OutputExecutor::new_perf_stat(run_command)),
-        BenchMeasure::FlameGraph {
-            flame_repo,
-            frequency,
-            store_dir,
-        } => callback.call(FlameExecutor::new(
-            flame_repo,
-            store_dir,
-            frequency,
-            run_command,
-        )),
-        BenchMeasure::Command(command) => callback.call(CommandExecutor::new(command, run_command)),
-    }
 }
