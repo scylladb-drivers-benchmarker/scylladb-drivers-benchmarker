@@ -17,7 +17,7 @@ use crate::{PlotKind, PlotParams, RepoNameWithTags};
 pub(crate) struct PlotCommand {
     pub benchmark_name: String,
 
-    #[arg(short, long, default_value = "./config.yml")]
+    #[arg(short, long)]
     pub benchmark_setup: Option<BenchmarkSetup>,
 
     /// The source of data for the plot
