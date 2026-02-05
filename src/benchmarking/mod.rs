@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use executor::build_source;
+use log::info;
 
 use super::database::{Database, DatabaseError};
 use crate::benchmarking::executor::command_executor::CommandExecutor;
@@ -114,6 +115,7 @@ pub fn benchmark(
         return Ok(());
     }
 
+    info!("Building...");
     build_source(&backend_config.build_command)?;
 
     let run_command = Command::from_str(&backend_config.run_command)?;
@@ -137,9 +139,13 @@ pub fn benchmark(
         }
     };
 
-    for point in points {
+    let no_points = points.len();
+    info!("Measuring...");
+    for (idx, point) in (1..).zip(points.into_iter()) {
+        info!("Measuring [{idx}/{no_points}] in {point}...");
         let record = execute(point)?;
         database.insert_data(param_generator.finalize(point), record)?;
     }
+    info!("Finished measuring");
     Ok(())
 }

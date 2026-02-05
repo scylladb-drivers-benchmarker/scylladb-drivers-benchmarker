@@ -91,6 +91,7 @@ impl CppVsRust {
 fn simple() {
     let mut command = sdb_command();
     command
+        .env("RUST_LOG", "off")
         .arg("-d")
         .arg("../test.db")
         .arg("run")
@@ -118,6 +119,7 @@ fn aliasing_db() {
 
     command
         .env("SDB_CONFIG", config_path)
+        .env("RUST_LOG", "off")
         .arg("run")
         .arg("-b")
         .arg("../config.yml")
@@ -136,6 +138,7 @@ fn flame_graph() {
     print_flame_graph_information(&test_dir.join(config_name));
 
     run(sdb_command()
+        .env("RUST_LOG", "off")
         .args([
             "-d",
             "./test.db",

@@ -1,3 +1,4 @@
+use log::info;
 pub use plotting::{PlotKind, PlotSettings, VisKind};
 
 use crate::benchmarking::{BenchMeasure, BenchmarkMode, BenchmarkingError};
@@ -36,6 +37,7 @@ pub fn run_benchmarks(
 ) -> Result<(), RunBenchmarksError> {
     let commit_hash = CommitHash::from_current_repository()?;
 
+    info!("Gathered data");
     Ok(benchmarking::benchmark(
         database,
         commit_hash,

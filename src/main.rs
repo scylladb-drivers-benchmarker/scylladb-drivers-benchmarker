@@ -1,4 +1,5 @@
 use clap::Parser;
+use log::{Log, error, info, log};
 use scylladb_drivers_benchmarker::benchmarking::{BenchMeasure, BenchmarkMode};
 use scylladb_drivers_benchmarker::config::backend::BackendConfig;
 use scylladb_drivers_benchmarker::config::benchmark::BenchmarkData;
@@ -6,6 +7,7 @@ use scylladb_drivers_benchmarker::database::Database;
 use scylladb_drivers_benchmarker::database::utilities::BenchmarkFilters;
 use scylladb_drivers_benchmarker::repo_with_commits::{RepoNameWithTags, RepoPathWithCommits};
 use scylladb_drivers_benchmarker::{PlotKind, PlotSettings, command};
+use simple_logger::SimpleLogger;
 
 use crate::parsing::App;
 
@@ -37,11 +39,13 @@ pub struct DropDatabaseParams {
 }
 
 fn print_error<T>(err: impl std::error::Error) -> T {
-    eprintln!("{err}");
+    error!("{err}");
     std::process::exit(1);
 }
 
 fn main() {
+    SimpleLogger::new().env().without_timestamps().init().unwrap_or_else(print_error);
+
     let input = App::parse().finalize().unwrap_or_else(print_error);
 
     match input.params {
