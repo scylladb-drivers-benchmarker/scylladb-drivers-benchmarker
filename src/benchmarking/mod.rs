@@ -3,7 +3,6 @@ mod executor;
 use std::error::Error;
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::time::Duration;
 
 use executor::build_source;
 
@@ -86,13 +85,6 @@ fn filter_points(
     }
 }
 
-struct ExecutorCallback<'a, PointsType: Iterator<Item = BenchmarkPoint>> {
-    points: PointsType,
-    timeout: Option<Duration>,
-    database: &'a Database,
-    param_generator: BenchmarkParamsBuilder,
-}
-
 pub fn benchmark(
     database: &Database,
     commit_hash: CommitHash,
@@ -122,7 +114,8 @@ pub fn benchmark(
         return Ok(());
     }
 
-    let built_source = build_source(&backend_config.build_command)?;
+    build_source(&backend_config.build_command)?;
+
     let run_command = Command::from_str(&backend_config.run_command)?;
 
     let exec: &dyn MeasuringEquipment = match bench_measure {
@@ -139,10 +132,8 @@ pub fn benchmark(
     let execute = |point| {
         if let Some(timeout) = timeout {
             exec.execute_with_timeout(point, timeout)
-                .map_err(|e| BenchmarkingError::Measurement(Box::new(e)))
         } else {
             exec.execute(point)
-                .map_err(|e| BenchmarkingError::Measurement(Box::new(e)))
         }
     };
 

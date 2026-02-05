@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::fs::File;
 use std::io::{self};
 use std::path::{Path, PathBuf};
@@ -170,16 +171,17 @@ impl FlameExecutor {
 }
 
 impl MeasuringEquipment for FlameExecutor {
-    type MeasurementError = FlameMeasuringError;
-    fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, Self::MeasurementError> {
+    fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, Box<dyn Error + 'static>> {
         self.general_execute(point, |popen| Ok(Some(popen.wait()?)))
+            .map_err(|err| Box::new(err) as Box<dyn Error + 'static>)
     }
 
     fn execute_with_timeout(
         &self,
         point: BenchmarkPoint,
         timeout: Duration,
-    ) -> Result<BenchmarkRecord, Self::MeasurementError> {
+    ) -> Result<BenchmarkRecord, Box<dyn Error + 'static>> {
         self.general_execute(point, |popen| Ok(popen.wait_timeout(timeout)?))
+            .map_err(|err| Box::new(err) as Box<dyn Error + 'static>)
     }
 }

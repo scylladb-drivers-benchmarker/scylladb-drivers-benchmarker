@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::path::Path;
 use std::process::Output;
 use std::time::Duration;
@@ -58,23 +59,17 @@ impl OutputExecutor {
             Err(OutputExecutorError::ExecutionFailed(output))
         }
     }
-}
-
-impl MeasuringEquipment for OutputExecutor {
-    type MeasurementError = OutputExecutorError;
 
     fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, OutputExecutorError> {
         let output_file = NamedTempFile::new().map_err(|err| OutputExecutorError::TempFile(err))?;
-        Self::handle_output(
-            (self.make_command)(
-                output_file.path(),
-                self.run_command.clone().with_arg(point.to_string()),
-            )
-            .process()
-            .output()
-            .map_err(|err| OutputExecutorError::CommandBuildingFailed(err))?,
-            output_file.as_file(),
+        let output = (self.make_command)(
+            output_file.path(),
+            self.run_command.clone().with_arg(point.to_string()),
         )
+        .process()
+        .output()
+        .map_err(|err| OutputExecutorError::CommandBuildingFailed(err))?;
+        Self::handle_output(output, output_file.as_file())
     }
 
     fn execute_with_timeout(
@@ -83,16 +78,33 @@ impl MeasuringEquipment for OutputExecutor {
         timeout: Duration,
     ) -> Result<BenchmarkRecord, OutputExecutorError> {
         let output_file = NamedTempFile::new().map_err(|err| OutputExecutorError::TempFile(err))?;
-        (self.make_command)(
+        let result = (self.make_command)(
             output_file.path(),
             self.run_command.clone().with_arg(point.to_string()),
         )
         .process()
         .output_with_timeout(timeout)
-        .map_err(|err| OutputExecutorError::CommandBuildingFailed(err))?
-        .map_or(Ok(BenchmarkRecord::Timeout), |output| {
-            Self::handle_output(output, output_file.as_file())
-        })
+        .map_err(|err| OutputExecutorError::CommandBuildingFailed(err))?;
+        match result {
+            None => Ok(BenchmarkRecord::Timeout),
+            Some(output) => Self::handle_output(output, output_file.as_file()),
+        }
+    }
+}
+
+impl MeasuringEquipment for OutputExecutor {
+    fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, Box<dyn Error + 'static>> {
+        self.execute(point)
+            .map_err(|e| Box::new(e) as Box<dyn Error + 'static>)
+    }
+
+    fn execute_with_timeout(
+        &self,
+        point: BenchmarkPoint,
+        timeout: Duration,
+    ) -> Result<BenchmarkRecord, Box<dyn Error + 'static>> {
+        self.execute_with_timeout(point, timeout)
+            .map_err(|e| Box::new(e) as Box<dyn Error + 'static>)
     }
 }
 

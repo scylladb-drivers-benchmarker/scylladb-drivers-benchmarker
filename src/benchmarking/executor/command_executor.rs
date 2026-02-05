@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::io;
 use std::process::Output;
 use std::time::Duration;
@@ -37,19 +38,11 @@ impl CommandExecutor {
             Err(CommandMeasurementError::ExecutionFailed(output))
         }
     }
-}
-
-impl MeasuringEquipment for CommandExecutor {
-    type MeasurementError = CommandMeasurementError;
 
     fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, CommandMeasurementError> {
         let command = self.0.clone().with_arg(point.to_string()).ignore_output();
-        println!("{command}");
-        Self::handle_output(
-            command
-                .process()
-                .output()?,
-        )
+        let output = command.process().output()?;
+        Self::handle_output(output)
     }
 
     fn execute_with_timeout(
@@ -57,12 +50,32 @@ impl MeasuringEquipment for CommandExecutor {
         point: BenchmarkPoint,
         timeout: Duration,
     ) -> Result<BenchmarkRecord, CommandMeasurementError> {
-        self.0
+        let result = self
+            .0
             .clone()
             .with_arg(point.to_string())
             .process()
-            .output_with_timeout(timeout)?
-            .map_or(Ok(BenchmarkRecord::Timeout), Self::handle_output)
+            .output_with_timeout(timeout)?;
+        match result {
+            None => Ok(BenchmarkRecord::Timeout),
+            Some(output) => Self::handle_output(output),
+        }
+    }
+}
+
+impl MeasuringEquipment for CommandExecutor {
+    fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, Box<dyn Error + 'static>> {
+        self.execute(point)
+            .map_err(|e| Box::new(e) as Box<dyn Error + 'static>)
+    }
+
+    fn execute_with_timeout(
+        &self,
+        point: BenchmarkPoint,
+        timeout: Duration,
+    ) -> Result<BenchmarkRecord, Box<dyn Error + 'static>> {
+        self.execute_with_timeout(point, timeout)
+            .map_err(|e| Box::new(e) as Box<dyn Error + 'static>)
     }
 }
 
