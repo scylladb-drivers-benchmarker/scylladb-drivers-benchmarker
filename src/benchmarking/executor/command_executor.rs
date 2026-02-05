@@ -5,7 +5,7 @@ use crate::benchmarking::executor::{CommandMeasurementError, MeasuringEquipment}
 use crate::command::OutputWithTimeout;
 use crate::database::utilities::BenchmarkRecord;
 use crate::utilities::BenchmarkPoint;
-use crate::{cmd, command};
+use crate::command;
 
 #[derive(Debug)]
 pub(crate) struct CommandExecutor(command::Command);
@@ -13,14 +13,6 @@ pub(crate) struct CommandExecutor(command::Command);
 impl CommandExecutor {
     pub(crate) fn new(command: command::Command, run_command: command::Command) -> Self {
         CommandExecutor(command.with_cmd_arg(run_command))
-    }
-
-    pub(crate) fn new_time(run_command: command::Command) -> Self {
-        CommandExecutor::new(cmd!("time", "-f", "%e"), run_command)
-    }
-
-    pub(crate) fn new_perf(run_command: command::Command) -> Self {
-        CommandExecutor::new(cmd!("perf", "stat", "--json"), run_command)
     }
 }
 
@@ -42,14 +34,9 @@ impl MeasuringEquipment for CommandExecutor {
     type MeasurementError = CommandMeasurementError;
 
     fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, CommandMeasurementError> {
-        Self::handle_output(
-            self.0
-                .clone()
-                .with_arg(point.to_string())
-                .ignore_output()
-                .process()
-                .output()?,
-        )
+        let command = self.0.clone().with_arg(point.to_string()).ignore_output();
+        println!("{command}");
+        Self::handle_output(command.process().output()?)
     }
 
     fn execute_with_timeout(
@@ -69,17 +56,22 @@ impl MeasuringEquipment for CommandExecutor {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::cmd;
+
+    fn new_time(run_command: command::Command) -> CommandExecutor {
+        CommandExecutor::new(cmd!("/usr/bin/time", "-f", "%e"), run_command)
+    }
 
     #[test]
     fn test_execution_error() {
-        let executor = CommandExecutor::new_time(cmd!("git", "fail"));
+        let executor = new_time(cmd!("git", "fail"));
         let error = executor.execute(0).unwrap_err();
         assert!(matches!(error, CommandMeasurementError::ExecutionFailed(_)));
     }
 
     #[test]
     fn test_execution_timeout() {
-        let executor = CommandExecutor::new_time(cmd!("sleep"));
+        let executor = new_time(cmd!("sleep"));
         let output = executor
             .execute_with_timeout(2, std::time::Duration::from_secs(1))
             .unwrap();
@@ -87,7 +79,7 @@ mod test {
     }
     #[test]
     fn test_execution_in_time() {
-        let executor = CommandExecutor::new_time(cmd!("sleep"));
+        let executor = new_time(cmd!("sleep"));
         let output = executor
             .execute_with_timeout(1, std::time::Duration::from_secs(2))
             .unwrap();

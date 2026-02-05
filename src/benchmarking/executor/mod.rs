@@ -12,6 +12,7 @@ use std::time::Duration;
 use crate::benchmarking::BenchMeasure;
 use crate::benchmarking::executor::command_executor::CommandExecutor;
 use crate::benchmarking::executor::flame_executor::FlameExecutor;
+use crate::benchmarking::executor::output_executor::OutputExecutor;
 use crate::command;
 use crate::command::{Command, CommandParsingError, PrintableOutput};
 use crate::database::utilities::BenchmarkRecord;
@@ -19,6 +20,7 @@ use crate::utilities::BenchmarkPoint;
 
 mod command_executor;
 mod flame_executor;
+mod output_executor;
 
 /// This is a token proving that the code being executed was compiled earlier.
 /// Getting this from outside of this module happens only by invoking `build_source`.
@@ -77,8 +79,8 @@ pub(crate) fn execute_all<CallbackType: Callback>(
     callback: CallbackType,
 ) -> CallbackType::ReturnType {
     match measurement_method {
-        BenchMeasure::Time => callback.call(CommandExecutor::new_time(run_command)),
-        BenchMeasure::PerfStat => callback.call(CommandExecutor::new_perf(run_command)),
+        BenchMeasure::Time => callback.call(OutputExecutor::new_time(run_command)),
+        BenchMeasure::PerfStat => callback.call(OutputExecutor::new_perf_stat(run_command)),
         BenchMeasure::FlameGraph {
             flame_repo,
             frequency,
