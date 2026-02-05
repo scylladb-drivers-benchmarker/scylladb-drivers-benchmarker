@@ -41,7 +41,9 @@ impl OutputExecutor {
         file: &fs::File,
     ) -> Result<BenchmarkRecord, CommandMeasurementError> {
         if output.status.success() {
-            Ok(BenchmarkRecord::Data(io::read_to_string(file).unwrap()))
+            let mut measured = io::read_to_string(file).unwrap();
+            measured.truncate(measured.trim_end().len());
+            Ok(BenchmarkRecord::Data(measured))
         } else {
             Err(CommandMeasurementError::ExecutionFailed(output))
         }
