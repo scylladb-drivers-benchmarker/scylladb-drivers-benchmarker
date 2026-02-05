@@ -168,7 +168,8 @@ After `plot` benchmark name should be passed.
     - `-m`, `--measurement-method` — The command used to measure the performance of the benchmark (e.g. time).
     - `-v`, `--visualization-kind` — Controls the style of the plot line. Can be `linear` for a standard line plot or `log` for a logarithmic plot. This affects the visual representation but does not rescale the underlying data.
   - `perf-stat` plot
-    - `-e` `--events` `<event1,event2,...>` — List of requested `perf` events.
+    - `-e` `--events` `<event1,event2,...>` — List of requested `perf` events eg. `task-clock`, `page-faults` or `cpu_atom/branches/`. The names of events are highly platform dependant.
+lts
   - `flamegraph` plot
     - `-a` `--artifacts_dir` — Directory path where the generated singular flamegraph `svg`'s will be saved. If omitted, the artifacts will not be generated.
     - `f` `--flame-repo` — the path to the flame-graph repository of Brendan Gregg. This argument is **not** optional.

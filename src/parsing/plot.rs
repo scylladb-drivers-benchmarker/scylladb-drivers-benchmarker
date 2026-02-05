@@ -79,8 +79,9 @@ pub(crate) enum InputPlotKind {
 
     /// Generate a perf-stat plot
     PerfStat {
+        /// Specify which events should be displayed (eg. task-clock). The names of events are highly platform dependant.
         #[arg(short, long)]
-        #[clap(value_delimiter=',', num_args(1..))]
+        #[clap(required = true, value_delimiter=',', num_args(1..))]
         events: Vec<String>,
     },
 }
