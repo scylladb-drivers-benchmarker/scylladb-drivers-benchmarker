@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use executor::build_source;
-use log::{debug, info, trace};
+use log::{debug, info};
 
 use super::database::{Database, DatabaseError};
 use crate::benchmarking::executor::command_executor::CommandExecutor;

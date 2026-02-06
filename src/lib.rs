@@ -1,4 +1,3 @@
-use log::info;
 pub use plotting::{PlotKind, PlotSettings, VisKind};
 
 use crate::benchmarking::{BenchMeasure, BenchmarkMode, BenchmarkingError};
