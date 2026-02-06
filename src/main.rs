@@ -7,7 +7,6 @@ use scylladb_drivers_benchmarker::database::Database;
 use scylladb_drivers_benchmarker::database::utilities::BenchmarkFilters;
 use scylladb_drivers_benchmarker::repo_with_commits::{RepoNameWithTags, RepoPathWithCommits};
 use scylladb_drivers_benchmarker::{PlotKind, PlotSettings, command};
-use simple_logger::SimpleLogger;
 
 use crate::parsing::App;
 
@@ -44,11 +43,11 @@ fn print_error<T>(err: impl std::error::Error) -> T {
 }
 
 fn main() {
-    SimpleLogger::new()
-        .env()
-        .without_timestamps()
-        .init()
-        .unwrap_or_else(print_error);
+    let env = env_logger::Env::default().default_filter_or("info");
+    env_logger::Builder::from_env(env)
+        .format_target(false)
+        .format_timestamp(None)
+        .init();
 
     let input = App::parse().finalize().unwrap_or_else(print_error);
 
