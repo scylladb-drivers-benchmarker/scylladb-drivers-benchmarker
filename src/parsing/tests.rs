@@ -72,7 +72,7 @@ fn advanced_plot() {
             }
         )
     );
-    assert_eq!(output, PathBuf::from("plot.svg".to_owned()));
+    assert_eq!(output, Some(PathBuf::from("plot.svg".to_owned())));
 }
 
 #[test]

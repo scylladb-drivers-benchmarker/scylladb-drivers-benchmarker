@@ -26,7 +26,7 @@ pub(crate) struct PlotCommand {
 
     /// Path to save the plot image
     #[arg(short, long, value_name = "FILE_PATH")]
-    pub output: PathBuf,
+    pub output: Option<PathBuf>,
 
     // Type of plot to generate
     #[clap(subcommand)]
@@ -134,6 +134,16 @@ impl PlotCommand {
             .map(|repo| resolve_repo_tags(repo.clone(), &aliasing_config.repo_path))
             .collect::<Result<Vec<RepoPathWithCommits>, _>>()?;
 
+        let default_output_name = match self.plot_kind {
+            InputPlotKind::Series { .. } => "out.svg",
+            InputPlotKind::FlameGraph { .. } => "out.html",
+            InputPlotKind::PerfStat { .. } => "out.svg",
+        };
+
+        let output_file_name = self
+            .output
+            .map(|path| path.to_string_lossy().to_string())
+            .unwrap_or_else(|| default_output_name.to_owned());
         Ok(Subcommands::Plot(PlotParams {
             benchmark_config: BenchmarkSetup::finalize(
                 self.benchmark_setup,
@@ -144,7 +154,7 @@ impl PlotCommand {
             resolved,
             plot_settings: PlotSettings::new(
                 self.plot_kind.finalize(aliasing_config)?,
-                self.output.to_string_lossy().to_string(),
+                output_file_name,
             ),
         }))
     }
