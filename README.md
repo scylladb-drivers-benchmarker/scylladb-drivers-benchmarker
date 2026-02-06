@@ -21,7 +21,7 @@ cargo run -- -d ../test.db run regex -b ../config.yml
 Then, later to graph the results execute (from `tests/cpp_vs_rust_test`):
 
 ```sh
-cargo run -- -d test.db plot regex -b config.yml --from=cpp/:HEAD --from=rust/:HEAD series
+cargo run -- -d test.db plot regex -b config.yml --from=cpp/ --from=rust/ series
 ```
 
 Finally it is possible to print data to stdout:
@@ -174,7 +174,7 @@ After `plot` benchmark name should be passed.
 
 - `-b`, `--benchmark-config-path` — The path to the configuration file of the benchmark
 - `-o`, `--output` — The path where plot should be saved. The output file extension **implies** the selected format to comply with the [plotters](https://docs.rs/plotters/latest/plotters/) API. To see which formats are available for which plot type, see [Plotting options](#plotting-options). The default file name is `out`, with an extension matching the plot type.
-- `--from <repository_path:tag1,tag2,...>` — Specifies which tags should be used in the comparison and to which repository they refer. Including this option multiple times adds more to the comparison. Here tags are used broadly, and include things like branches, tags, `HEAD`, with relative versions of thereof.
+- `--from <repository_path:tag1,tag2,...>` — Specifies which tags should be used in the comparison and to which repository they refer. Including this option multiple times adds more to the comparison. Here tags are used broadly, and include things like branches, tags, `HEAD`, with relative versions of thereof. If the tags are not supplied, the default `HEAD` will be used.
 - Plot type (subcommand) and its possible flags should be provided after the common options:
   - `series` plot
     - `-m`, `--measurement-method` — The command used to measure the performance of the benchmark (e.g. time).

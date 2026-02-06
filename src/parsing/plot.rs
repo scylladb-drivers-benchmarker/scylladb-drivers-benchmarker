@@ -46,9 +46,13 @@ impl FromStr for ParsableRepoNameWithTags {
     type Err = RepoNameWithCommitsParsingError;
 
     fn from_str(string: &str) -> Result<Self, Self::Err> {
-        let (repo_names_str, tags_str) = string
-            .split_once(':')
-            .ok_or(RepoNameWithCommitsParsingError::PathNotSupplied)?;
+        // If `:` is not supplied or the list of tags is empty, choose `HEAD`.
+        let (repo_names_str, tags_str) = match string.split_once(':') {
+            Some(("", ..)) => return Err(RepoNameWithCommitsParsingError::PathNotSupplied),
+            Some((repo_name, "")) => (repo_name, "HEAD"),
+            Some(pair) => pair,
+            None => (string, "HEAD"),
+        };
 
         Ok(ParsableRepoNameWithTags(RepoNameWithTags {
             name: repo_names_str.to_owned(),
