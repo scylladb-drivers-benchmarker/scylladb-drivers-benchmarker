@@ -1,5 +1,5 @@
 use clap::Parser;
-use log::{error, info};
+use log::error;
 use scylladb_drivers_benchmarker::benchmarking::{BenchMeasure, BenchmarkMode};
 use scylladb_drivers_benchmarker::config::backend::BackendConfig;
 use scylladb_drivers_benchmarker::config::benchmark::BenchmarkData;
@@ -49,7 +49,6 @@ fn main() {
         .format_timestamp(None)
         .init();
 
-    info!("Gathering data...");
     let input = App::parse().finalize().unwrap_or_else(print_error);
 
     match input.params {

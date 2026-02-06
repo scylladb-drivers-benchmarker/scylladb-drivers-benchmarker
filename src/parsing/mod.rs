@@ -10,7 +10,7 @@ use std::path::PathBuf;
 use std::{env, io};
 
 use clap::Parser;
-use log::trace;
+use log::{info, trace};
 use scylladb_drivers_benchmarker::config::ConfigError;
 use scylladb_drivers_benchmarker::database::DatabaseError;
 use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
@@ -75,6 +75,7 @@ pub(crate) enum ParsingError {
 
 impl App {
     pub fn finalize(self) -> Result<ParsedParams, ParsingError> {
+        info!("Gathering data...");
         let aliasing_config = self
             .aliasing_config_path
             .or_else(|| env::var_os("SDB_CONFIG").map(Into::into))
