@@ -126,6 +126,7 @@ impl Plot for FlameGraphPlot {
         DB::ErrorType: 'static,
     {
         {
+            info!("Creating {} for plot", self.output.to_string_lossy());
             let mut file = fs::OpenOptions::new()
                 .create(true)
                 .write(true)

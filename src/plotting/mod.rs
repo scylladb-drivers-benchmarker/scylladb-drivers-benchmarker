@@ -13,6 +13,8 @@ use error::PlotError;
 use plots::{FlameGraphPlot, PerfStatPlot, SeriesPlot};
 use plotters::backend::{BitMapBackend, SVGBackend};
 
+use log::info;
+
 use crate::commit_hash::CommitHash;
 use crate::config::benchmark::BenchmarkData;
 use crate::database::Database;
@@ -56,8 +58,14 @@ fn plot_on_backend(plot: impl Plot, output: &str) -> Result<(), PlotError> {
     let extension = output.rsplit('.').next().unwrap_or("").to_owned();
 
     match extension.as_str() {
-        "png" => plot.plot(BitMapBackend::new(output, IMAGE_SIZE)),
-        "svg" => plot.plot(SVGBackend::new(output, IMAGE_SIZE)),
+        "png" => {
+            info!("Creating {} for plot", { output });
+            plot.plot(BitMapBackend::new(output, IMAGE_SIZE))
+        }
+        "svg" => {
+            info!("Creating {} for plot", { output });
+            plot.plot(SVGBackend::new(output, IMAGE_SIZE))
+        }
         "html" => plot.plot(NullBackend {}),
         _ => Err(PlotError::IncompatibleOutputFormat {
             format: extension,
