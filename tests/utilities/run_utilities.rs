@@ -12,7 +12,7 @@ pub fn run(cmd: &mut std::process::Command) -> Output {
 }
 
 pub fn run_only_stdout(cmd: &mut std::process::Command) -> String {
-    let output = run(cmd);
+    let output = run(cmd.env("RUST_LOG", "off"));
     assert!(output.stderr.is_empty());
     String::from_utf8(output.stdout).unwrap()
 }
