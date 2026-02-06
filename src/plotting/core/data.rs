@@ -27,7 +27,7 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         commit_hashes: impl Iterator<Item = CommitHash>,
         measurement_method: &MeasurementMethod,
     ) -> Result<BenchmarkDataset<T>, PlotError> {
-        info!("Retrieving data...");
+        info!("Searching the database for results...");
 
         let results = commit_hashes
             .map(|commit_hash| {
@@ -61,7 +61,7 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         let mut results = Vec::new();
         let mut missing = Vec::new();
 
-        debug!("Retrieving data for commit_hash: {}", commit_hash);
+        debug!("Retrieving data for commit_hash: {commit_hash}...");
         for point in benchmark_config.points.iter().cloned() {
             let params = builder.finalize(point);
 
@@ -73,11 +73,11 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
                     let value =
                         T::from_str(&text).map_err(|_| PlotError::InvalidData(text.clone()))?;
 
-                    trace!("Retrieved result for {}", point);
+                    trace!("Retrieved result for {point}");
                     results.push(Some(value));
                 }
                 Some(Ok(FlatBenchmarkRecord::Timeout)) => {
-                    trace!("Retrieved timeout for {}", point);
+                    trace!("Retrieved timeout for {point}");
                     results.push(None)
                 }
                 Some(Err(e)) => return Err(PlotError::Io(e)),
