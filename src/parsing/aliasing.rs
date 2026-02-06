@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use fs_err as fs;
+use log::debug;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Default)]
@@ -27,6 +28,7 @@ pub(crate) enum MainConfigError {
 
 impl AliasingConfig {
     pub fn read_config(path: &Path) -> Result<Self, MainConfigError> {
+        debug!("Reading aliasing config at path: {}", path.display());
         Ok(serde_yml::from_slice(&fs::read(path)?)?)
     }
 }

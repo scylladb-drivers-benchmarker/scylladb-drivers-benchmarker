@@ -1,6 +1,8 @@
 use std::fmt::Debug;
 use std::str::FromStr;
 
+use log::{debug, info, trace};
+
 use crate::commit_hash::CommitHash;
 use crate::config::benchmark::BenchmarkData;
 use crate::database::Database;
@@ -25,6 +27,8 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         commit_hashes: impl Iterator<Item = CommitHash>,
         measurement_method: &MeasurementMethod,
     ) -> Result<BenchmarkDataset<T>, PlotError> {
+        info!("Searching the database for results...");
+
         let results = commit_hashes
             .map(|commit_hash| {
                 Self::get_benchmark_results(
@@ -57,6 +61,7 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         let mut results = Vec::new();
         let mut missing = Vec::new();
 
+        debug!("Retrieving data for commit_hash: {commit_hash}...");
         for point in benchmark_config.points.iter().cloned() {
             let params = builder.finalize(point);
 
@@ -67,9 +72,14 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
                 Some(Ok(FlatBenchmarkRecord::Data(text))) => {
                     let value =
                         T::from_str(&text).map_err(|_| PlotError::InvalidData(text.clone()))?;
+
+                    trace!("Retrieved result for {point}");
                     results.push(Some(value));
                 }
-                Some(Ok(FlatBenchmarkRecord::Timeout)) => results.push(None),
+                Some(Ok(FlatBenchmarkRecord::Timeout)) => {
+                    trace!("Retrieved timeout for {point}");
+                    results.push(None)
+                }
                 Some(Err(e)) => return Err(PlotError::Io(e)),
                 None => missing.push(point), // This invalidates the result, but for better errors, we continue
             }

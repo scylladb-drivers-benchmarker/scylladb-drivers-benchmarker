@@ -16,10 +16,7 @@ use crate::utilities::run_utilities::print_flame_graph_information;
 
 mod utilities;
 
-fn check_data(
-    commit_hash: &CommitHash,
-    data: Vec<(BenchmarkParams, BenchmarkRecord)>,
-) {
+fn check_data(commit_hash: &CommitHash, data: Vec<(BenchmarkParams, BenchmarkRecord)>) {
     let param_builder =
         BenchmarkParamsBuilder::new(commit_hash.clone(), "regex".to_owned(), "time".to_owned());
 
@@ -30,8 +27,7 @@ fn check_data(
             assert!(params == param_builder.finalize(params.benchmark_point));
         }
 
-        
-        let record=  match record {
+        let record = match record {
             BenchmarkRecord::Data(data) => data,
             BenchmarkRecord::FilePath(file) => panic!("File in database: {}", file.display()),
             BenchmarkRecord::Timeout => continue,
@@ -91,6 +87,7 @@ impl CppVsRust {
 fn simple() {
     let mut command = sdb_command();
     command
+        .env("RUST_LOG", "off")
         .arg("-d")
         .arg("../test.db")
         .arg("run")
@@ -118,6 +115,7 @@ fn aliasing_db() {
 
     command
         .env("SDB_CONFIG", config_path)
+        .env("RUST_LOG", "off")
         .arg("run")
         .arg("-b")
         .arg("../config.yml")
@@ -136,6 +134,7 @@ fn flame_graph() {
     print_flame_graph_information(&test_dir.join(config_name));
 
     run(sdb_command()
+        .env("RUST_LOG", "off")
         .args([
             "-d",
             "./test.db",
