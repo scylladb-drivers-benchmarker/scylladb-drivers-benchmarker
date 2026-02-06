@@ -28,8 +28,7 @@ pub(crate) enum MainConfigError {
 
 impl AliasingConfig {
     pub fn read_config(path: &Path) -> Result<Self, MainConfigError> {
-        debug!("Aliasing config path: {}", path.display());
-        trace!("Reading the aliasing config...");
+        debug!("Reading aliasing config at path: {}", path.display());
         Ok(serde_yml::from_slice(&fs::read(path)?)?)
     }
 }

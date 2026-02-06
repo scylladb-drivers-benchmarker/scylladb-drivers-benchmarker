@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use executor::build_source;
-use log::{info, trace};
+use log::{debug, info, trace};
 
 use super::database::{Database, DatabaseError};
 use crate::benchmarking::executor::command_executor::CommandExecutor;
@@ -68,7 +68,7 @@ fn filter_points(
     match benchmark_mode {
         BenchmarkMode::UseCached => config_points
             .filter_map(|point| {
-                trace!("Searching in database point: {point}...");
+                debug!("Searching in database point: {point}...");
                 match database.result_exists(param_generator.finalize(point)) {
                     Ok(true) => None,
                     Ok(false) => Some(Ok(point)),
@@ -78,7 +78,7 @@ fn filter_points(
             .collect::<Result<Vec<BenchmarkPoint>, DatabaseError>>(),
         BenchmarkMode::ForceRerun => config_points
             .map(|point| {
-                trace!("Trying to remove from database point: {point}...");
+                debug!("Trying to remove from database point: {point}...");
                 database.drop_data(&BenchmarkFilters::filter_exact_param(
                     &param_generator.finalize(point),
                 ))?;

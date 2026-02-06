@@ -32,8 +32,7 @@ pub fn open_config<ConfigListType: ConfigurationList>(
         .split("::")
         .last()
         .expect("Type should have a name");
-    trace!("Reading the {config_type}...");
-    debug!("The path of {config_type} is: {}", config_path.display());
+    debug!("Reading the {config_type} from: {}", config_path.display());
     serde_yml::from_slice(&fs::read(config_path)?).map_err(|source| ConfigError::ParseError {
         source,
         path: config_path.to_path_buf(),
