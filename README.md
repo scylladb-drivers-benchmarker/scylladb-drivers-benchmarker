@@ -48,6 +48,12 @@ By default the application is in logging `info` mode, but this can be changed by
 
 SDB uses standard logging modes: `off` to remove any logging, more expressive `debug` and even more verbose `trace`. 
 
+### Example usage
+
+```sh
+RUST_LOG=off cargo run -- -d ../test.db run regex -b ../config.yml
+```
+
 ## Definitions
 
 1. benchmark — a platform for evaluating implementations, which consists of:
