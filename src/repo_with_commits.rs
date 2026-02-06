@@ -34,7 +34,7 @@ impl From<RepoNameWithTags> for SafeRepoNameWithTags {
 
         Self {
             safe_name,
-            tags: value.tags.clone(),
+            tags: value.tags,
         }
     }
 }
