@@ -86,7 +86,7 @@ impl OutputExecutor {
                 Ok(BenchmarkRecord::Timeout)
             },
             Some(output) => {
-                trace!("Finished");
+                trace!("Run command finished");
                 Self::handle_output(output, output_file.as_file())
             },
         }

@@ -62,7 +62,7 @@ impl CommandExecutor {
                 Ok(BenchmarkRecord::Timeout)
             }
             Some(output) => {
-                trace!("Finished");
+                trace!("Run command finished");
                 Self::handle_output(output)
             }
         }
