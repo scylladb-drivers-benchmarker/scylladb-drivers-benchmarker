@@ -2,7 +2,7 @@ use std::num::ParseIntError;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use log::{debug, trace};
+use log::trace;
 use scylladb_drivers_benchmarker::config::benchmark::{BenchmarkConfig, BenchmarkData};
 use scylladb_drivers_benchmarker::config::{ConfigError, find_config};
 use scylladb_drivers_benchmarker::utilities::BenchmarkPoint;

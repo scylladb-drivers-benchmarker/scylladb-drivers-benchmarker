@@ -10,7 +10,7 @@ use std::path::PathBuf;
 use std::{env, io};
 
 use clap::Parser;
-use log::{debug, trace};
+use log::trace;
 use scylladb_drivers_benchmarker::config::ConfigError;
 use scylladb_drivers_benchmarker::database::DatabaseError;
 use scylladb_drivers_benchmarker::measurement::MeasurementMethod;

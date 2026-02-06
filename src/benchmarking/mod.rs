@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use executor::build_source;
-use log::{debug, info};
+use log::{debug, info, trace};
 
 use super::database::{Database, DatabaseError};
 use crate::benchmarking::executor::command_executor::CommandExecutor;
@@ -66,25 +66,31 @@ fn filter_points(
     benchmark_mode: BenchmarkMode,
 ) -> Result<Vec<BenchmarkPoint>, DatabaseError> {
     match benchmark_mode {
-        BenchmarkMode::UseCached => config_points
-            .filter_map(|point| {
-                debug!("Searching in database point: {point}...");
-                match database.result_exists(param_generator.finalize(point)) {
-                    Ok(true) => None,
-                    Ok(false) => Some(Ok(point)),
-                    Err(e) => Some(Err(e)),
-                }
-            })
-            .collect::<Result<Vec<BenchmarkPoint>, DatabaseError>>(),
-        BenchmarkMode::ForceRerun => config_points
+        BenchmarkMode::UseCached => {
+            debug!("Filtering points...");
+            config_points
+                .filter_map(|point| {
+                    trace!("Searching in database point: {point}...");
+                    match database.result_exists(param_generator.finalize(point)) {
+                        Ok(true) => None,
+                        Ok(false) => Some(Ok(point)),
+                        Err(e) => Some(Err(e)),
+                    }
+                })
+                .collect::<Result<Vec<BenchmarkPoint>, DatabaseError>>()
+        }
+        BenchmarkMode::ForceRerun => {
+            debug!("Deleting previous results...");
+            config_points
             .map(|point| {
-                debug!("Trying to remove from database point: {point}...");
+                trace!("Trying to remove from database point: {point}...");
                 database.drop_data(&BenchmarkFilters::filter_exact_param(
                     &param_generator.finalize(point),
                 ))?;
                 Ok(point)
             })
-            .collect::<Result<Vec<BenchmarkPoint>, DatabaseError>>(),
+            .collect::<Result<Vec<BenchmarkPoint>, DatabaseError>>()
+        },
     }
 }
 
@@ -96,6 +102,8 @@ pub fn benchmark(
     bench_measure: BenchMeasure,
     benchmark_mode: BenchmarkMode,
 ) -> Result<(), BenchmarkingError> {
+    info!("Setting up benchmarking...");
+
     let BenchmarkData {
         name: benchmark_name,
         points,
@@ -106,7 +114,6 @@ pub fn benchmark(
     let param_generator =
         BenchmarkParamsBuilder::new(commit_hash, benchmark_name, measurement_method.to_string());
 
-    info!("Filtering points...");
     let points = filter_points(
         database,
         points.into_iter(),
