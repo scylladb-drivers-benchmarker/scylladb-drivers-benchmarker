@@ -1,7 +1,6 @@
 //! This module supports the execution and measuring of the benchmarked code
-//! from arbitrary commands. It performs little to no validation of those
-//! commands eg. whether the run command they actually interacts with the
-//! output of the build command.
+//! from arbitrary commands. It performs no validation of those commands
+//! eg. whether the run command they actually interacts with the output of the build command.
 
 use std::str::FromStr;
 use std::time::Duration;
@@ -21,8 +20,6 @@ pub enum CompileError {
     CompilationRunning(PrintableOutput),
 }
 
-/// Builds the source code, using the provided command.
-/// This is the only way to receive `BuiltSource` from outside.
 pub(crate) fn build_source(build_command: &str) -> Result<(), CompileError> {
     let command = Command::from_str(build_command)?;
     let mut command = command.process();

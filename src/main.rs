@@ -1,4 +1,5 @@
 use clap::Parser;
+use log::error;
 use scylladb_drivers_benchmarker::benchmarking::{BenchMeasure, BenchmarkMode};
 use scylladb_drivers_benchmarker::config::backend::BackendConfig;
 use scylladb_drivers_benchmarker::config::benchmark::BenchmarkData;
@@ -37,11 +38,17 @@ pub struct DropDatabaseParams {
 }
 
 fn print_error<T>(err: impl std::error::Error) -> T {
-    eprintln!("{err}");
+    error!("{err}");
     std::process::exit(1);
 }
 
 fn main() {
+    let env = env_logger::Env::default().default_filter_or("info");
+    env_logger::Builder::from_env(env)
+        .format_target(false)
+        .format_timestamp(None)
+        .init();
+
     let input = App::parse().finalize().unwrap_or_else(print_error);
 
     match input.params {

@@ -1,9 +1,10 @@
 use std::error::Error;
 use std::path::Path;
-use std::process::Output;
+use std::process::{self, Output};
 use std::time::Duration;
 use std::{fs, io};
 
+use log::trace;
 use tempfile::NamedTempFile;
 
 use crate::benchmarking::executor::MeasuringEquipment;
@@ -51,8 +52,9 @@ impl OutputExecutor {
         file: &fs::File,
     ) -> Result<BenchmarkRecord, OutputExecutorError> {
         if output.status.success() {
-            let mut measured = io::read_to_string(file)
-                .map_err(|err| OutputExecutorError::FileReadingFailed(err))?;
+            trace!("Reading from output...");
+            let mut measured =
+                io::read_to_string(file).map_err(OutputExecutorError::FileReadingFailed)?;
             measured.truncate(measured.trim_end().len());
             Ok(BenchmarkRecord::Data(measured))
         } else {
@@ -60,41 +62,39 @@ impl OutputExecutor {
         }
     }
 
-    fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, OutputExecutorError> {
-        let output_file = NamedTempFile::new().map_err(|err| OutputExecutorError::TempFile(err))?;
-        let output = (self.make_command)(
-            output_file.path(),
-            self.run_command.clone().with_arg(point.to_string()),
-        )
-        .process()
-        .output()
-        .map_err(|err| OutputExecutorError::CommandBuildingFailed(err))?;
-        Self::handle_output(output, output_file.as_file())
-    }
-
-    fn execute_with_timeout(
+    fn general_execute(
         &self,
         point: BenchmarkPoint,
-        timeout: Duration,
+        execute: impl FnOnce(&mut process::Command) -> Result<Option<Output>, io::Error>,
     ) -> Result<BenchmarkRecord, OutputExecutorError> {
-        let output_file = NamedTempFile::new().map_err(|err| OutputExecutorError::TempFile(err))?;
-        let result = (self.make_command)(
+        trace!("Creating output file...");
+        let output_file = NamedTempFile::new().map_err(OutputExecutorError::TempFile)?;
+
+        let mut command = (self.make_command)(
             output_file.path(),
             self.run_command.clone().with_arg(point.to_string()),
         )
-        .process()
-        .output_with_timeout(timeout)
-        .map_err(|err| OutputExecutorError::CommandBuildingFailed(err))?;
-        match result {
-            None => Ok(BenchmarkRecord::Timeout),
-            Some(output) => Self::handle_output(output, output_file.as_file()),
+        .process();
+
+        trace!("Executing the run command...");
+        let output = execute(&mut command).map_err(OutputExecutorError::CommandBuildingFailed)?;
+
+        match output {
+            None => {
+                trace!("Timed out");
+                Ok(BenchmarkRecord::Timeout)
+            }
+            Some(output) => {
+                trace!("Run command finished");
+                Self::handle_output(output, output_file.as_file())
+            }
         }
     }
 }
 
 impl MeasuringEquipment for OutputExecutor {
     fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, Box<dyn Error + 'static>> {
-        self.execute(point)
+        self.general_execute(point, |command| command.output().map(Some))
             .map_err(|e| Box::new(e) as Box<dyn Error + 'static>)
     }
 
@@ -103,7 +103,7 @@ impl MeasuringEquipment for OutputExecutor {
         point: BenchmarkPoint,
         timeout: Duration,
     ) -> Result<BenchmarkRecord, Box<dyn Error + 'static>> {
-        self.execute_with_timeout(point, timeout)
+        self.general_execute(point, |command| command.output_with_timeout(timeout))
             .map_err(|e| Box::new(e) as Box<dyn Error + 'static>)
     }
 }
@@ -115,7 +115,7 @@ mod test {
     #[test]
     fn test_execution_error() {
         let executor = OutputExecutor::new_time(cmd!("git", "fail"));
-        let error = executor.execute(0).unwrap_err();
+        let error: OutputExecutorError = *executor.execute(0).unwrap_err().downcast().unwrap();
         assert!(matches!(error, OutputExecutorError::ExecutionFailed(_)));
     }
 
