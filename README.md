@@ -42,6 +42,12 @@ Or remove it:
 cargo run -- -d test.db database drop --benchmark-point=400000:6400000
 ```
 
+## Logging
+
+By default the application is in logging `info` mode, but this can be changed by setting the `RUST_LOG` environment variable.
+
+SDB uses standard logging modes: `off` to remove any logging, more expressive `debug` and even more verbose `trace`. 
+
 ## Definitions
 
 1. benchmark — a platform for evaluating implementations, which consists of:
