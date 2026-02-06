@@ -63,35 +63,35 @@ fn filter_points(
     database: &Database,
     config_points: impl Iterator<Item = BenchmarkPoint>,
     param_generator: &BenchmarkParamsBuilder,
-    benchmark_mode: BenchmarkMode,
 ) -> Result<Vec<BenchmarkPoint>, DatabaseError> {
-    match benchmark_mode {
-        BenchmarkMode::UseCached => {
-            debug!("Filtering points...");
-            config_points
-                .filter_map(|point| {
-                    trace!("Searching in database point: {point}...");
-                    match database.result_exists(param_generator.finalize(point)) {
-                        Ok(true) => None,
-                        Ok(false) => Some(Ok(point)),
-                        Err(e) => Some(Err(e)),
-                    }
-                })
-                .collect::<Result<Vec<BenchmarkPoint>, DatabaseError>>()
-        }
-        BenchmarkMode::ForceRerun => {
-            debug!("Deleting previous results...");
-            config_points
-            .map(|point| {
-                trace!("Trying to remove from database point: {point}...");
-                database.drop_data(&BenchmarkFilters::filter_exact_param(
-                    &param_generator.finalize(point),
-                ))?;
-                Ok(point)
-            })
-            .collect::<Result<Vec<BenchmarkPoint>, DatabaseError>>()
-        },
-    }
+    debug!("Filtering points...");
+    config_points
+        .filter_map(|point| {
+            trace!("Searching in database point: {point}...");
+            match database.result_exists(param_generator.finalize(point)) {
+                Ok(true) => None,
+                Ok(false) => Some(Ok(point)),
+                Err(e) => Some(Err(e)),
+            }
+        })
+        .collect::<Result<Vec<BenchmarkPoint>, DatabaseError>>()
+}
+
+fn remove_points(
+    database: &Database,
+    config_points: impl Iterator<Item = BenchmarkPoint>,
+    param_generator: &BenchmarkParamsBuilder,
+) -> Result<Vec<BenchmarkPoint>, DatabaseError> {
+    debug!("Deleting previous results...");
+    config_points
+        .map(|point| {
+            trace!("Trying to remove from database point: {point}...");
+            database.drop_data(&BenchmarkFilters::filter_exact_param(
+                &param_generator.finalize(point),
+            ))?;
+            Ok(point)
+        })
+        .collect::<Result<Vec<BenchmarkPoint>, DatabaseError>>()
 }
 
 pub fn benchmark(
@@ -114,12 +114,10 @@ pub fn benchmark(
     let param_generator =
         BenchmarkParamsBuilder::new(commit_hash, benchmark_name, measurement_method.to_string());
 
-    let points = filter_points(
-        database,
-        points.into_iter(),
-        &param_generator,
-        benchmark_mode,
-    )?;
+    let points = match benchmark_mode {
+        BenchmarkMode::UseCached => filter_points(database, points.into_iter(), &param_generator)?,
+        BenchmarkMode::ForceRerun => remove_points(database, points.into_iter(), &param_generator)?,
+    };
 
     if points.is_empty() {
         info!("All points already in database");
