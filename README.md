@@ -21,7 +21,7 @@ cargo run -- -d ../test.db run regex -b ../config.yml
 Then, later to graph the results execute (from `tests/cpp_vs_rust_test`):
 
 ```sh
-cargo run -- -d test.db plot regex -b config.yml --from=cpp/:HEAD --from=rust/:HEAD -o plot.png series
+cargo run -- -d test.db plot regex -b config.yml --from=cpp/:HEAD --from=rust/:HEAD series
 ```
 
 Finally it is possible to print data to stdout:
