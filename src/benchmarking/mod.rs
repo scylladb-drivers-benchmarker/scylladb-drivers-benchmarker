@@ -106,6 +106,7 @@ pub fn benchmark(
     let param_generator =
         BenchmarkParamsBuilder::new(commit_hash, benchmark_name, measurement_method.to_string());
 
+    info!("Filtering points...");
     let points = filter_points(
         database,
         points.into_iter(),
@@ -114,6 +115,7 @@ pub fn benchmark(
     )?;
 
     if points.is_empty() {
+        info!("All points already in database");
         return Ok(());
     }
 
