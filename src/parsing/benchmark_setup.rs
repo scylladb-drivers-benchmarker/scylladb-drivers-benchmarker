@@ -62,10 +62,10 @@ impl BenchmarkSetup {
     ) -> Result<BenchmarkData, ParsingError> {
         trace!("Finalizing the benchmark setup...");
         if let Some(benchmark_setup) = benchmark_setup {
-            debug!("Found literal setup: {:?}", benchmark_setup);
+            trace!("Found literal setup: {:?}", benchmark_setup);
             Ok(benchmark_setup.into_config(benchmark_name)?)
         } else if let Some(config_path) = &aliasing_config.benchmark_config {
-            debug!("Found config path: {}", config_path.display());
+            trace!("Found config path: {}", config_path.display());
             match find_config::<BenchmarkConfig>(benchmark_name, config_path) {
                 Ok(config) => Ok(config.into()),
                 Err(ConfigError::ConfigurationNotFound { .. }) => {

@@ -9,7 +9,7 @@ use std::{
 
 use config_traits::{Configuration, ConfigurationList};
 use fs_err as fs;
-use log::debug;
+use log::{debug, trace};
 
 #[justerror::Error(desc = "error reading from config")]
 pub enum ConfigError {
@@ -44,7 +44,7 @@ pub fn find_config<ConfigType: Configuration>(
     config_path: &Path,
 ) -> Result<ConfigType, ConfigError> {
     let config_list: ConfigType::ConfigListType = open_config(config_path)?;
-    debug!("Searching for configuration of benchmark: {benchmark_name}");
+    trace!("Searching for configuration of benchmark: {benchmark_name}");
     config_list
         .find_config(benchmark_name.as_ref())
         .ok_or(ConfigError::ConfigurationNotFound {
