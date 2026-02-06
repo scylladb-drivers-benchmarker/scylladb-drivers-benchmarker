@@ -3,6 +3,8 @@ use std::io;
 use std::process::Output;
 use std::time::Duration;
 
+use log::trace;
+
 use crate::benchmarking::executor::MeasuringEquipment;
 use crate::command;
 use crate::command::OutputWithTimeout;
@@ -41,6 +43,7 @@ impl CommandExecutor {
 
     fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, CommandMeasurementError> {
         let command = self.0.clone().with_arg(point.to_string()).ignore_output();
+        trace!("Executing the custom command {}", command);
         let output = command.process().output()?;
         Self::handle_output(output)
     }
@@ -50,15 +53,18 @@ impl CommandExecutor {
         point: BenchmarkPoint,
         timeout: Duration,
     ) -> Result<BenchmarkRecord, CommandMeasurementError> {
-        let result = self
-            .0
-            .clone()
-            .with_arg(point.to_string())
-            .process()
-            .output_with_timeout(timeout)?;
+        let command = self.0.clone().with_arg(point.to_string());
+        trace!("Executing the custom command {}", command);
+        let result = command.process().output_with_timeout(timeout)?;
         match result {
-            None => Ok(BenchmarkRecord::Timeout),
-            Some(output) => Self::handle_output(output),
+            None => {
+                trace!("Timed out");
+                Ok(BenchmarkRecord::Timeout)
+            }
+            Some(output) => {
+                trace!("Finished");
+                Self::handle_output(output)
+            }
         }
     }
 }

@@ -4,6 +4,7 @@ use std::io::{self};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+use log::trace;
 use subprocess::{Exec, ExitStatus, Pipeline, Popen, PopenError, Redirection};
 use uuid::Uuid;
 
@@ -135,10 +136,13 @@ impl FlameExecutor {
     ) -> Result<BenchmarkRecord, FlameMeasuringError> {
         let commands = self.commands(point);
 
+        trace!("Creating an output file...");
         let (filepath, file) = self.next_file()?;
 
+        trace!("Building the pipeline...");
         let pipeline = Self::make_pipeline(commands.iter()).stdout(file);
 
+        trace!("Executing the pipeline...");
         let mut popens = match pipeline.popen() {
             Ok(popens) => popens,
             Err(err) => {
@@ -152,9 +156,11 @@ impl FlameExecutor {
         let mut last_popen = popens.pop().expect("pipe should be not empty");
 
         let Some(exit_status) = last_wait(&mut last_popen)? else {
+            trace!("Timed out");
             return Ok(BenchmarkRecord::Timeout);
         };
 
+        trace!("Validating the results...");
         if !exit_status.success() {
             let [.., last] = commands;
             return Err(FlameMeasuringError::new_failure(
@@ -166,6 +172,7 @@ impl FlameExecutor {
 
         Self::validate_pipeline_results(popens, commands.into_iter())?;
 
+        trace!("Finished successfully");
         Ok(BenchmarkRecord::FilePath(filepath))
     }
 }
