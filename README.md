@@ -134,13 +134,13 @@ The path to the aliasing config should be available in an environment variable n
 ### Example of a full aliasing config
 
 ```YAML
-db-path: ~/sdb/db
+db-path: /home/abc/sdb/db
 repo-path:
-  rust: ~/.../scylla-db-rust
-  nodejs: ~/.../nodejs-rs-driver
-flame-path: ~/FlameGraph/
-store-dir: ~/sdb/store/
-benchmark-config: ~/sdb/bench.yml
+  rust: /home/abc/scylla-db-rust
+  nodejs: /home/abc/nodejs-rs-driver
+flame-path: /home/abc/FlameGraph/
+store-dir: /home/abc/store/
+benchmark-config: /home/abc/bench.yml
 ```
 
 ## In-depth CLI
