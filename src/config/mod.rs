@@ -2,10 +2,16 @@ pub mod backend;
 pub mod benchmark;
 pub mod config_traits;
 
-use std::path::{Path, PathBuf};
+use std::{
+    any::type_name,
+    path::{Path, PathBuf},
+};
 
 use config_traits::{Configuration, ConfigurationList};
 use fs_err as fs;
+use log::{debug, trace};
+
+use crate::config::benchmark::BenchmarkConfigList;
 
 #[justerror::Error(desc = "error reading from config")]
 pub enum ConfigError {
@@ -24,8 +30,13 @@ pub enum ConfigError {
 pub fn open_config<ConfigListType: ConfigurationList>(
     config_path: &Path,
 ) -> Result<ConfigListType, ConfigError> {
-    let contents = fs::read(config_path)?;
-    serde_yml::from_slice(&contents).map_err(|source| ConfigError::ParseError {
+    let config_type = type_name::<ConfigListType::ConfigType>()
+        .split("::")
+        .last()
+        .expect("Type should have a name");
+    trace!("Reading the {config_type}...");
+    debug!("The path of {config_type} is: {}", config_path.display());
+    serde_yml::from_slice(&fs::read(config_path)?).map_err(|source| ConfigError::ParseError {
         source,
         path: config_path.to_path_buf(),
     })
@@ -36,6 +47,7 @@ pub fn find_config<ConfigType: Configuration>(
     config_path: &Path,
 ) -> Result<ConfigType, ConfigError> {
     let config_list: ConfigType::ConfigListType = open_config(config_path)?;
+    debug!("Searching for configuration of benchmark: {benchmark_name}");
     config_list
         .find_config(benchmark_name.as_ref())
         .ok_or(ConfigError::ConfigurationNotFound {
