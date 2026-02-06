@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 use std::str::FromStr;
 
-use log::{debug, trace};
+use log::{debug, info, trace};
 
 use crate::commit_hash::CommitHash;
 use crate::config::benchmark::BenchmarkData;
