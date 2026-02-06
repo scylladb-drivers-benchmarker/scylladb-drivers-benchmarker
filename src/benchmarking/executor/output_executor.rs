@@ -54,7 +54,7 @@ impl OutputExecutor {
         if output.status.success() {
             trace!("Reading from output...");
             let mut measured = io::read_to_string(file)
-                .map_err(|err| OutputExecutorError::FileReadingFailed(err))?;
+                .map_err(OutputExecutorError::FileReadingFailed)?;
             measured.truncate(measured.trim_end().len());
             Ok(BenchmarkRecord::Data(measured))
         } else {
@@ -68,7 +68,7 @@ impl OutputExecutor {
         execute: impl FnOnce(&mut process::Command) -> Result<Option<Output>, io::Error>,
     ) -> Result<BenchmarkRecord, OutputExecutorError> {
         trace!("Creating output file...");
-        let output_file = NamedTempFile::new().map_err(|err| OutputExecutorError::TempFile(err))?;
+        let output_file = NamedTempFile::new().map_err(OutputExecutorError::TempFile)?;
         
         let mut command = (self.make_command)(
             output_file.path(),
@@ -78,7 +78,7 @@ impl OutputExecutor {
 
         trace!("Executing the run command...");
         let output =
-            execute(&mut command).map_err(|err| OutputExecutorError::CommandBuildingFailed(err))?;
+            execute(&mut command).map_err(OutputExecutorError::CommandBuildingFailed)?;
 
         match output {
             None => {
@@ -95,7 +95,7 @@ impl OutputExecutor {
 
 impl MeasuringEquipment for OutputExecutor {
     fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, Box<dyn Error + 'static>> {
-        self.general_execute(point, |command| command.output().map(|output| Some(output)))
+        self.general_execute(point, |command| command.output().map(Some))
             .map_err(|e| Box::new(e) as Box<dyn Error + 'static>)
     }
 
