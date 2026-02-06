@@ -2,6 +2,8 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
+use log::info;
+
 use fs_err as fs;
 
 use crate::plotting::core::{
@@ -80,6 +82,8 @@ impl FlameGraphPlot {
                     Some(point_data) => {
                         let artifact = if let Some(dir) = &artifacts_dir {
                             let path = dir.join(format!("{benchmark_name}_{name}_{point}.svg"));
+
+                            info!("Creating artifact: {}", path.to_string_lossy());
                             ArtifactFile::from_path(path)?
                         } else {
                             ArtifactFile::temp()

@@ -53,8 +53,8 @@ impl OutputExecutor {
     ) -> Result<BenchmarkRecord, OutputExecutorError> {
         if output.status.success() {
             trace!("Reading from output...");
-            let mut measured = io::read_to_string(file)
-                .map_err(OutputExecutorError::FileReadingFailed)?;
+            let mut measured =
+                io::read_to_string(file).map_err(OutputExecutorError::FileReadingFailed)?;
             measured.truncate(measured.trim_end().len());
             Ok(BenchmarkRecord::Data(measured))
         } else {
@@ -69,7 +69,7 @@ impl OutputExecutor {
     ) -> Result<BenchmarkRecord, OutputExecutorError> {
         trace!("Creating output file...");
         let output_file = NamedTempFile::new().map_err(OutputExecutorError::TempFile)?;
-        
+
         let mut command = (self.make_command)(
             output_file.path(),
             self.run_command.clone().with_arg(point.to_string()),
@@ -77,18 +77,17 @@ impl OutputExecutor {
         .process();
 
         trace!("Executing the run command...");
-        let output =
-            execute(&mut command).map_err(OutputExecutorError::CommandBuildingFailed)?;
+        let output = execute(&mut command).map_err(OutputExecutorError::CommandBuildingFailed)?;
 
         match output {
             None => {
                 trace!("Timed out");
                 Ok(BenchmarkRecord::Timeout)
-            },
+            }
             Some(output) => {
                 trace!("Run command finished");
                 Self::handle_output(output, output_file.as_file())
-            },
+            }
         }
     }
 }
