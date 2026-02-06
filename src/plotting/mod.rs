@@ -59,11 +59,11 @@ fn plot_on_backend(plot: impl Plot, output: &str) -> Result<(), PlotError> {
 
     match extension.as_str() {
         "png" => {
-            info!("Creating {} for plot", { output });
+            info!("Creating output file {output}");
             plot.plot(BitMapBackend::new(output, IMAGE_SIZE))
         }
         "svg" => {
-            info!("Creating {} for plot", { output });
+            info!("Creating output file {output}");
             plot.plot(SVGBackend::new(output, IMAGE_SIZE))
         }
         "html" => plot.plot(NullBackend {}),
