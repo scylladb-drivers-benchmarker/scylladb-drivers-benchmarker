@@ -149,7 +149,6 @@ pub fn benchmark(
     };
 
     let no_points = points.len();
-    info!("Measuring...");
     for (idx, point) in (1..).zip(points.into_iter()) {
         info!("Measuring [{idx}/{no_points}] in {point}...");
         let record = execute(point)?;
