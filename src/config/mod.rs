@@ -11,8 +11,6 @@ use config_traits::{Configuration, ConfigurationList};
 use fs_err as fs;
 use log::{debug, trace};
 
-use crate::config::benchmark::BenchmarkConfigList;
-
 #[justerror::Error(desc = "error reading from config")]
 pub enum ConfigError {
     FileOperationError(#[from] std::io::Error),

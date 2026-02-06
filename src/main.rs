@@ -44,7 +44,11 @@ fn print_error<T>(err: impl std::error::Error) -> T {
 }
 
 fn main() {
-    SimpleLogger::new().env().without_timestamps().init().unwrap_or_else(print_error);
+    SimpleLogger::new()
+        .env()
+        .without_timestamps()
+        .init()
+        .unwrap_or_else(print_error);
 
     let input = App::parse().finalize().unwrap_or_else(print_error);
 

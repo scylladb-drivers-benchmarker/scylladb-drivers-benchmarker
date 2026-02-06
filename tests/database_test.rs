@@ -157,7 +157,7 @@ fn database_file() {
         // Integration test database drop.
         run_no_output(
             sdb_command()
-            .env("RUST_LOG", "off")
+                .env("RUST_LOG", "off")
                 .arg("-d")
                 .arg(db_file.path())
                 .arg("database")

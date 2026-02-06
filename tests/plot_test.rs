@@ -98,8 +98,7 @@ fn plot_series_generic_test(
 ) {
     let test_data = setup_initial_data(101, generate_series_data);
 
-    run_no_output(sdb_command()
-            .env("RUST_LOG", "off").args([
+    run_no_output(sdb_command().env("RUST_LOG", "off").args([
         "-d",
         test_data.db_file.path().to_str().unwrap(),
         "plot",
@@ -127,8 +126,7 @@ fn plot_series_generic_test(
 fn plot_perf_generic_test(output: &Path, expected_output: &Path) {
     let test_data = setup_initial_data(101, generate_perf_data);
 
-    run_no_output(sdb_command()
-            .env("RUST_LOG", "off").args([
+    run_no_output(sdb_command().env("RUST_LOG", "off").args([
         "-d",
         test_data.db_file.path().to_str().unwrap(),
         "plot",
@@ -209,8 +207,7 @@ repo-path:
 
     let alias_path = alias_file.path().to_str().unwrap();
 
-    run_no_output(sdb_command()
-            .env("RUST_LOG", "off").args([
+    run_no_output(sdb_command().env("RUST_LOG", "off").args([
         "-a",
         alias_path,
         "plot",
@@ -250,8 +247,7 @@ fn plot_flame_graph() {
     let output = "./tests/plot_test/flame_output.html";
     let _expected_output = "./tests/plot_test/expected_flame.html";
 
-    run_no_output(sdb_command()
-            .env("RUST_LOG", "off").args([
+    run_no_output(sdb_command().env("RUST_LOG", "off").args([
         "-d",
         test_data.db_file.path().to_str().unwrap(),
         "-a",
