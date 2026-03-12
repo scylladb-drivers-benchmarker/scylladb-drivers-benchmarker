@@ -8,8 +8,9 @@ use crate::perf_stat::PerfStatData;
 use crate::plotting::PlotError;
 use crate::plotting::core::{
     BACKGROUND_COLOR, BackendKind, BackendWithKind, BenchmarkDataset, CAPTION_FONT, LABEL_FONT,
-    LEGEND_BORDER_COLOR, LEGEND_BORDER_SIZE, MARGIN_SIZE, Plot, Renderable, RenderablePerfStat,
-    TITLE_FONT, X_LABEL_AREA_SIZE, Y_LABEL_AREA_SIZE,
+    LEGEND_BORDER_COLOR, LEGEND_BORDER_SIZE, MARGIN_RIGHT, MARGIN_SIZE, MARGIN_TOP, Plot,
+    Renderable, RenderablePerfStat, TICK_FONT, TITLE_FONT, TITLE_MARGIN_TOP, X_LABEL_AREA_SIZE,
+    Y_LABEL_AREA_SIZE,
 };
 use crate::utilities::calc_min_max;
 
@@ -21,13 +22,13 @@ pub struct PerfStatPlot {
 }
 
 impl PerfStatPlot {
-    const LEGEND_MARGIN_WIDTH: i32 = 10; // outer right margin width
-    const LEGEND_PADDING_X: i32 = 10; // inner horizontal padding
-    const LEGEND_PADDING_Y: i32 = 10; // inner vertical padding
-    const LEGEND_MARKER_WIDTH: i32 = 10; // color rectangle width
-    const LEGEND_MARKER_HEIGHT: i32 = 10; // color rectangle height
-    const LEGEND_MARKER_TEXT_GAP: i32 = 5; // gap between marker and text
-    const LEGEND_ENTRY_SPACING: i32 = 8; // vertical gap between legend entries
+    const LEGEND_MARGIN_WIDTH: i32 = 20; // outer right margin width
+    const LEGEND_PADDING_X: i32 = 20; // inner horizontal padding
+    const LEGEND_PADDING_Y: i32 = 20; // inner vertical padding
+    const LEGEND_MARKER_WIDTH: i32 = 30; // color rectangle width
+    const LEGEND_MARKER_HEIGHT: i32 = 20; // color rectangle height
+    const LEGEND_MARKER_TEXT_GAP: i32 = 10; // gap between marker and text
+    const LEGEND_ENTRY_SPACING: i32 = 16; // vertical gap between legend entries
     const LEGEND_CHAR_HEIGHT: i32 = LABEL_FONT.1 as i32; // legend text character height
 
     fn new(
@@ -234,6 +235,7 @@ impl Plot for PerfStatPlot {
 
         let root = DrawingArea::from(backend);
         root.fill(&BACKGROUND_COLOR)?;
+        let (_, root) = root.split_vertically(TITLE_MARGIN_TOP);
 
         let plot_area = root.titled(
             &format!("Benchmark {} Results", &self.benchmark_name),
@@ -262,7 +264,10 @@ impl Plot for PerfStatPlot {
 
                 let mut chart = ChartBuilder::on(&area)
                     .caption(self.events[id].clone(), CAPTION_FONT)
-                    .margin(MARGIN_SIZE)
+                    .margin_top(MARGIN_TOP)
+                    .margin_right(MARGIN_RIGHT)
+                    .margin_bottom(MARGIN_SIZE)
+                    .margin_left(MARGIN_SIZE)
                     .x_label_area_size(X_LABEL_AREA_SIZE)
                     .y_label_area_size(Y_LABEL_AREA_SIZE)
                     .build_cartesian_2d(x_start..x_end, y_min..y_max)
@@ -271,6 +276,7 @@ impl Plot for PerfStatPlot {
                 chart
                     .configure_mesh()
                     .label_style(LABEL_FONT)
+                    .y_labels(5)
                     .y_desc(format!(
                         "Value ({})",
                         if self.units[id].is_empty() {
@@ -279,9 +285,9 @@ impl Plot for PerfStatPlot {
                             &self.units[id]
                         }
                     ))
-                    .y_label_style(LABEL_FONT)
+                    .y_label_style(TICK_FONT)
                     .x_desc("Input size")
-                    .x_label_style(LABEL_FONT)
+                    .x_label_style(TICK_FONT)
                     .draw()?;
 
                 Ok(chart)

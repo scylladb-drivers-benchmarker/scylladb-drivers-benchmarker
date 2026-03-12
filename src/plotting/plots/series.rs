@@ -2,9 +2,11 @@ use plotters::drawing::DrawingArea;
 use plotters::prelude::*;
 
 use crate::plotting::core::{
-    BACKGROUND_COLOR, BackendWithKind, BenchmarkDataset, LABEL_FONT, LEGEND_BORDER_COLOR,
-    LEGEND_BORDER_SIZE, LinearSeries, LogSeries, MARGIN_SIZE, Plot, Renderable, RenderableSeries,
-    SeriesValue, TITLE_FONT, ValueTransformation, X_LABEL_AREA_SIZE, Y_LABEL_AREA_SIZE,
+    BACKGROUND_COLOR, BackendWithKind, BenchmarkDataset, LABEL_FONT, LEGEND_AREA_SIZE,
+    LEGEND_BORDER_COLOR, LEGEND_BORDER_SIZE, LEGEND_FONT, LEGEND_MARGIN, LinearSeries, LogSeries,
+    MARGIN_RIGHT, MARGIN_SIZE, MARGIN_TOP, Plot, Renderable, RenderableSeries, SeriesValue,
+    TICK_FONT, TITLE_FONT, TITLE_MARGIN_TOP, ValueTransformation, X_LABEL_AREA_SIZE,
+    Y_LABEL_AREA_SIZE,
 };
 use crate::plotting::{PlotError, VisKind};
 use crate::utilities::calc_min_max;
@@ -68,6 +70,7 @@ impl Plot for SeriesPlot {
     {
         let root = DrawingArea::from(backend);
         root.fill(&BACKGROUND_COLOR)?;
+        let (_, root) = root.split_vertically(TITLE_MARGIN_TOP);
 
         let x_start = *self
             .results
@@ -97,7 +100,10 @@ impl Plot for SeriesPlot {
         )?;
 
         let mut chart = ChartBuilder::on(&plot_area)
-            .margin(MARGIN_SIZE)
+            .margin_top(MARGIN_TOP)
+            .margin_right(MARGIN_RIGHT)
+            .margin_bottom(MARGIN_SIZE)
+            .margin_left(MARGIN_SIZE)
             .x_label_area_size(X_LABEL_AREA_SIZE)
             .y_label_area_size(Y_LABEL_AREA_SIZE)
             .build_cartesian_2d(x_start..x_end, y_min..y_max)?;
@@ -105,10 +111,11 @@ impl Plot for SeriesPlot {
         chart
             .configure_mesh()
             .label_style(LABEL_FONT)
+            .y_labels(5)
             .y_desc("Benchmark value")
-            .y_label_style(LABEL_FONT)
+            .y_label_style(TICK_FONT)
             .x_desc("Input size")
-            .x_label_style(LABEL_FONT)
+            .x_label_style(TICK_FONT)
             .draw()?;
 
         let mut charts: [ChartContext<_, _>; 1] = [chart];
@@ -118,9 +125,12 @@ impl Plot for SeriesPlot {
 
         charts[0]
             .configure_series_labels()
-            .position(SeriesLabelPosition::MiddleRight)
+            .position(SeriesLabelPosition::UpperLeft)
             .border_style(LEGEND_BORDER_COLOR.stroke_width(LEGEND_BORDER_SIZE))
             .background_style(BACKGROUND_COLOR)
+            .margin(LEGEND_MARGIN)
+            .label_font(LEGEND_FONT)
+            .legend_area_size(LEGEND_AREA_SIZE)
             .draw()?;
 
         root.present()?;

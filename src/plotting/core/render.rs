@@ -8,11 +8,11 @@ use plotters::prelude::*;
 use regex::Regex;
 
 use crate::plotting::PlotError;
-use crate::plotting::core::ArtifactFile;
+use crate::plotting::core::{ArtifactFile, LEGEND_AREA_SIZE};
 use crate::utilities::{BenchmarkPoint, RangedCoordBenchmarkPoint};
 
-const LEGEND_LINE_LENGTH: i32 = 20;
-const CROSS_SIZE: u32 = 5;
+const LINE_STROKE_WIDTH: u32 = 4;
+const CROSS_SIZE: u32 = 10;
 
 pub trait Renderable<'a, DB>
 where
@@ -112,10 +112,13 @@ where
         }
 
         chart
-            .draw_series(LineSeries::new(line_points, color))?
+            .draw_series(LineSeries::new(line_points, color.stroke_width(LINE_STROKE_WIDTH)))?
             .label(name)
             .legend(move |(x, y)| {
-                PathElement::new(vec![(x, y), (x + LEGEND_LINE_LENGTH, y)], color)
+                PathElement::new(
+                    vec![(x, y), (x + LEGEND_AREA_SIZE as i32, y)],
+                    color.stroke_width(LINE_STROKE_WIDTH),
+                )
             });
 
         Ok(())
@@ -189,10 +192,13 @@ where
             }
 
             chart
-                .draw_series(LineSeries::new(line_points, color))?
+                .draw_series(LineSeries::new(line_points, color.stroke_width(LINE_STROKE_WIDTH)))?
                 .label(name)
                 .legend(move |(x, y)| {
-                    PathElement::new(vec![(x, y), (x + LEGEND_LINE_LENGTH, y)], color)
+                    PathElement::new(
+                        vec![(x, y), (x + LEGEND_AREA_SIZE as i32, y)],
+                        color.stroke_width(LINE_STROKE_WIDTH),
+                    )
                 });
         }
 

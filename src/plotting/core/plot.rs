@@ -9,21 +9,30 @@ use tempfile::NamedTempFile;
 use crate::plotting::PlotError;
 
 pub const MARGIN_SIZE: u32 = 20;
-pub const X_LABEL_AREA_SIZE: u32 = 40;
-pub const Y_LABEL_AREA_SIZE: u32 = 70;
+pub const MARGIN_TOP: u32 = 20;
+pub const MARGIN_RIGHT: u32 = 80;
+pub const TITLE_MARGIN_TOP: u32 = 40;
+pub const X_LABEL_AREA_SIZE: u32 = 100;
+pub const Y_LABEL_AREA_SIZE: u32 = 140;
 
 pub const FONT_FAMILY: &str = "sans-serif";
-pub const TITLE_FONT_SIZE: u32 = 40;
+pub const TITLE_FONT_SIZE: u32 = 70;
 pub const TITLE_FONT: (&str, u32) = (FONT_FAMILY, TITLE_FONT_SIZE);
-pub const CAPTION_FONT_SIZE: u32 = 24;
+pub const CAPTION_FONT_SIZE: u32 = 50;
 pub const CAPTION_FONT: (&str, u32) = (FONT_FAMILY, CAPTION_FONT_SIZE);
-pub const LABEL_FONT_SIZE: u32 = 16;
+pub const LABEL_FONT_SIZE: u32 = 40;
 pub const LABEL_FONT: (&str, u32) = (FONT_FAMILY, LABEL_FONT_SIZE);
+pub const TICK_FONT_SIZE: u32 = 50;
+pub const TICK_FONT: (&str, u32) = (FONT_FAMILY, TICK_FONT_SIZE);
+pub const LEGEND_FONT_SIZE: u32 = 45;
+pub const LEGEND_FONT: (&str, u32) = (FONT_FAMILY, LEGEND_FONT_SIZE);
 
 pub const BACKGROUND_COLOR: RGBColor = WHITE;
 pub const LEGEND_BORDER_COLOR: RGBColor = BLACK;
 
 pub const LEGEND_BORDER_SIZE: u32 = 1;
+pub const LEGEND_AREA_SIZE: u32 = 60;
+pub const LEGEND_MARGIN: u32 = 30;
 
 pub trait Plot {
     fn plot<DB: DrawingBackend + BackendWithKind>(&self, backend: DB) -> Result<(), PlotError>
