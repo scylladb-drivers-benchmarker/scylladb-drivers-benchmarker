@@ -19,7 +19,7 @@ fn insert_bench(
     val: &str,
 ) {
     db.insert_data(
-        BenchmarkParams::new(hash.clone(), conf.name.clone(), step, String::from("time")),
+        BenchmarkParams::new(hash.clone(), conf.name.clone(), "test-backend".to_owned(), step, String::from("time")),
         BenchmarkRecord::Data(val.to_owned()),
     )
     .unwrap();
@@ -93,7 +93,7 @@ fn extract() {
     let dataset: BenchmarkDataset<f64> = BenchmarkDataset::new(
         &db,
         &configs[0],
-        [hashes[0].clone(), hashes[1].clone()].into_iter(),
+        [(hashes[0].clone(), "tag0".to_owned()), (hashes[1].clone(), "tag1".to_owned())].into_iter(),
         &measure,
     )
     .unwrap();
@@ -105,11 +105,13 @@ fn extract() {
             vec![Some(2.0), Some(3.5), Some(5.5)]
         ]
     );
+    assert_eq!(dataset.names, vec!["test-backend@tag0", "test-backend@tag1"]);
 
     let dataset: BenchmarkDataset<f64> =
-        BenchmarkDataset::new(&db, &configs[1], [hashes[2].clone()].into_iter(), &measure).unwrap();
+        BenchmarkDataset::new(&db, &configs[1], [(hashes[2].clone(), "tag2".to_owned())].into_iter(), &measure).unwrap();
     assert_eq!(dataset.points, vec![10]);
     assert_eq!(dataset.results, vec![vec![Some(3.5)]]);
+    assert_eq!(dataset.names, vec!["test-backend@tag2"]);
 }
 
 macro_rules! drop_and_expect_failure {
@@ -117,11 +119,12 @@ macro_rules! drop_and_expect_failure {
         $db.drop_data(&BenchmarkFilters {
             commit_hashes: vec![$hash.as_str().to_owned()],
             benchmark_names: vec![$conf.name.clone()],
+            backend_names: vec![],
             benchmark_points: $drop,
             measurement_methods: vec![$measure.to_string()],
         }).unwrap();
 
-        let err = BenchmarkDataset::<f64>::new(&$db, &$conf, [$hash.clone()].into_iter(), &$measure).unwrap_err();
+        let err = BenchmarkDataset::<f64>::new(&$db, &$conf, [($hash.clone(), "tag".to_owned())].into_iter(), &$measure).unwrap_err();
         assert!(matches!(err, $err_pat $(if $guard)?));
     };
 }
@@ -168,7 +171,7 @@ fn extract_failure() {
         .set_len(0)
         .unwrap();
     let dataset: Result<BenchmarkDataset<f64>, PlotError> =
-        BenchmarkDataset::new(&db, &configs[1], [hashes[2].clone()].into_iter(), &measure);
+        BenchmarkDataset::new(&db, &configs[1], [(hashes[2].clone(), "tag2".to_owned())].into_iter(), &measure);
     assert!(matches!(dataset.unwrap_err(), PlotError::Database(_)));
 }
 
@@ -208,13 +211,13 @@ fn extract_perfstat_dataset() {
 "#;
 
     db.insert_data(
-        BenchmarkParams::new(commit.clone(), config.name.clone(), 1, "perf".to_owned()),
+        BenchmarkParams::new(commit.clone(), config.name.clone(), "test-backend".to_owned(), 1, "perf".to_owned()),
         BenchmarkRecord::Data(perf_json_1.to_string()),
     )
     .unwrap();
 
     db.insert_data(
-        BenchmarkParams::new(commit.clone(), config.name.clone(), 2, "perf".to_owned()),
+        BenchmarkParams::new(commit.clone(), config.name.clone(), "test-backend".to_owned(), 2, "perf".to_owned()),
         BenchmarkRecord::Data(perf_json_2.to_string()),
     )
     .unwrap();
@@ -222,7 +225,7 @@ fn extract_perfstat_dataset() {
     let dataset: BenchmarkDataset<perf_stat::PerfStatData> = BenchmarkDataset::new(
         &db,
         &config,
-        [commit.clone()].into_iter(),
+        [(commit.clone(), "tag".to_owned())].into_iter(),
         &MeasurementMethod::Perf,
     )
     .unwrap();

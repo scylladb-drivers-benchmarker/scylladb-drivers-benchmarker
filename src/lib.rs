@@ -7,7 +7,7 @@ use crate::config::benchmark::BenchmarkData;
 use crate::database::utilities::BenchmarkFilters;
 use crate::database::{Database, DatabaseError};
 use crate::plotting::error::PlotError;
-use crate::repo_with_commits::{RepoNameWithTags, RepoPathWithCommits, SafeRepoNameWithTags};
+use crate::repo_with_commits::{RepoNameWithTags, RepoPathWithCommits};
 use crate::utilities::format_entry;
 pub mod benchmarking;
 pub mod command;
@@ -53,25 +53,18 @@ pub fn plot_benchmarks(
     from: Vec<RepoNameWithTags>,
     resolved: Vec<RepoPathWithCommits>,
 ) -> Result<(), PlotError> {
-    let names = from
+    let commits_with_tags = from
         .into_iter()
-        .flat_map(|repo| {
-            let repo: SafeRepoNameWithTags = repo.into();
-
-            repo.tags
-                .into_iter()
-                .map(move |commit| format!("{}@{}", repo.safe_name, commit))
-        })
-        .collect::<Vec<String>>();
-
-    let commit_hashes = resolved.into_iter().flat_map(|repo| repo.git_hashes);
+        .zip(resolved.into_iter())
+        .flat_map(|(repo_name, repo_path)| {
+            repo_path.git_hashes.into_iter().zip(repo_name.tags.into_iter())
+        });
 
     plotting::plot(
         plot_settings,
         database,
         benchmark_config,
-        commit_hashes,
-        &names,
+        commits_with_tags,
     )
 }
 

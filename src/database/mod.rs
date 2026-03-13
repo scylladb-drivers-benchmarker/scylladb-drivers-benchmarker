@@ -42,6 +42,7 @@ impl Database {
         let expected = vec![
             ("commit_hash".to_owned(), "TEXT".to_owned(), true),
             ("benchmark_name".to_owned(), "TEXT".to_owned(), true),
+            ("backend_name".to_owned(), "TEXT".to_owned(), true),
             ("benchmark_point".to_owned(), "INTEGER".to_owned(), true),
             ("measurement_method".to_owned(), "TEXT".to_owned(), true),
             ("data_json".to_owned(), "TEXT".to_owned(), true),
@@ -67,8 +68,9 @@ impl Database {
     fn bind_params(stmt: &mut Statement<'_>, params: BenchmarkParams) -> Result<(), DatabaseError> {
         stmt.bind((1, params.commit_hash.as_str()))?;
         stmt.bind((2, params.benchmark_name.as_str()))?;
-        stmt.bind((3, params.benchmark_point as i64))?;
-        stmt.bind((4, params.measurement_method.as_str()))?;
+        stmt.bind((3, params.backend_name.as_str()))?;
+        stmt.bind((4, params.benchmark_point as i64))?;
+        stmt.bind((5, params.measurement_method.as_str()))?;
         Ok(())
     }
 
@@ -105,6 +107,7 @@ impl Database {
         let clauses: Vec<String> = [
             build_in_clause("commit_hash", &filters.commit_hashes),
             build_in_clause("benchmark_name", &filters.benchmark_names),
+            build_in_clause("backend_name", &filters.backend_names),
             build_in_clause("benchmark_point", &filters.benchmark_points),
             build_in_clause("measurement_method", &filters.measurement_methods),
         ]
@@ -129,10 +132,11 @@ impl Database {
             CREATE TABLE IF NOT EXISTS Benchmarks (
                 commit_hash TEXT NOT NULL,
                 benchmark_name TEXT NOT NULL,
+                backend_name TEXT NOT NULL,
                 benchmark_point INTEGER NOT NULL,
                 measurement_method TEXT NOT NULL,
                 data_json TEXT NOT NULL,
-                UNIQUE(commit_hash, benchmark_name, benchmark_point, measurement_method)
+                UNIQUE(commit_hash, benchmark_name, backend_name, benchmark_point, measurement_method)
             );
             ",
         )?;
@@ -155,13 +159,13 @@ impl Database {
         let mut stmt = self.connection.prepare(
             "
                 INSERT INTO Benchmarks
-                (commit_hash, benchmark_name, benchmark_point, measurement_method, data_json)
-                VALUES (?, ?, ?, ?, ?);
+                (commit_hash, benchmark_name, backend_name, benchmark_point, measurement_method, data_json)
+                VALUES (?, ?, ?, ?, ?, ?);
                 ",
         )?;
 
         Database::bind_params(&mut stmt, params)?;
-        stmt.bind::<(usize, &str)>((5, &serde_json::to_string(&result)?))?;
+        stmt.bind::<(usize, &str)>((6, &serde_json::to_string(&result)?))?;
 
         stmt.next()?;
 
@@ -181,13 +185,15 @@ impl Database {
         while let State::Row = stmt.next()? {
             let commit_hash_str: String = stmt.read(0)?;
             let benchmark_name: String = stmt.read(1)?;
-            let benchmark_point: u64 = stmt.read::<i64, usize>(2)? as u64;
-            let measurement_method: String = stmt.read(3)?;
-            let result: BenchmarkRecord = serde_json::from_str(&stmt.read::<String, usize>(4)?)?;
+            let backend_name: String = stmt.read(2)?;
+            let benchmark_point: u64 = stmt.read::<i64, usize>(3)? as u64;
+            let measurement_method: String = stmt.read(4)?;
+            let result: BenchmarkRecord = serde_json::from_str(&stmt.read::<String, usize>(5)?)?;
 
             let params = BenchmarkParams::new(
                 CommitHash::new_unchecked(commit_hash_str),
                 benchmark_name,
+                backend_name,
                 benchmark_point,
                 measurement_method,
             );
@@ -224,6 +230,35 @@ impl Database {
     /// If any of the dropped records is `FilePath`, also removes the file.
     pub fn drop_all_data(&self) -> Result<(), DatabaseError> {
         self.drop_data(&BenchmarkFilters::all())
+    }
+
+    /// Returns distinct backend names for a given commit hash, benchmark name,
+    /// and measurement method, sorted alphabetically.
+    pub fn get_backend_names(
+        &self,
+        commit_hash: &CommitHash,
+        benchmark_name: &str,
+        measurement_method: &str,
+    ) -> Result<Vec<String>, DatabaseError> {
+        let filters = BenchmarkFilters {
+            commit_hashes: vec![commit_hash.as_str().to_owned()],
+            benchmark_names: vec![benchmark_name.to_owned()],
+            backend_names: vec![],
+            benchmark_points: vec![],
+            measurement_methods: vec![measurement_method.to_owned()],
+        };
+
+        let query = format!(
+            "SELECT DISTINCT backend_name FROM Benchmarks {} ORDER BY backend_name",
+            self.data_filtration(&filters)
+        );
+
+        let mut stmt = self.connection.prepare(query)?;
+        let mut backend_names = Vec::new();
+        while let State::Row = stmt.next()? {
+            backend_names.push(stmt.read::<String, _>(0)?);
+        }
+        Ok(backend_names)
     }
 
     pub fn get_result(

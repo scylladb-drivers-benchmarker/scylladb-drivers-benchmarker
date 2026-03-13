@@ -67,14 +67,13 @@ impl FlameGraphPlot {
     pub fn from_dataset(
         dataset: BenchmarkDataset<String>,
         benchmark_name: String,
-        names: &[String],
         output: PathBuf,
         flame_repo: PathBuf,
         artifacts_dir: Option<PathBuf>,
     ) -> Result<Self, PlotError> {
         let mut results = Vec::new();
 
-        for (name, data) in names.iter().zip(dataset.results.into_iter()) {
+        for (name, data) in dataset.names.iter().zip(dataset.results.into_iter()) {
             let make_artifact = |folded_data: Option<&_>,
                                  point: BenchmarkPoint|
              -> Result<ArtifactFile, PlotError> {

@@ -18,31 +18,51 @@ impl<T> PlottableValue for T where T: FromStr + Debug + Clone {}
 pub struct BenchmarkDataset<T: PlottableValue> {
     pub points: Vec<BenchmarkPoint>,
     pub results: Vec<Vec<Option<T>>>,
+    pub names: Vec<String>,
 }
 
 impl<T: PlottableValue> BenchmarkDataset<T> {
     pub fn new(
         database: &Database,
         benchmark_config: &BenchmarkData,
-        commit_hashes: impl Iterator<Item = CommitHash>,
+        commits: impl Iterator<Item = (CommitHash, String)>,
         measurement_method: &MeasurementMethod,
     ) -> Result<BenchmarkDataset<T>, PlotError> {
         info!("Searching the database for results...");
 
-        let results = commit_hashes
-            .map(|commit_hash| {
-                Self::get_benchmark_results(
+        let mut results = Vec::new();
+        let mut names = Vec::new();
+
+        for (commit_hash, tag) in commits {
+            let backend_names = database
+                .get_backend_names(&commit_hash, &benchmark_config.name, &measurement_method.to_string())
+                .map_err(PlotError::Database)?;
+
+            if backend_names.is_empty() {
+                return Err(PlotError::MissingBenchmark {
+                    commit_hash: commit_hash.as_str().to_owned(),
+                    benchmark: benchmark_config.name.clone(),
+                    measurement_method: measurement_method.to_string(),
+                });
+            }
+
+            for backend_name in backend_names {
+                let series = Self::get_benchmark_results(
                     database,
                     &commit_hash,
                     benchmark_config,
                     measurement_method,
-                )
-            })
-            .collect::<Result<_, _>>()?;
+                    &backend_name,
+                )?;
+                names.push(format!("{}@{}", backend_name, tag));
+                results.push(series);
+            }
+        }
 
         Ok(BenchmarkDataset {
             points: benchmark_config.points.clone(),
             results,
+            names,
         })
     }
 
@@ -51,10 +71,12 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         commit_hash: &CommitHash,
         benchmark_config: &BenchmarkData,
         measurement_method: &MeasurementMethod,
+        backend_name: &str,
     ) -> Result<Vec<Option<T>>, PlotError> {
         let builder = BenchmarkParamsBuilder {
             commit_hash: commit_hash.clone(),
             benchmark_name: benchmark_config.name.clone(),
+            backend_name: backend_name.to_owned(),
             measurement_method: measurement_method.to_string(),
         };
 

@@ -35,6 +35,7 @@ fn database() {
         let params = BenchmarkParams::new(
             commit.clone(),
             "test-bench".to_owned(),
+            "test-backend".to_owned(),
             i as u64,
             "time -f \"%e\"".to_owned(),
         );
@@ -99,6 +100,7 @@ fn database_file() {
     let params = BenchmarkParams::new(
         commit.clone(),
         "file-bench".to_owned(),
+        "test-backend".to_owned(),
         0,
         "time -f \"%e\"".to_owned(),
     );

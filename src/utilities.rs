@@ -14,6 +14,7 @@ pub type RangedCoordBenchmarkPoint = RangedCoordu64;
 pub struct BenchmarkParamsBuilder {
     pub commit_hash: CommitHash,
     pub benchmark_name: String,
+    pub backend_name: String,
     pub measurement_method: String,
 }
 
@@ -22,11 +23,13 @@ impl BenchmarkParamsBuilder {
     pub fn new(
         commit_hash: CommitHash,
         benchmark_name: String,
+        backend_name: String,
         measurement_method: String,
     ) -> Self {
         BenchmarkParamsBuilder {
             commit_hash,
             benchmark_name,
+            backend_name,
             measurement_method,
         }
     }
@@ -36,6 +39,7 @@ impl BenchmarkParamsBuilder {
         BenchmarkParams::new(
             self.commit_hash.clone(),
             self.benchmark_name.clone(),
+            self.backend_name.clone(),
             benchmark_point,
             self.measurement_method.clone(),
         )
@@ -67,6 +71,7 @@ pub fn format_entry(params: &BenchmarkParams, record: &BenchmarkRecord) -> Strin
     let _ = writeln!(out, "--- Benchmark Entry ---");
     let _ = writeln!(out, "Commit Hash:         {}", params.commit_hash);
     let _ = writeln!(out, "Benchmark Name:      {}", params.benchmark_name);
+    let _ = writeln!(out, "Backend Name:        {}", params.backend_name);
     let _ = writeln!(out, "Benchmark Point:     {}", params.benchmark_point);
     let _ = writeln!(out, "Measurement Method:  {}", params.measurement_method);
 

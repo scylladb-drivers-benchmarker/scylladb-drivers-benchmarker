@@ -48,14 +48,13 @@ impl PerfStatPlot {
     pub fn from_dataset(
         dataset: BenchmarkDataset<PerfStatData>,
         benchmark_name: String,
-        names: &[String],
         events: Vec<String>,
     ) -> Result<Self, PlotError> {
         let mut results = Vec::new();
 
         let mut unit: HashMap<String, Result<String, ()>> = HashMap::new();
 
-        for (id, (name, values)) in names.iter().zip(dataset.results.into_iter()).enumerate() {
+        for (id, (name, values)) in dataset.names.iter().zip(dataset.results.into_iter()).enumerate() {
             for event_name in &events {
                 let any_data = values.iter().any(|d| {
                     d.as_ref()

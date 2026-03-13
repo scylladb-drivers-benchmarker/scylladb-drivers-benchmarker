@@ -78,8 +78,7 @@ pub fn plot(
     plot_settings: PlotSettings,
     database: &Database,
     benchmark_config: BenchmarkData,
-    commit_hashes: impl Iterator<Item = CommitHash>,
-    names: &[String],
+    commits: impl Iterator<Item = (CommitHash, String)>,
 ) -> Result<(), PlotError> {
     match plot_settings.plot_kind {
         PlotKind::Series {
@@ -89,14 +88,13 @@ pub fn plot(
             let dataset: BenchmarkDataset<f64> = BenchmarkDataset::new(
                 database,
                 &benchmark_config,
-                commit_hashes,
+                commits,
                 &measurement_method,
             )?;
 
             let plot = SeriesPlot::from_dataset(
                 dataset,
                 benchmark_config.name,
-                names,
                 visualization_kind,
             )?;
 
@@ -110,14 +108,13 @@ pub fn plot(
             let dataset: BenchmarkDataset<String> = BenchmarkDataset::new(
                 database,
                 &benchmark_config,
-                commit_hashes,
+                commits,
                 &MeasurementMethod::FlameGraph,
             )?;
 
             let plot = FlameGraphPlot::from_dataset(
                 dataset,
                 benchmark_config.name,
-                names,
                 PathBuf::from(plot_settings.output.clone()),
                 flame_repo,
                 artifacts_dir,
@@ -130,11 +127,11 @@ pub fn plot(
             let dataset: BenchmarkDataset<PerfStatData> = BenchmarkDataset::new(
                 database,
                 &benchmark_config,
-                commit_hashes,
+                commits,
                 &MeasurementMethod::Perf,
             )?;
 
-            let plot = PerfStatPlot::from_dataset(dataset, benchmark_config.name, names, events)?;
+            let plot = PerfStatPlot::from_dataset(dataset, benchmark_config.name, events)?;
 
             plot_on_backend(plot, &plot_settings.output)
         }

@@ -16,9 +16,9 @@ use crate::utilities::run_utilities::print_flame_graph_information;
 
 mod utilities;
 
-fn check_data(commit_hash: &CommitHash, data: Vec<(BenchmarkParams, BenchmarkRecord)>) {
+fn check_data(commit_hash: &CommitHash, backend_name: &str, data: Vec<(BenchmarkParams, BenchmarkRecord)>) {
     let param_builder =
-        BenchmarkParamsBuilder::new(commit_hash.clone(), "regex".to_owned(), "time".to_owned());
+        BenchmarkParamsBuilder::new(commit_hash.clone(), "regex".to_owned(), backend_name.to_owned(), "time".to_owned());
 
     assert_eq!(data.len(), 8usize);
     for (params, record) in data {
@@ -69,13 +69,13 @@ impl CppVsRust {
             .iter()
             .filter(|(params, _)| params.commit_hash == hash_cpp)
             .map(Clone::clone);
-        check_data(&hash_cpp, data_cpp.collect());
+        check_data(&hash_cpp, "regex-cpp", data_cpp.collect());
 
         let data_rust = db_data
             .iter()
             .filter(|(params, _)| params.commit_hash == hash_rust)
             .map(Clone::clone);
-        check_data(&hash_rust, data_rust.collect());
+        check_data(&hash_rust, "regex-rust", data_rust.collect());
     }
 }
 
@@ -155,6 +155,7 @@ fn flame_graph() {
     let param_builder = BenchmarkParamsBuilder::new(
         CommitHash::new(test_dir, "HEAD".to_owned()).unwrap(),
         benchmark_name.to_owned(),
+        "recurse-c".to_owned(),
         "flame-graph".to_owned(),
     );
 
@@ -215,6 +216,7 @@ fn utility_test() {
             BenchmarkParams::new(
                 commit_hash.clone(),
                 "utility".to_owned(),
+                "sleeper".to_owned(),
                 1,
                 "echo".to_owned()
             ),
@@ -227,6 +229,7 @@ fn utility_test() {
             BenchmarkParams::new(
                 commit_hash.clone(),
                 "utility".to_owned(),
+                "sleeper".to_owned(),
                 2,
                 "echo".to_owned()
             ),
@@ -239,6 +242,7 @@ fn utility_test() {
             BenchmarkParams::new(
                 commit_hash.clone(),
                 "utility".to_owned(),
+                "sleeper".to_owned(),
                 5,
                 "echo".to_owned()
             ),

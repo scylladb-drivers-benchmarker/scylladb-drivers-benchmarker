@@ -112,7 +112,7 @@ pub fn benchmark(
 
     let measurement_method: MeasurementMethod = bench_measure.clone().into();
     let param_generator =
-        BenchmarkParamsBuilder::new(commit_hash, benchmark_name, measurement_method.to_string());
+        BenchmarkParamsBuilder::new(commit_hash, benchmark_name, backend_config.name.clone(), measurement_method.to_string());
 
     let points = match benchmark_mode {
         BenchmarkMode::UseCached => filter_points(database, points.into_iter(), &param_generator)?,
@@ -140,18 +140,13 @@ pub fn benchmark(
         BenchMeasure::Command(command) => &CommandExecutor::new(command, run_command),
     };
 
-    let execute = |point| {
-        if let Some(timeout) = timeout {
-            exec.execute_with_timeout(point, timeout)
-        } else {
-            exec.execute(point)
-        }
-    };
-
     let no_points = points.len();
-    for (idx, point) in (1..).zip(points.into_iter()) {
+    for (idx, point) in (1..).zip(points) {
         info!("Measuring [{idx}/{no_points}] in {point}...");
-        let record = execute(point)?;
+        let record = match timeout {
+            Some(t) => exec.execute_with_timeout(point, t),
+            None => exec.execute(point),
+        }?;
         database.insert_data(param_generator.finalize(point), record)?;
     }
     info!("Finished measuring");

@@ -14,6 +14,7 @@ fn example_param(hash: &str) -> BenchmarkParams {
     BenchmarkParams::new(
         CommitHash::new_unchecked(hash.to_owned()),
         "speed".to_owned(),
+        "default-backend".to_owned(),
         42,
         "cold".to_owned(),
     )
@@ -92,6 +93,7 @@ fn test_data_filtration() {
 
     let commit_hashes = vec!["a", "b"];
     let benchmark_names = vec!["x", "y"];
+    let backend_names = vec!["backend1"];
     let benchmark_points = vec![1, 2];
     let measurement_methods = vec!["cold", "hot"];
 
@@ -99,25 +101,28 @@ fn test_data_filtration() {
     // Test data_filtration (creating WHERE clouse).
     for &ch in &commit_hashes {
         for &bn in &benchmark_names {
-            for &bp in &benchmark_points {
-                for &mm in &measurement_methods {
-                    let params = BenchmarkParams::new(
-                        CommitHash::new_unchecked(ch.into()),
-                        bn.into(),
-                        bp,
-                        mm.into(),
-                    );
+            for &back in &backend_names {
+                for &bp in &benchmark_points {
+                    for &mm in &measurement_methods {
+                        let params = BenchmarkParams::new(
+                            CommitHash::new_unchecked(ch.into()),
+                            bn.into(),
+                            back.into(),
+                            bp,
+                            mm.into(),
+                        );
 
-                    let sql = db.data_filtration(&BenchmarkFilters::filter_exact_param(&params));
-                    let expected_sql = format!(
-                        "WHERE commit_hash IN ('{}') AND benchmark_name IN ('{}') AND benchmark_point IN ({}) AND measurement_method IN ('{}')",
-                        ch, bn, bp, mm
-                    );
+                        let sql = db.data_filtration(&BenchmarkFilters::filter_exact_param(&params));
+                        let expected_sql = format!(
+                            "WHERE commit_hash IN ('{}') AND benchmark_name IN ('{}') AND backend_name IN ('{}') AND benchmark_point IN ({}) AND measurement_method IN ('{}')",
+                            ch, bn, back, bp, mm
+                        );
 
-                    assert_eq!(sql, expected_sql);
+                        assert_eq!(sql, expected_sql);
 
-                    db.insert_data(params, BenchmarkRecord::Data("".to_owned()))
-                        .unwrap();
+                        db.insert_data(params, BenchmarkRecord::Data("".to_owned()))
+                            .unwrap();
+                    }
                 }
             }
         }
@@ -130,6 +135,7 @@ fn test_data_filtration() {
             BenchmarkFilters {
                 commit_hashes: vec!["a".into()],
                 benchmark_names: vec!["x".into()],
+                backend_names: vec!["backend1".into()],
                 benchmark_points: vec![1],
                 measurement_methods: vec!["cold".into()],
             },
@@ -140,6 +146,7 @@ fn test_data_filtration() {
             BenchmarkFilters {
                 commit_hashes: vec![],
                 benchmark_names: vec!["y".into()],
+                backend_names: vec![],
                 benchmark_points: vec![2],
                 measurement_methods: vec![
                     "'but_has_funny_chars'''''''".into(),
@@ -154,6 +161,7 @@ fn test_data_filtration() {
             BenchmarkFilters {
                 commit_hashes: vec![],
                 benchmark_names: vec!["x".into()],
+                backend_names: vec![],
                 benchmark_points: vec![],
                 measurement_methods: vec!["cold".into()],
             },

@@ -33,12 +33,11 @@ impl SeriesPlot {
     pub fn from_dataset<T: SeriesValue>(
         dataset: BenchmarkDataset<T>,
         benchmark_name: String,
-        names: &[String],
         visualization_kind: VisKind,
     ) -> Result<Self, PlotError> {
         let mut results = Vec::new();
 
-        for (id, (name, series_values)) in names.iter().zip(dataset.results.into_iter()).enumerate()
+        for (id, (name, series_values)) in dataset.names.iter().zip(dataset.results.into_iter()).enumerate()
         {
             let series: ValueTransformation<T> = match visualization_kind {
                 VisKind::Linear => ValueTransformation::Linear(LinearSeries { y: series_values }),
