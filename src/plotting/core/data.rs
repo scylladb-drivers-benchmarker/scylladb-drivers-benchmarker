@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::fmt::Debug;
 use std::str::FromStr;
 
@@ -27,7 +26,7 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
     pub fn new(
         database: &Database,
         benchmark_config: &BenchmarkData,
-        commits: impl Iterator<Item = (CommitHash, String)>,
+        series: impl Iterator<Item = (String, CommitHash, String)>,
         measurement_method: &MeasurementMethod,
     ) -> Result<BenchmarkDataset<T>, PlotError> {
         info!("Searching the database for results...");
@@ -35,42 +34,18 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         let mut results = Vec::new();
         let mut std_devs = Vec::new();
         let mut names = Vec::new();
-        // Tracks (commit_hash, backend_name) pairs already added to avoid duplicates.
-        // This can happen when multiple --from paths belong to the same git repository
-        // and therefore resolve to the same commit hash.
-        let mut seen: HashSet<(String, String)> = HashSet::new();
 
-        for (commit_hash, tag) in commits {
-            let backend_names = database
-                .get_backend_names(&commit_hash, &benchmark_config.name, &measurement_method.to_string())
-                .map_err(PlotError::Database)?;
-
-            if backend_names.is_empty() {
-                return Err(PlotError::MissingBenchmark {
-                    commit_hash: commit_hash.as_str().to_owned(),
-                    benchmark: benchmark_config.name.clone(),
-                    measurement_method: measurement_method.to_string(),
-                });
-            }
-
-            for backend_name in backend_names {
-                let key = (commit_hash.as_str().to_owned(), backend_name.clone());
-                if !seen.insert(key) {
-                    debug!("Skipping duplicate ({commit_hash}, {backend_name})");
-                    continue;
-                }
-
-                let (series, devs) = Self::get_benchmark_results(
-                    database,
-                    &commit_hash,
-                    benchmark_config,
-                    measurement_method,
-                    &backend_name,
-                )?;
-                names.push(format!("{}@{}", backend_name, tag));
-                results.push(series);
-                std_devs.push(devs);
-            }
+        for (backend_name, commit_hash, tag) in series {
+            let (series_values, devs) = Self::get_benchmark_results(
+                database,
+                &commit_hash,
+                benchmark_config,
+                measurement_method,
+                &backend_name,
+            )?;
+            names.push(format!("{}@{}", backend_name, tag));
+            results.push(series_values);
+            std_devs.push(devs);
         }
 
         Ok(BenchmarkDataset {

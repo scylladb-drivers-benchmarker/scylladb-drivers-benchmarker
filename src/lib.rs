@@ -7,8 +7,14 @@ use crate::config::benchmark::BenchmarkData;
 use crate::database::utilities::BenchmarkFilters;
 use crate::database::{Database, DatabaseError};
 use crate::plotting::error::PlotError;
-use crate::repo_with_commits::{RepoNameWithTags, RepoPathWithCommits};
 use crate::utilities::format_entry;
+
+/// A specific (backend, commit, label) triple identifying one data series to plot.
+pub struct BackendWithCommit {
+    pub backend_name: String,
+    pub commit: CommitHash,
+    pub tag: String,
+}
 pub mod benchmarking;
 pub mod command;
 pub mod commit_hash;
@@ -50,22 +56,9 @@ pub fn plot_benchmarks(
     plot_settings: PlotSettings,
     database: &Database,
     benchmark_config: BenchmarkData,
-    from: Vec<RepoNameWithTags>,
-    resolved: Vec<RepoPathWithCommits>,
+    series: Vec<BackendWithCommit>,
 ) -> Result<(), PlotError> {
-    let commits_with_tags = from
-        .into_iter()
-        .zip(resolved.into_iter())
-        .flat_map(|(repo_name, repo_path)| {
-            repo_path.git_hashes.into_iter().zip(repo_name.tags.into_iter())
-        });
-
-    plotting::plot(
-        plot_settings,
-        database,
-        benchmark_config,
-        commits_with_tags,
-    )
+    plotting::plot(plot_settings, database, benchmark_config, series.into_iter())
 }
 
 pub fn drop_database(database: &Database, filters: BenchmarkFilters) -> Result<(), DatabaseError> {

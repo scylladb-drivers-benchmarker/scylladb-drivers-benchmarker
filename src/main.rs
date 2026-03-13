@@ -5,8 +5,7 @@ use scylladb_drivers_benchmarker::config::backend::BackendConfig;
 use scylladb_drivers_benchmarker::config::benchmark::BenchmarkData;
 use scylladb_drivers_benchmarker::database::Database;
 use scylladb_drivers_benchmarker::database::utilities::BenchmarkFilters;
-use scylladb_drivers_benchmarker::repo_with_commits::{RepoNameWithTags, RepoPathWithCommits};
-use scylladb_drivers_benchmarker::{PlotKind, PlotSettings, command};
+use scylladb_drivers_benchmarker::{BackendWithCommit, PlotKind, PlotSettings, command};
 
 use crate::parsing::App;
 
@@ -22,10 +21,7 @@ pub struct BenchmarkParams {
 
 pub struct PlotParams {
     pub benchmark_config: BenchmarkData,
-
-    pub from: Vec<RepoNameWithTags>,
-    pub resolved: Vec<RepoPathWithCommits>,
-
+    pub series: Vec<BackendWithCommit>,
     pub plot_settings: PlotSettings,
 }
 
@@ -67,16 +63,14 @@ fn main() {
         .unwrap_or_else(print_error),
         crate::parsing::Subcommands::Plot(PlotParams {
             benchmark_config,
-            from,
-            resolved,
+            series,
             plot_settings,
         }) => {
             scylladb_drivers_benchmarker::plot_benchmarks(
                 plot_settings,
                 &input.database,
                 benchmark_config,
-                from,
-                resolved,
+                series,
             )
         }
         .unwrap_or_else(print_error),

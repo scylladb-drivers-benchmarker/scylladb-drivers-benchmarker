@@ -14,7 +14,7 @@ use log::{info, trace};
 use scylladb_drivers_benchmarker::config::ConfigError;
 use scylladb_drivers_benchmarker::database::DatabaseError;
 use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
-use scylladb_drivers_benchmarker::repo_with_commits::RepoNameWithCommitsParsingError;
+use plot::BackendWithCommitParsingError;
 
 use crate::parsing::aliasing::{AliasingConfig, MainConfigError};
 use crate::parsing::benchmark::BenchmarkCommand;
@@ -59,7 +59,7 @@ pub(crate) enum ParsingError {
     AliasingConfig(#[from] MainConfigError),
     DatabasePathAccess(#[from] DbPathError),
     DatabaseInitialization(#[from] DatabaseError),
-    FromClauser(#[from] RepoNameWithCommitsParsingError),
+    SeriesError(#[from] BackendWithCommitParsingError),
     BenchmarkConfigError(#[from] ConfigError),
     NoStoreDir {
         needed_by: MeasurementMethod,

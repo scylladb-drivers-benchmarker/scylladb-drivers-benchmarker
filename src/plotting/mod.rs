@@ -15,7 +15,7 @@ use plotters::backend::{BitMapBackend, SVGBackend};
 
 use log::info;
 
-use crate::commit_hash::CommitHash;
+use crate::BackendWithCommit;
 use crate::config::benchmark::BenchmarkData;
 use crate::database::Database;
 use crate::measurement::MeasurementMethod;
@@ -78,7 +78,7 @@ pub fn plot(
     plot_settings: PlotSettings,
     database: &Database,
     benchmark_config: BenchmarkData,
-    commits: impl Iterator<Item = (CommitHash, String)>,
+    series: impl Iterator<Item = BackendWithCommit>,
 ) -> Result<(), PlotError> {
     match plot_settings.plot_kind {
         PlotKind::Series {
@@ -88,7 +88,7 @@ pub fn plot(
             let dataset: BenchmarkDataset<f64> = BenchmarkDataset::new(
                 database,
                 &benchmark_config,
-                commits,
+                series.map(|s| (s.backend_name, s.commit, s.tag)),
                 &measurement_method,
             )?;
 
@@ -109,7 +109,7 @@ pub fn plot(
             let dataset: BenchmarkDataset<String> = BenchmarkDataset::new(
                 database,
                 &benchmark_config,
-                commits,
+                series.map(|s| (s.backend_name, s.commit, s.tag)),
                 &MeasurementMethod::FlameGraph,
             )?;
 
@@ -128,7 +128,7 @@ pub fn plot(
             let dataset: BenchmarkDataset<PerfStatData> = BenchmarkDataset::new(
                 database,
                 &benchmark_config,
-                commits,
+                series.map(|s| (s.backend_name, s.commit, s.tag)),
                 &MeasurementMethod::Perf,
             )?;
 

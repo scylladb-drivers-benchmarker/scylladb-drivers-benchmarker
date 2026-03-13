@@ -95,7 +95,11 @@ fn extract() {
     let dataset: BenchmarkDataset<f64> = BenchmarkDataset::new(
         &db,
         &configs[0],
-        [(hashes[0].clone(), "tag0".to_owned()), (hashes[1].clone(), "tag1".to_owned())].into_iter(),
+        [
+            ("test-backend".to_owned(), hashes[0].clone(), "tag0".to_owned()),
+            ("test-backend".to_owned(), hashes[1].clone(), "tag1".to_owned()),
+        ]
+        .into_iter(),
         &measure,
     )
     .unwrap();
@@ -109,8 +113,13 @@ fn extract() {
     );
     assert_eq!(dataset.names, vec!["test-backend@tag0", "test-backend@tag1"]);
 
-    let dataset: BenchmarkDataset<f64> =
-        BenchmarkDataset::new(&db, &configs[1], [(hashes[2].clone(), "tag2".to_owned())].into_iter(), &measure).unwrap();
+    let dataset: BenchmarkDataset<f64> = BenchmarkDataset::new(
+        &db,
+        &configs[1],
+        [("test-backend".to_owned(), hashes[2].clone(), "tag2".to_owned())].into_iter(),
+        &measure,
+    )
+    .unwrap();
     assert_eq!(dataset.points, vec![10]);
     assert_eq!(dataset.results, vec![vec![Some(3.5)]]);
     assert_eq!(dataset.names, vec!["test-backend@tag2"]);
@@ -126,7 +135,7 @@ macro_rules! drop_and_expect_failure {
             measurement_methods: vec![$measure.to_string()],
         }).unwrap();
 
-        let err = BenchmarkDataset::<f64>::new(&$db, &$conf, [($hash.clone(), "tag".to_owned())].into_iter(), &$measure).unwrap_err();
+        let err = BenchmarkDataset::<f64>::new(&$db, &$conf, [("test-backend".to_owned(), $hash.clone(), "tag".to_owned())].into_iter(), &$measure).unwrap_err();
         assert!(matches!(err, $err_pat $(if $guard)?));
     };
 }
@@ -172,8 +181,12 @@ fn extract_failure() {
         .unwrap()
         .set_len(0)
         .unwrap();
-    let dataset: Result<BenchmarkDataset<f64>, PlotError> =
-        BenchmarkDataset::new(&db, &configs[1], [(hashes[2].clone(), "tag2".to_owned())].into_iter(), &measure);
+    let dataset: Result<BenchmarkDataset<f64>, PlotError> = BenchmarkDataset::new(
+        &db,
+        &configs[1],
+        [("test-backend".to_owned(), hashes[2].clone(), "tag2".to_owned())].into_iter(),
+        &measure,
+    );
     assert!(matches!(dataset.unwrap_err(), PlotError::Database(_)));
 }
 
@@ -228,7 +241,7 @@ fn extract_perfstat_dataset() {
     let dataset: BenchmarkDataset<perf_stat::PerfStatData> = BenchmarkDataset::new(
         &db,
         &config,
-        [(commit.clone(), "tag".to_owned())].into_iter(),
+        [("test-backend".to_owned(), commit.clone(), "tag".to_owned())].into_iter(),
         &MeasurementMethod::Perf,
     )
     .unwrap();
