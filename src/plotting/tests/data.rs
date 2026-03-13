@@ -45,11 +45,13 @@ fn init_db() -> TestSetup {
             name: "benchmark1".to_owned(),
             points: vec![1, 2, 3],
             timeout: None,
+            num_runs: 1,
         },
         BenchmarkData {
             name: "benchmark2".to_owned(),
             points: vec![10],
             timeout: None,
+            num_runs: 1,
         },
     ];
 
@@ -189,6 +191,7 @@ fn extract_perfstat_dataset() {
         name: "benchmark_perf".to_owned(),
         points: vec![1, 2],
         timeout: None,
+        num_runs: 1,
     };
 
     let commit = CommitHash::new_unchecked("abc".to_owned());

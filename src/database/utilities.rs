@@ -33,12 +33,13 @@ impl BenchmarkParams {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", content = "value")]
 pub enum BenchmarkRecord {
     Data(String),
     FilePath(PathBuf),
     Timeout,
+    TimedData { mean: f64, stddev: f64 },
 }
 
 impl BenchmarkRecord {

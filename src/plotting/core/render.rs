@@ -13,6 +13,7 @@ use crate::utilities::{BenchmarkPoint, RangedCoordBenchmarkPoint};
 
 const LINE_STROKE_WIDTH: u32 = 4;
 const CROSS_SIZE: u32 = 10;
+const ERROR_BAR_CAP_HALF_PIXELS: i32 = 8;
 
 pub trait Renderable<'a, DB>
 where
@@ -38,6 +39,7 @@ pub struct RenderableSeries {
     pub points: Vec<BenchmarkPoint>,
     name: String,
     series: Vec<Option<f64>>,
+    error_bars: Vec<Option<(f64, f64)>>,
     color: PaletteColor<Palette99>,
     range: Option<(f64, f64)>,
 }
@@ -60,6 +62,7 @@ impl RenderableSeries {
         name: String,
         points: Vec<BenchmarkPoint>,
         series: Vec<Option<f64>>,
+        error_bars: Vec<Option<(f64, f64)>>,
         color: PaletteColor<Palette99>,
         range: Option<(f64, f64)>,
     ) -> Self {
@@ -67,6 +70,7 @@ impl RenderableSeries {
             points,
             name,
             series,
+            error_bars,
             color,
             range,
         }
@@ -120,6 +124,38 @@ where
                     color.stroke_width(LINE_STROKE_WIDTH),
                 )
             });
+
+        for (&x, eb_opt) in self.points.iter().zip(self.error_bars.iter()) {
+            if let Some((y_lo, y_hi)) = eb_opt {
+                // Compute cap half-width in data units from the chart's pixel mapping.
+                let x_range = chart.as_coord_spec().x_spec().range();
+                let px_start = chart.backend_coord(&(x_range.start, 0.0)).0 as f64;
+                let px_end = chart.backend_coord(&(x_range.end, 0.0)).0 as f64;
+                let data_range = (x_range.end - x_range.start) as f64;
+                let cap_half: u64 = if data_range > 0.0 && (px_end - px_start).abs() > 0.0 {
+                    let ppu = (px_end - px_start) / data_range;
+                    (ERROR_BAR_CAP_HALF_PIXELS as f64 / ppu.abs()).ceil() as u64
+                } else {
+                    0
+                };
+
+                // Vertical bar
+                chart.draw_series(std::iter::once(PathElement::new(
+                    vec![(x, *y_lo), (x, *y_hi)],
+                    color.stroke_width(LINE_STROKE_WIDTH),
+                )))?;
+                // Bottom cap
+                chart.draw_series(std::iter::once(PathElement::new(
+                    vec![(x.saturating_sub(cap_half), *y_lo), (x + cap_half, *y_lo)],
+                    color.stroke_width(LINE_STROKE_WIDTH),
+                )))?;
+                // Top cap
+                chart.draw_series(std::iter::once(PathElement::new(
+                    vec![(x.saturating_sub(cap_half), *y_hi), (x + cap_half, *y_hi)],
+                    color.stroke_width(LINE_STROKE_WIDTH),
+                )))?;
+            }
+        }
 
         Ok(())
     }

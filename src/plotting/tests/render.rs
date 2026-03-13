@@ -31,6 +31,7 @@ fn renderable_series_runs() {
             Some(90.0),
             Some(100.0),
         ],
+        vec![None; 10],
         Palette99::pick(0),
         Some((10.0, 100.0)),
     );

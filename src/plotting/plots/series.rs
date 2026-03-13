@@ -37,7 +37,11 @@ impl SeriesPlot {
     ) -> Result<Self, PlotError> {
         let mut results = Vec::new();
 
-        for (id, (name, series_values)) in dataset.names.iter().zip(dataset.results.into_iter()).enumerate()
+        for (id, (name, (series_values, raw_std_devs))) in dataset
+            .names
+            .iter()
+            .zip(dataset.results.into_iter().zip(dataset.std_devs.into_iter()))
+            .enumerate()
         {
             let series: ValueTransformation<T> = match visualization_kind {
                 VisKind::Linear => ValueTransformation::Linear(LinearSeries { y: series_values }),
@@ -47,14 +51,47 @@ impl SeriesPlot {
             let range = series.range()?;
             let series = series.series()?;
 
+            // Compute error bar bounds in chart coordinates from linear-space std devs.
+            let error_bars: Vec<Option<(f64, f64)>> = series
+                .iter()
+                .copied()
+                .zip(raw_std_devs.iter().copied())
+                .map(|(v_opt, d_opt)| match (v_opt, d_opt) {
+                    (Some(v), Some(d)) => match visualization_kind {
+                        VisKind::Linear => Some((v - d, v + d)),
+                        VisKind::Log => {
+                            // v is log10(original); back-transform to apply stddev in linear space
+                            let original = 10f64.powf(v);
+                            let lo = (original - d).max(f64::EPSILON).log10();
+                            let hi = (original + d).log10();
+                            Some((lo, hi))
+                        }
+                    },
+                    _ => None,
+                })
+                .collect();
+
+            // Expand chart y-range to encompass the error bar extremes.
+            let expanded_range = {
+                let mut bounds = range;
+                for (lo, hi) in error_bars.iter().flatten() {
+                    bounds = Some(match bounds {
+                        None => (*lo, *hi),
+                        Some((b_lo, b_hi)) => (b_lo.min(*lo), b_hi.max(*hi)),
+                    });
+                }
+                bounds
+            };
+
             let color = Palette99::pick(id);
 
             results.push(RenderableSeries::new(
                 name.clone(),
                 dataset.points.clone(),
                 series,
+                error_bars,
                 color,
-                range,
+                expanded_range,
             ));
         }
 

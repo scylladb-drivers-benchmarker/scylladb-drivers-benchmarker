@@ -13,6 +13,14 @@ pub enum ProgressType {
     Additive,
 }
 
+fn default_num_runs() -> u32 {
+    1
+}
+
+fn is_default_num_runs(n: &u32) -> bool {
+    *n == 1
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub struct BenchmarkConfig {
@@ -27,6 +35,8 @@ pub struct BenchmarkConfig {
         with = "humantime_serde"
     )]
     pub timeout: Option<Duration>,
+    #[serde(default = "default_num_runs", skip_serializing_if = "is_default_num_runs")]
+    pub num_runs: u32,
 }
 
 impl BenchmarkConfig {
@@ -61,6 +71,7 @@ pub struct BenchmarkData {
     pub name: String,
     pub points: Vec<BenchmarkPoint>,
     pub timeout: Option<Duration>,
+    pub num_runs: u32,
 }
 
 impl From<BenchmarkConfig> for BenchmarkData {
@@ -69,6 +80,7 @@ impl From<BenchmarkConfig> for BenchmarkData {
             points: value.benchmark_points().collect(),
             name: value.name,
             timeout: value.timeout,
+            num_runs: value.num_runs,
         }
     }
 }
@@ -103,6 +115,7 @@ mod tests {
             step_progress: 2,
             progress_type: ProgressType::Additive,
             timeout: None,
+            num_runs: 1,
         };
         let points: Vec<u64> = data.benchmark_points().collect();
         assert_eq!(points, vec![7, 9, 11]);
@@ -117,6 +130,7 @@ mod tests {
             step_progress: 2,
             progress_type: ProgressType::Multiplicative,
             timeout: None,
+            num_runs: 1,
         };
         let points: Vec<u64> = data.benchmark_points().collect();
         assert_eq!(points, vec![3, 6, 12]);
@@ -131,6 +145,7 @@ mod tests {
             step_progress: 2,
             progress_type: ProgressType::Multiplicative,
             timeout: Some(Duration::from_secs(3)),
+            num_runs: 1,
         };
 
         let serialized: String = serde_yml::to_string(&config).unwrap();
@@ -158,6 +173,7 @@ timeout: '3s'
             step_progress: 2,
             progress_type: ProgressType::Multiplicative,
             timeout: None,
+            num_runs: 1,
         };
 
         let config2 = BenchmarkConfig {
@@ -167,6 +183,7 @@ timeout: '3s'
             step_progress: 3,
             progress_type: ProgressType::Additive,
             timeout: Some(Duration::from_secs(2 * 60)),
+            num_runs: 1,
         };
 
         let config_list = BenchmarkConfigList {

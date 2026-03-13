@@ -27,13 +27,14 @@ fn check_data(commit_hash: &CommitHash, backend_name: &str, data: Vec<(Benchmark
             assert!(params == param_builder.finalize(params.benchmark_point));
         }
 
-        let record = match record {
-            BenchmarkRecord::Data(data) => data,
+        match record {
+            BenchmarkRecord::Data(data) => {
+                data.parse::<f64>().expect("Should be parsable as f64");
+            }
+            BenchmarkRecord::TimedData { .. } => {} // mean is always a valid f64
             BenchmarkRecord::FilePath(file) => panic!("File in database: {}", file.display()),
-            BenchmarkRecord::Timeout => continue,
+            BenchmarkRecord::Timeout => {}
         };
-
-        record.parse::<f64>().expect("Should be parsable");
     }
 }
 

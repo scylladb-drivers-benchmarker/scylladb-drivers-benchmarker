@@ -26,6 +26,7 @@ impl BenchmarkSetup {
                     name: name.to_owned(),
                     points,
                     timeout: None,
+                    num_runs: 1,
                 })
             }
         }
@@ -118,6 +119,7 @@ mod test {
             step_progress: 100,
             progress_type: ProgressType::Multiplicative,
             timeout: Some(Duration::from_secs(60 * 60 * 100)), // 100 hours, from_hours may not be available.
+            num_runs: 1,
         };
         let wrong_config = write_assert(BenchmarkConfigList {
             configs: vec![bconfig],
@@ -172,6 +174,7 @@ mod test {
             step_progress: 1,
             progress_type: ProgressType::Additive,
             timeout: Some(Duration::from_secs(3)),
+            num_runs: 1,
         };
 
         let bconfig_file = write_assert(BenchmarkConfigList {

@@ -16,7 +16,7 @@ use crate::command::{Command, CommandParsingError};
 use crate::commit_hash::CommitHash;
 use crate::config::backend::BackendConfig;
 use crate::config::benchmark::BenchmarkData;
-use crate::database::utilities::BenchmarkFilters;
+use crate::database::utilities::{BenchmarkFilters, BenchmarkRecord};
 use crate::flame_graph::FlameFrequency;
 use crate::measurement::MeasurementMethod;
 use crate::utilities::{BenchmarkParamsBuilder, BenchmarkPoint};
@@ -108,7 +108,10 @@ pub fn benchmark(
         name: benchmark_name,
         points,
         timeout,
+        num_runs,
     } = benchmark_config;
+
+    let is_time = matches!(bench_measure, BenchMeasure::Time);
 
     let measurement_method: MeasurementMethod = bench_measure.clone().into();
     let param_generator =
@@ -143,10 +146,49 @@ pub fn benchmark(
     let no_points = points.len();
     for (idx, point) in (1..).zip(points) {
         info!("Measuring [{idx}/{no_points}] in {point}...");
-        let record = match timeout {
-            Some(t) => exec.execute_with_timeout(point, t),
-            None => exec.execute(point),
-        }?;
+
+        let record = if is_time {
+            let mut values: Vec<f64> = Vec::with_capacity(num_runs as usize);
+            let mut did_timeout = false;
+
+            for run_idx in 0..(num_runs as usize) {
+                if num_runs > 1 {
+                    info!("  Run [{}/{}]...", run_idx + 1, num_runs);
+                }
+                let raw = match timeout {
+                    Some(t) => exec.execute_with_timeout(point, t),
+                    None => exec.execute(point),
+                }?;
+                match raw {
+                    BenchmarkRecord::Timeout => {
+                        did_timeout = true;
+                        break;
+                    }
+                    BenchmarkRecord::Data(s) => {
+                        let v: f64 = s.trim().parse().map_err(|e: std::num::ParseFloatError| {
+                            BenchmarkingError::Measurement(Box::new(e) as Box<dyn Error + 'static>)
+                        })?;
+                        values.push(v);
+                    }
+                    _ => {}
+                }
+            }
+
+            if did_timeout {
+                BenchmarkRecord::Timeout
+            } else {
+                let n = values.len() as f64;
+                let mean = values.iter().sum::<f64>() / n;
+                let variance = values.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / n;
+                BenchmarkRecord::TimedData { mean, stddev: variance.sqrt() }
+            }
+        } else {
+            match timeout {
+                Some(t) => exec.execute_with_timeout(point, t),
+                None => exec.execute(point),
+            }?
+        };
+
         database.insert_data(param_generator.finalize(point), record)?;
     }
     info!("Finished measuring");

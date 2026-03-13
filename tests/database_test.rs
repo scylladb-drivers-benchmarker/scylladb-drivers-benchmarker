@@ -125,6 +125,7 @@ fn database_file() {
             FlatBenchmarkRecord::Data(s) => {
                 assert_eq!(s, file_content, "Flattened data should match file content");
             }
+            FlatBenchmarkRecord::TimedData { .. } => panic!("Should not be TimedData"),
             FlatBenchmarkRecord::Timeout => panic!("Should not be Timeout"),
         }
     }

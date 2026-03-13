@@ -46,10 +46,11 @@ impl BenchmarkParamsBuilder {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum FlatBenchmarkRecord {
     Data(String),
     Timeout,
+    TimedData { mean: f64, stddev: f64 },
 }
 
 impl BenchmarkRecord {
@@ -60,6 +61,9 @@ impl BenchmarkRecord {
                 FlatBenchmarkRecord::Data(fs::read_to_string(&path)?)
             }
             BenchmarkRecord::Timeout => FlatBenchmarkRecord::Timeout,
+            BenchmarkRecord::TimedData { mean, stddev } => {
+                FlatBenchmarkRecord::TimedData { mean, stddev }
+            }
         })
     }
 }
@@ -86,6 +90,11 @@ pub fn format_entry(params: &BenchmarkParams, record: &BenchmarkRecord) -> Strin
         }
         BenchmarkRecord::Timeout => {
             let _ = writeln!(out, "Record Type:         Timeout");
+        }
+        BenchmarkRecord::TimedData { mean, stddev } => {
+            let _ = writeln!(out, "Record Type:         TimedData");
+            let _ = writeln!(out, "Mean:                {mean:.6}");
+            let _ = writeln!(out, "Std Dev:             {stddev:.6}");
         }
     }
 

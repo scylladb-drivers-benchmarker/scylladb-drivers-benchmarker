@@ -18,6 +18,7 @@ impl<T> PlottableValue for T where T: FromStr + Debug + Clone {}
 pub struct BenchmarkDataset<T: PlottableValue> {
     pub points: Vec<BenchmarkPoint>,
     pub results: Vec<Vec<Option<T>>>,
+    pub std_devs: Vec<Vec<Option<f64>>>,
     pub names: Vec<String>,
 }
 
@@ -31,6 +32,7 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         info!("Searching the database for results...");
 
         let mut results = Vec::new();
+        let mut std_devs = Vec::new();
         let mut names = Vec::new();
 
         for (commit_hash, tag) in commits {
@@ -47,7 +49,7 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
             }
 
             for backend_name in backend_names {
-                let series = Self::get_benchmark_results(
+                let (series, devs) = Self::get_benchmark_results(
                     database,
                     &commit_hash,
                     benchmark_config,
@@ -56,12 +58,14 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
                 )?;
                 names.push(format!("{}@{}", backend_name, tag));
                 results.push(series);
+                std_devs.push(devs);
             }
         }
 
         Ok(BenchmarkDataset {
             points: benchmark_config.points.clone(),
             results,
+            std_devs,
             names,
         })
     }
@@ -72,7 +76,7 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         benchmark_config: &BenchmarkData,
         measurement_method: &MeasurementMethod,
         backend_name: &str,
-    ) -> Result<Vec<Option<T>>, PlotError> {
+    ) -> Result<(Vec<Option<T>>, Vec<Option<f64>>), PlotError> {
         let builder = BenchmarkParamsBuilder {
             commit_hash: commit_hash.clone(),
             benchmark_name: benchmark_config.name.clone(),
@@ -81,6 +85,7 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         };
 
         let mut results = Vec::new();
+        let mut std_devs = Vec::new();
         let mut missing = Vec::new();
 
         debug!("Retrieving data for commit_hash: {commit_hash}...");
@@ -97,13 +102,24 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
 
                     trace!("Retrieved result for {point}");
                     results.push(Some(value));
+                    std_devs.push(None);
+                }
+                Some(Ok(FlatBenchmarkRecord::TimedData { mean, stddev })) => {
+                    let text = mean.to_string();
+                    let value =
+                        T::from_str(&text).map_err(|_| PlotError::InvalidData(text.clone()))?;
+
+                    trace!("Retrieved timed result for {point}");
+                    results.push(Some(value));
+                    std_devs.push(Some(stddev));
                 }
                 Some(Ok(FlatBenchmarkRecord::Timeout)) => {
                     trace!("Retrieved timeout for {point}");
-                    results.push(None)
+                    results.push(None);
+                    std_devs.push(None);
                 }
                 Some(Err(e)) => return Err(PlotError::Io(e)),
-                None => missing.push(point), // This invalidates the result, but for better errors, we continue
+                None => missing.push(point),
             }
         }
 
@@ -123,6 +139,6 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
             });
         }
 
-        Ok(results)
+        Ok((results, std_devs))
     }
 }
