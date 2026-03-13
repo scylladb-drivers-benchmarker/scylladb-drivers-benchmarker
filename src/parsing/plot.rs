@@ -28,7 +28,10 @@ pub(crate) enum BackendWithCommitParsingError {
 pub(crate) struct ParsableBackendWithCommit {
     backend_name: String,
     repo: String,
-    tag: String,
+    /// Git ref passed to `git rev-parse` (branch, tag, or commit hash).
+    git_ref: String,
+    /// Label shown on the plot. Defaults to `git_ref` unless `=ALIAS` was given.
+    display_tag: String,
 }
 
 impl FromStr for ParsableBackendWithCommit {
@@ -41,12 +44,12 @@ impl FromStr for ParsableBackendWithCommit {
         if backend_name.is_empty() {
             return Err(BackendWithCommitParsingError::EmptyBackendName);
         }
-        let (repo, tag) = match rest.split_once(':') {
-            Some((repo, tag)) => {
+        let (repo, ref_with_alias) = match rest.split_once(':') {
+            Some((repo, ref_part)) => {
                 if repo.is_empty() {
                     return Err(BackendWithCommitParsingError::EmptyRepo);
                 }
-                (repo, if tag.is_empty() { "HEAD" } else { tag })
+                (repo, if ref_part.is_empty() { "HEAD" } else { ref_part })
             }
             None => {
                 if rest.is_empty() {
@@ -55,10 +58,20 @@ impl FromStr for ParsableBackendWithCommit {
                 (rest, "HEAD")
             }
         };
+        // Split off optional =ALIAS from the REF portion.
+        // An explicit empty alias (REF=) means "show backend name only, no @..." suffix.
+        let (git_ref, display_tag) = match ref_with_alias.split_once('=') {
+            Some((r, alias)) => {
+                let r = if r.is_empty() { "HEAD" } else { r };
+                (r.to_owned(), alias.to_owned()) // alias may be empty string intentionally
+            }
+            None => (ref_with_alias.to_owned(), ref_with_alias.to_owned()),
+        };
         Ok(ParsableBackendWithCommit {
             backend_name: backend_name.to_owned(),
             repo: repo.to_owned(),
-            tag: tag.to_owned(),
+            git_ref,
+            display_tag,
         })
     }
 }
@@ -72,11 +85,11 @@ impl ParsableBackendWithCommit {
             .get(&self.repo)
             .cloned()
             .unwrap_or_else(|| PathBuf::from(&self.repo));
-        let commit = CommitHash::new(&repo_path, self.tag.clone())?;
+        let commit = CommitHash::new(&repo_path, self.git_ref)?;
         Ok(BackendWithCommit {
             backend_name: self.backend_name,
             commit,
-            tag: self.tag,
+            tag: self.display_tag,
         })
     }
 }
@@ -89,10 +102,11 @@ pub(crate) struct PlotCommand {
     pub benchmark_setup: Option<BenchmarkSetup>,
 
     /// Select a backend at a specific commit to include in the plot.
-    /// Format: BACKEND_NAME@REPO_OR_PATH[:REF]
+    /// Format: BACKEND_NAME@REPO_OR_PATH[:REF[=ALIAS]]
     /// REF is a git tag, branch, or commit hash; defaults to HEAD if omitted.
+    /// ALIAS overrides the label shown on the plot (defaults to REF).
     /// Repeat to overlay multiple backends and/or commits on the same chart.
-    #[arg(long, value_name = "BACKEND@REPO[:REF]")]
+    #[arg(long, value_name = "BACKEND@REPO[:REF[=ALIAS]]")]
     pub series: Vec<ParsableBackendWithCommit>,
 
     /// Path to save the plot image

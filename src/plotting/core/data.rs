@@ -43,7 +43,12 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
                 measurement_method,
                 &backend_name,
             )?;
-            names.push(format!("{}@{}", backend_name, tag));
+            let label = if tag.is_empty() {
+                backend_name.clone()
+            } else {
+                format!("{}@{}", backend_name, tag)
+            };
+            names.push(label);
             results.push(series_values);
             std_devs.push(devs);
         }
