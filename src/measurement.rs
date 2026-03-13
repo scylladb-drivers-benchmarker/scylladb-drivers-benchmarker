@@ -1,6 +1,8 @@
 use std::fmt::{self, Debug, Display};
 use std::str::FromStr;
 
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
+
 use crate::command::{self, CommandParsingError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -9,6 +11,19 @@ pub enum MeasurementMethod {
     Perf,
     FlameGraph,
     Command(command::Command),
+}
+
+impl Serialize for MeasurementMethod {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
+impl<'de> Deserialize<'de> for MeasurementMethod {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        s.parse().map_err(de::Error::custom)
+    }
 }
 
 #[justerror::Error]

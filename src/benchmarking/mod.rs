@@ -109,6 +109,7 @@ pub fn benchmark(
         points,
         timeout,
         num_runs,
+        measure: _,
     } = benchmark_config;
 
     let is_time = matches!(bench_measure, BenchMeasure::Time);
