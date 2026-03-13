@@ -15,6 +15,7 @@ pub struct SeriesPlot {
     benchmark_name: String,
     results: Vec<RenderableSeries>,
     visualization_kind: VisKind,
+    y_label: String,
 }
 
 impl SeriesPlot {
@@ -22,11 +23,13 @@ impl SeriesPlot {
         benchmark_name: String,
         results: Vec<RenderableSeries>,
         visualization_kind: VisKind,
+        y_label: String,
     ) -> Self {
         SeriesPlot {
             benchmark_name,
             results,
             visualization_kind,
+            y_label,
         }
     }
 
@@ -34,7 +37,9 @@ impl SeriesPlot {
         dataset: BenchmarkDataset<T>,
         benchmark_name: String,
         visualization_kind: VisKind,
+        y_label: impl Into<String>,
     ) -> Result<Self, PlotError> {
+        let y_label = y_label.into();
         let mut results = Vec::new();
 
         for (id, (name, (series_values, raw_std_devs))) in dataset
@@ -95,7 +100,7 @@ impl SeriesPlot {
             ));
         }
 
-        Ok(SeriesPlot::new(benchmark_name, results, visualization_kind))
+        Ok(SeriesPlot::new(benchmark_name, results, visualization_kind, y_label))
     }
 }
 
@@ -148,7 +153,7 @@ impl Plot for SeriesPlot {
             .configure_mesh()
             .label_style(LABEL_FONT)
             .y_labels(5)
-            .y_desc("Benchmark value")
+            .y_desc(&self.y_label)
             .y_label_style(TICK_FONT)
             .x_desc("Input size")
             .x_label_style(TICK_FONT)

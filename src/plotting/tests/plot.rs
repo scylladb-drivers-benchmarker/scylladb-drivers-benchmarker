@@ -35,7 +35,7 @@ fn setup_test_plot() -> SeriesPlot {
         std_devs: vec![vec![None; 3], vec![None; 3]],
         names: vec!["first".to_owned(), "second".to_owned()],
     };
-    SeriesPlot::from_dataset(dataset, "TestBenchmark".to_owned(), VisKind::Linear).unwrap()
+    SeriesPlot::from_dataset(dataset, "TestBenchmark".to_owned(), VisKind::Linear, "Time [s]").unwrap()
 }
 
 #[test]

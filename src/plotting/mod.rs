@@ -96,6 +96,7 @@ pub fn plot(
                 dataset,
                 benchmark_config.name,
                 visualization_kind,
+                measurement_method.y_axis_label(),
             )?;
 
             plot_on_backend(plot, &plot_settings.output)

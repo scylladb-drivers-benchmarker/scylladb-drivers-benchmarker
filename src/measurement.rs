@@ -19,6 +19,18 @@ pub enum MeasurementMethodParsingError {
     FlameGraphNotInADirectory(String),
 }
 
+impl MeasurementMethod {
+    #[must_use]
+    pub fn y_axis_label(&self) -> &'static str {
+        match self {
+            MeasurementMethod::Time => "Time [s]",
+            MeasurementMethod::Perf => "Perf value",
+            MeasurementMethod::FlameGraph => "Frequency",
+            MeasurementMethod::Command(_) => "Value",
+        }
+    }
+}
+
 impl Display for MeasurementMethod {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
