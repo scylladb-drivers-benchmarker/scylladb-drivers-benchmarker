@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fmt::Debug;
 use std::str::FromStr;
 
@@ -34,6 +35,10 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         let mut results = Vec::new();
         let mut std_devs = Vec::new();
         let mut names = Vec::new();
+        // Tracks (commit_hash, backend_name) pairs already added to avoid duplicates.
+        // This can happen when multiple --from paths belong to the same git repository
+        // and therefore resolve to the same commit hash.
+        let mut seen: HashSet<(String, String)> = HashSet::new();
 
         for (commit_hash, tag) in commits {
             let backend_names = database
@@ -49,6 +54,12 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
             }
 
             for backend_name in backend_names {
+                let key = (commit_hash.as_str().to_owned(), backend_name.clone());
+                if !seen.insert(key) {
+                    debug!("Skipping duplicate ({commit_hash}, {backend_name})");
+                    continue;
+                }
+
                 let (series, devs) = Self::get_benchmark_results(
                     database,
                     &commit_hash,
