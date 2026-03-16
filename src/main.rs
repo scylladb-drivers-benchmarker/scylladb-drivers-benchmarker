@@ -48,19 +48,24 @@ fn main() {
     let input = App::parse().finalize().unwrap_or_else(print_error);
 
     match input.params {
-        crate::parsing::Subcommands::Benchmark(BenchmarkParams {
-            bench_measure,
-            backend_config,
-            benchmark_config,
-            benchmark_mode,
-        }) => scylladb_drivers_benchmarker::run_benchmarks(
-            &input.database,
-            benchmark_config,
-            bench_measure,
-            backend_config,
-            benchmark_mode,
-        )
-        .unwrap_or_else(print_error),
+        crate::parsing::Subcommands::Benchmark(params_list) => {
+            for BenchmarkParams {
+                bench_measure,
+                backend_config,
+                benchmark_config,
+                benchmark_mode,
+            } in params_list
+            {
+                scylladb_drivers_benchmarker::run_benchmarks(
+                    &input.database,
+                    benchmark_config,
+                    bench_measure,
+                    backend_config,
+                    benchmark_mode,
+                )
+                .unwrap_or_else(print_error);
+            }
+        }
         crate::parsing::Subcommands::Plot(PlotParams {
             benchmark_config,
             series,

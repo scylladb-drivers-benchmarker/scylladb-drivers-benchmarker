@@ -156,7 +156,7 @@ Subcommand should be provided after database:
 
 ### Run subcommand
 
-Executes, measures, and stores to the database the results of the measurements. It should be invoked from the inside of the repository holding the application being measured. After `run`, a benchmark named should be passed.
+Executes, measures, and stores to the database the results of the measurements. It should be invoked from the inside of the repository holding the application being measured. Optionally, a benchmark name can be passed after `run`; if omitted, **all** benchmarks found in the backend config are run in sequence.
 
 - `-b`, `--benchmark-config-path` — the path to the configuration file of the benchmark
 - `-B`, `--backend-config-path` — the path to the configuration file of the backend

@@ -102,7 +102,7 @@ pub fn benchmark(
     bench_measure: BenchMeasure,
     benchmark_mode: BenchmarkMode,
 ) -> Result<(), BenchmarkingError> {
-    info!("Setting up benchmarking...");
+    info!("Setting up benchmarking for '{}' with backend '{}'...", benchmark_config.name, backend_config.resolved_name());
 
     let BenchmarkData {
         name: benchmark_name,

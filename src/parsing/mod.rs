@@ -48,7 +48,7 @@ pub(crate) struct ParsedParams {
 }
 
 pub(crate) enum Subcommands {
-    Benchmark(BenchmarkParams),
+    Benchmark(Vec<BenchmarkParams>),
     Plot(PlotParams),
     PrintDatabase(PrintDatabaseParams),
     DropDatabase(DropDatabaseParams),
