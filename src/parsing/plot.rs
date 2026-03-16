@@ -26,12 +26,12 @@ pub(crate) enum BackendWithCommitParsingError {
 
 #[derive(Debug, Clone)]
 pub(crate) struct ParsableBackendWithCommit {
-    backend_name: String,
-    repo: String,
+    pub(crate) backend_name: String,
+    pub(crate) repo: String,
     /// Git ref passed to `git rev-parse` (branch, tag, or commit hash).
-    git_ref: String,
+    pub(crate) git_ref: String,
     /// Label shown on the plot. Defaults to `git_ref` unless `=ALIAS` was given.
-    display_tag: String,
+    pub(crate) display_tag: String,
 }
 
 impl FromStr for ParsableBackendWithCommit {

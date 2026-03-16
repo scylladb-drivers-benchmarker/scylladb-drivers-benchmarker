@@ -2,10 +2,9 @@ use std::path::PathBuf;
 
 use clap::Parser;
 use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
-use scylladb_drivers_benchmarker::repo_with_commits::RepoNameWithTags;
 
 use crate::parsing::database::InputDatabaseCommand;
-use crate::parsing::plot::{InputPlotKind, InputVisKind};
+use crate::parsing::plot::{InputPlotKind, InputVisKind, ParsableBackendWithCommit};
 use crate::parsing::{App, AppSubcommands, BenchmarkCommand, PlotCommand};
 
 #[test]
@@ -24,9 +23,9 @@ fn advanced_plot() {
         "scylladb-drivers-benchmarker",
         "plot",
         "select",
-        "--from=repo:branch",
-        "--from",
-        "repo2:commit",
+        "--series=backend-a@/repo/a:branch",
+        "--series",
+        "backend-b@/repo/b:abc123=v1.0",
         "-o",
         "plot.svg",
         "series",
@@ -35,7 +34,7 @@ fn advanced_plot() {
     let AppSubcommands::Plot(PlotCommand {
         benchmark_name,
         benchmark_setup: _,
-        from,
+        series,
         output,
         plot_kind,
     }) = args.subcommand
@@ -43,10 +42,8 @@ fn advanced_plot() {
         panic!("Not a plot");
     };
 
-    let from: Vec<RepoNameWithTags> = from.into_iter().map(From::from).collect();
-
     assert_eq!(benchmark_name, "select");
-
+    assert_eq!(output, Some(PathBuf::from("plot.svg")));
     assert!(matches!(plot_kind, InputPlotKind::Series { .. }));
     match plot_kind {
         InputPlotKind::Series {
@@ -59,20 +56,18 @@ fn advanced_plot() {
         _ => panic!("Expected PlotKind::Series"),
     }
 
-    assert_eq!(
-        from,
-        vec!(
-            RepoNameWithTags {
-                name: "repo".to_owned(),
-                tags: vec!("branch".to_owned())
-            },
-            RepoNameWithTags {
-                name: "repo2".to_owned(),
-                tags: vec!("commit".to_owned())
-            }
-        )
-    );
-    assert_eq!(output, Some(PathBuf::from("plot.svg".to_owned())));
+    assert_eq!(series.len(), 2);
+    let s0: &ParsableBackendWithCommit = &series[0];
+    assert_eq!(s0.backend_name, "backend-a");
+    assert_eq!(s0.repo, "/repo/a");
+    assert_eq!(s0.git_ref, "branch");
+    assert_eq!(s0.display_tag, "branch");
+
+    let s1: &ParsableBackendWithCommit = &series[1];
+    assert_eq!(s1.backend_name, "backend-b");
+    assert_eq!(s1.repo, "/repo/b");
+    assert_eq!(s1.git_ref, "abc123");
+    assert_eq!(s1.display_tag, "v1.0");
 }
 
 #[test]
