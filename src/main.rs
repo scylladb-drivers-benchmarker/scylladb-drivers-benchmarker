@@ -20,7 +20,7 @@ pub struct BenchmarkParams {
 }
 
 pub struct PlotParams {
-    pub benchmark_config: BenchmarkData,
+    pub benchmarks: Vec<BenchmarkData>,
     pub series: Vec<BackendWithCommit>,
     pub plot_settings: PlotSettings,
 }
@@ -67,14 +67,14 @@ fn main() {
             }
         }
         crate::parsing::Subcommands::Plot(PlotParams {
-            benchmark_config,
+            benchmarks,
             series,
             plot_settings,
         }) => {
             scylladb_drivers_benchmarker::plot_benchmarks(
                 plot_settings,
                 &input.database,
-                benchmark_config,
+                benchmarks,
                 series,
             )
         }

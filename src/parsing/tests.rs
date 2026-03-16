@@ -14,11 +14,7 @@ fn basic_run() {
     let AppSubcommands::Run(BenchmarkCommand { benchmark_name, .. }) = args.subcommand else {
         panic!("Not a run")
     };
-    assert_eq!(benchmark_name, "select");
-}
-
-#[test]
-fn advanced_plot() {
+    assert_eq!(benchmark_name, Some("select".to_owned()));
     let args = App::parse_from(vec![
         "scylladb-drivers-benchmarker",
         "plot",
@@ -42,7 +38,7 @@ fn advanced_plot() {
         panic!("Not a plot");
     };
 
-    assert_eq!(benchmark_name, "select");
+    assert_eq!(benchmark_name, Some("select".to_owned()));
     assert_eq!(output, Some(PathBuf::from("plot.svg")));
     assert!(matches!(plot_kind, InputPlotKind::Series { .. }));
     match plot_kind {

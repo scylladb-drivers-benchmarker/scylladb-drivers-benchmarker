@@ -5,6 +5,9 @@ use std::str::FromStr;
 use clap::Args;
 use scylladb_drivers_benchmarker::BackendWithCommit;
 use scylladb_drivers_benchmarker::commit_hash::{CommitHash, FailedToRetrieveCommitHash};
+use scylladb_drivers_benchmarker::config::benchmark::{BenchmarkConfigList, BenchmarkData};
+use scylladb_drivers_benchmarker::config::config_traits::ConfigurationList;
+use scylladb_drivers_benchmarker::config::open_config;
 use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
 use scylladb_drivers_benchmarker::{PlotSettings, VisKind};
 
@@ -96,7 +99,8 @@ impl ParsableBackendWithCommit {
 
 #[derive(Args, Debug)]
 pub(crate) struct PlotCommand {
-    pub benchmark_name: String,
+    /// Benchmark name to plot. If omitted, all benchmarks from the config are plotted in a grid.
+    pub benchmark_name: Option<String>,
 
     #[arg(short, long)]
     pub benchmark_setup: Option<BenchmarkSetup>,
@@ -204,12 +208,29 @@ impl PlotCommand {
             .output
             .map(|path| path.to_string_lossy().to_string())
             .unwrap_or_else(|| default_output_name.to_owned());
-        Ok(Subcommands::Plot(PlotParams {
-            benchmark_config: BenchmarkSetup::finalize(
+        let benchmarks: Vec<BenchmarkData> = if let Some(benchmark_name) = self.benchmark_name {
+            vec![BenchmarkSetup::finalize(
                 self.benchmark_setup,
-                &self.benchmark_name,
+                &benchmark_name,
                 &aliasing_config,
-            )?,
+            )?]
+        } else {
+            let config_path = match &self.benchmark_setup {
+                Some(BenchmarkSetup::Path(path)) => path.clone(),
+                Some(BenchmarkSetup::Points(_)) => {
+                    return Err(ParsingError::NoBenchmarkConfiguration);
+                }
+                None => aliasing_config
+                    .benchmark_config
+                    .clone()
+                    .ok_or(ParsingError::NoBenchmarkConfiguration)?,
+            };
+            let config_list: BenchmarkConfigList = open_config(&config_path)?;
+            config_list.configs().map(BenchmarkData::from).collect()
+        };
+
+        Ok(Subcommands::Plot(PlotParams {
+            benchmarks,
             series,
             plot_settings: PlotSettings::new(
                 self.plot_kind.finalize(aliasing_config)?,

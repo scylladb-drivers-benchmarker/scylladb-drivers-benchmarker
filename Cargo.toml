@@ -21,6 +21,7 @@ subprocess = "0.2.13"
 uuid = { version = "1.19.0", features = ["v4"] }
 fs-err = "3.2.2"
 tempfile = "3.23.0"
+image = "0.25.9"
 html-escape = "0.2.13"
 regex = "1.12.2"
 log = "0.4.29"

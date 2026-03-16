@@ -10,6 +10,7 @@ use crate::plotting::error::PlotError;
 use crate::utilities::format_entry;
 
 /// A specific (backend, commit, label) triple identifying one data series to plot.
+#[derive(Clone)]
 pub struct BackendWithCommit {
     pub backend_name: String,
     pub commit: CommitHash,
@@ -55,10 +56,10 @@ pub fn run_benchmarks(
 pub fn plot_benchmarks(
     plot_settings: PlotSettings,
     database: &Database,
-    benchmark_config: BenchmarkData,
+    benchmarks: Vec<BenchmarkData>,
     series: Vec<BackendWithCommit>,
 ) -> Result<(), PlotError> {
-    plotting::plot(plot_settings, database, benchmark_config, series.into_iter())
+    plotting::plot(plot_settings, database, benchmarks, series.into_iter())
 }
 
 pub fn drop_database(database: &Database, filters: BenchmarkFilters) -> Result<(), DatabaseError> {
