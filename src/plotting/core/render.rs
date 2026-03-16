@@ -13,6 +13,7 @@ use crate::utilities::{BenchmarkPoint, RangedCoordBenchmarkPoint};
 
 const LINE_STROKE_WIDTH: u32 = 4;
 const CROSS_SIZE: u32 = 10;
+const POINT_RADIUS: u32 = 8;
 const ERROR_BAR_CAP_HALF_PIXELS: i32 = 8;
 
 pub trait Renderable<'a, DB>
@@ -227,10 +228,12 @@ where
             let y_max = chart.as_coord_spec().y_spec().range().end;
 
             let mut line_points: Vec<(BenchmarkPoint, f64)> = Vec::new();
+            let mut dot_points: Vec<(BenchmarkPoint, f64)> = Vec::new();
 
             for (&x, y_opt) in self.points.iter().zip(self.values[id].iter()) {
                 if let Some(y) = y_opt {
                     line_points.push((x, *y));
+                    dot_points.push((x, *y));
                 } else {
                     line_points.push((x, y_max));
                     chart.draw_series(std::iter::once(Cross::new(
@@ -250,6 +253,12 @@ where
                         color.stroke_width(LINE_STROKE_WIDTH),
                     )
                 });
+
+            chart.draw_series(
+                dot_points
+                    .into_iter()
+                    .map(|p| Circle::new(p, POINT_RADIUS, color.filled())),
+            )?;
         }
 
         Ok(())
