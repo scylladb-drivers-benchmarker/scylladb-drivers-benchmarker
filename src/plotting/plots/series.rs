@@ -9,7 +9,7 @@ use crate::plotting::core::{
     Y_LABEL_AREA_SIZE,
 };
 use crate::plotting::{PlotError, VisKind};
-use crate::utilities::calc_min_max;
+use crate::utilities::{calc_min_max, pad_y_range};
 
 pub struct SeriesPlot {
     benchmark_name: String,
@@ -128,6 +128,7 @@ impl Plot for SeriesPlot {
                 .iter()
                 .filter_map(super::super::core::render::RenderableSeries::range),
         )
+        .map(|(lo, hi)| pad_y_range(lo, hi))
         .unwrap_or((0.0, 1.0));
 
         let log_text = match self.visualization_kind {
@@ -155,6 +156,13 @@ impl Plot for SeriesPlot {
             .y_labels(5)
             .y_desc(&self.y_label)
             .y_label_style(TICK_FONT)
+            .y_label_formatter(&|v| {
+                if v.abs() >= 1e6 {
+                    format!("{:.2e}", v)
+                } else {
+                    format!("{}", v)
+                }
+            })
             .x_desc("Input size")
             .x_label_style(TICK_FONT)
             .draw()?;

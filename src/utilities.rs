@@ -101,6 +101,15 @@ pub fn format_entry(params: &BenchmarkParams, record: &BenchmarkRecord) -> Strin
     out
 }
 
+/// Adds a small padding above and below a y range so data points and error bars
+/// are never clipped by the axis boundary.
+/// Uses 5 % of the span, with a fallback for zero-span ranges.
+pub fn pad_y_range(y_min: f64, y_max: f64) -> (f64, f64) {
+    let span = y_max - y_min;
+    let pad = if span == 0.0 { y_max.abs() * 0.05 + 1.0 } else { span * 0.05 };
+    (y_min - pad, y_max + pad)
+}
+
 /// Calculates the minimum and maximum over an iterator of tuples conforming to the (min, max) constraint.
 pub fn calc_min_max(iter: impl Iterator<Item = (f64, f64)>) -> Option<(f64, f64)> {
     iter.fold(

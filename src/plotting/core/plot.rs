@@ -13,13 +13,15 @@ pub const MARGIN_TOP: u32 = 20;
 pub const MARGIN_RIGHT: u32 = 80;
 pub const TITLE_MARGIN_TOP: u32 = 40;
 pub const X_LABEL_AREA_SIZE: u32 = 100;
-pub const Y_LABEL_AREA_SIZE: u32 = 140;
+pub const Y_LABEL_AREA_SIZE: u32 = 220;
 
 pub const FONT_FAMILY: &str = "sans-serif";
 pub const TITLE_FONT_SIZE: u32 = 70;
 pub const TITLE_FONT: (&str, u32) = (FONT_FAMILY, TITLE_FONT_SIZE);
 pub const CAPTION_FONT_SIZE: u32 = 50;
 pub const CAPTION_FONT: (&str, u32) = (FONT_FAMILY, CAPTION_FONT_SIZE);
+/// Space reserved at the top of a ChartBuilder subarea when using `.caption()` (matches plotters internals: font_size + 10).
+pub const CAPTION_AREA_SIZE: u32 = CAPTION_FONT_SIZE + 10;
 pub const LABEL_FONT_SIZE: u32 = 40;
 pub const LABEL_FONT: (&str, u32) = (FONT_FAMILY, LABEL_FONT_SIZE);
 pub const TICK_FONT_SIZE: u32 = 50;

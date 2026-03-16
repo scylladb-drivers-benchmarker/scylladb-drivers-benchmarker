@@ -7,12 +7,13 @@ use plotters::prelude::*;
 use crate::perf_stat::PerfStatData;
 use crate::plotting::PlotError;
 use crate::plotting::core::{
-    BACKGROUND_COLOR, BackendKind, BackendWithKind, BenchmarkDataset, CAPTION_FONT, LABEL_FONT,
-    LEGEND_BORDER_COLOR, LEGEND_BORDER_SIZE, MARGIN_RIGHT, MARGIN_SIZE, MARGIN_TOP, Plot,
+    BACKGROUND_COLOR, BackendKind, BackendWithKind, BenchmarkDataset, CAPTION_AREA_SIZE, CAPTION_FONT,
+    LABEL_FONT, LEGEND_BORDER_COLOR, LEGEND_BORDER_SIZE, LEGEND_MARGIN, MARGIN_RIGHT, MARGIN_SIZE,
+    MARGIN_TOP, Plot,
     Renderable, RenderablePerfStat, TICK_FONT, TITLE_FONT, TITLE_MARGIN_TOP, X_LABEL_AREA_SIZE,
     Y_LABEL_AREA_SIZE,
 };
-use crate::utilities::calc_min_max;
+use crate::utilities::{calc_min_max, pad_y_range};
 
 pub struct PerfStatPlot {
     benchmark_name: String,
@@ -22,7 +23,6 @@ pub struct PerfStatPlot {
 }
 
 impl PerfStatPlot {
-    const LEGEND_MARGIN_WIDTH: i32 = 20; // outer right margin width
     const LEGEND_PADDING_X: i32 = 20; // inner horizontal padding
     const LEGEND_PADDING_Y: i32 = 20; // inner vertical padding
     const LEGEND_MARKER_WIDTH: i32 = 30; // color rectangle width
@@ -147,7 +147,7 @@ impl PerfStatPlot {
     where
         DB::ErrorType: 'static,
     {
-        let (plot_width, plot_height) = area.dim_in_pixel();
+        let _ = area.dim_in_pixel();
 
         // For some reason this does not work correctly for svg
         let max_label_width = self
@@ -176,8 +176,8 @@ impl PerfStatPlot {
             + self.results.len() as i32 * entry_height
             + (self.results.len() as i32 - 1) * Self::LEGEND_ENTRY_SPACING;
 
-        let legend_left = plot_width as i32 - legend_width - Self::LEGEND_MARGIN_WIDTH;
-        let legend_top = (plot_height as i32 - legend_height) / 2;
+        let legend_left = Y_LABEL_AREA_SIZE as i32 + MARGIN_SIZE as i32 + LEGEND_MARGIN as i32;
+        let legend_top = CAPTION_AREA_SIZE as i32 + MARGIN_TOP as i32 + LEGEND_MARGIN as i32;
 
         let legend_rect = [
             (legend_left, legend_top),
@@ -259,6 +259,7 @@ impl Plot for PerfStatPlot {
                     .unwrap_or(&1);
                 let (y_min, y_max) =
                     calc_min_max(self.results.iter().filter_map(|r| r.ranges()[id]))
+                        .map(|(lo, hi)| pad_y_range(lo, hi))
                         .unwrap_or((0.0, 1.0));
 
                 let mut chart = ChartBuilder::on(&area)
@@ -285,6 +286,13 @@ impl Plot for PerfStatPlot {
                         }
                     ))
                     .y_label_style(TICK_FONT)
+                    .y_label_formatter(&|v| {
+                        if v.abs() >= 1e6 {
+                            format!("{:.2e}", v)
+                        } else {
+                            format!("{}", v)
+                        }
+                    })
                     .x_desc("Input size")
                     .x_label_style(TICK_FONT)
                     .draw()?;
