@@ -116,7 +116,7 @@ pub fn benchmark(
 
     let measurement_method: MeasurementMethod = bench_measure.clone().into();
     let param_generator =
-        BenchmarkParamsBuilder::new(commit_hash, benchmark_name, backend_config.name.clone(), measurement_method.to_string());
+        BenchmarkParamsBuilder::new(commit_hash, benchmark_name, backend_config.resolved_name().to_owned(), measurement_method.to_string());
 
     let points = match benchmark_mode {
         BenchmarkMode::UseCached => filter_points(database, points.into_iter(), &param_generator)?,
@@ -129,7 +129,7 @@ pub fn benchmark(
     }
 
     info!("Building...");
-    build_source(&backend_config.build_command)?;
+    build_source(backend_config.resolved_build_command())?;
 
     let run_command = Command::from_str(&backend_config.run_command)?;
 

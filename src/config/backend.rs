@@ -5,19 +5,34 @@ use crate::config::config_traits::{Configuration, ConfigurationList};
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub struct BackendConfig {
-    pub name: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub benchmark_name: Option<String>,
-    pub build_command: String,
+    pub name: Option<String>,
+    pub benchmark_name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub build_command: Option<String>,
     pub run_command: String,
+}
+
+impl BackendConfig {
+    /// Returns the resolved backend name, panicking if not set after defaults are applied.
+    pub fn resolved_name(&self) -> &str {
+        self.name
+            .as_deref()
+            .expect("'name' must be set in the backend entry or in the top-level defaults")
+    }
+
+    /// Returns the resolved build command, panicking if not set after defaults are applied.
+    pub fn resolved_build_command(&self) -> &str {
+        self.build_command
+            .as_deref()
+            .expect("'build-command' must be set in the backend entry or in the top-level defaults")
+    }
 }
 
 impl Configuration for BackendConfig {
     type ConfigListType = BackendConfigList;
     fn benchmark_name(&self) -> String {
-        self.benchmark_name
-            .clone()
-            .expect("'benchmark-name' must be set in the backend entry or in the top-level defaults")
+        self.benchmark_name.clone()
     }
 }
 
@@ -26,11 +41,9 @@ impl Configuration for BackendConfig {
 #[serde(rename_all = "kebab-case")]
 pub struct BackendDefaults {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub benchmark_name: Option<String>,
+    pub name: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub build_command: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub run_command: Option<String>,
 }
 
 fn is_default_backend_defaults(d: &BackendDefaults) -> bool {
@@ -50,18 +63,11 @@ impl BackendConfigList {
     fn merged(&self) -> impl Iterator<Item = BackendConfig> + '_ {
         self.configs.iter().map(|c| {
             let mut c = c.clone();
-            if c.benchmark_name.is_none() {
-                c.benchmark_name = self.defaults.benchmark_name.clone();
+            if c.name.is_none() {
+                c.name = self.defaults.name.clone();
             }
-            if c.build_command.is_empty() {
-                if let Some(ref cmd) = self.defaults.build_command {
-                    c.build_command = cmd.clone();
-                }
-            }
-            if c.run_command.is_empty() {
-                if let Some(ref cmd) = self.defaults.run_command {
-                    c.run_command = cmd.clone();
-                }
+            if c.build_command.is_none() {
+                c.build_command = self.defaults.build_command.clone();
             }
             c
         })
@@ -82,9 +88,9 @@ mod tests {
     #[test]
     fn serialize_benchmark_config() {
         let config = BackendConfig {
-            name: "scylladb-nodejs-rs-driver".to_owned(),
-            benchmark_name: Some("select".to_owned()),
-            build_command: "npm run build".to_owned(),
+            name: Some("scylladb-nodejs-rs-driver".to_owned()),
+            benchmark_name: "select".to_owned(),
+            build_command: Some("npm run build".to_owned()),
             run_command: "node benchmark/logic/select.js scylladb-nodejs-rs-driver".to_owned(),
         };
 
@@ -101,9 +107,9 @@ run-command: node benchmark/logic/select.js scylladb-nodejs-rs-driver
     #[test]
     fn find_config() {
         let config = |name| BackendConfig {
-            name: "name: ".to_owned() + name,
-            benchmark_name: Some("benchmark_".to_owned() + name),
-            build_command: "build_cmd_".to_owned() + name,
+            name: Some("name: ".to_owned() + name),
+            benchmark_name: "benchmark_".to_owned() + name,
+            build_command: Some("build_cmd_".to_owned() + name),
             run_command: "run_cmd_".to_owned() + name,
         };
 

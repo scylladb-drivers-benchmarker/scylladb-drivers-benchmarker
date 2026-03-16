@@ -19,10 +19,10 @@ pub struct PerfEvent {
     #[serde(default)]
     pub event: String,
 
-    #[serde(rename = "metric-value", deserialize_with = "deserialize_perf_numbers")]
+    #[serde(rename = "counter-value", deserialize_with = "deserialize_perf_numbers", default)]
     pub value: f64,
 
-    #[serde(rename = "metric-unit")]
+    #[serde(rename = "unit", default)]
     pub unit: String,
 }
 
