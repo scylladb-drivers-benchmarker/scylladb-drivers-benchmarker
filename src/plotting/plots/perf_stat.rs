@@ -288,7 +288,10 @@ impl Plot for PerfStatPlot {
                     .y_label_style(TICK_FONT)
                     .y_label_formatter(&|v| {
                         if v.abs() >= 1e6 {
-                            format!("{:.2e}", v)
+                            let s = format!("{:.2e}", v);
+                            let (mantissa, exp) = s.split_once('e').unwrap();
+                            let mantissa = mantissa.trim_end_matches('0').trim_end_matches('.');
+                            format!("{mantissa}e{exp}")
                         } else {
                             format!("{}", v)
                         }
