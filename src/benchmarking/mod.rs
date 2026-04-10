@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use executor::build_source;
-use log::{debug, info, trace};
+use log::{debug, info, trace, warn};
 
 use super::database::{Database, DatabaseError};
 use crate::benchmarking::executor::command_executor::CommandExecutor;
@@ -151,31 +151,46 @@ pub fn benchmark(
         let record = if is_time {
             let mut values: Vec<f64> = Vec::with_capacity(num_runs as usize);
             let mut did_timeout = false;
+            let mut point_failed = false;
 
             for run_idx in 0..(num_runs as usize) {
                 if num_runs > 1 {
                     info!("  Run [{}/{}]...", run_idx + 1, num_runs);
                 }
-                let raw = match timeout {
+                let raw = match match timeout {
                     Some(t) => exec.execute_with_timeout(point, t),
                     None => exec.execute(point),
-                }?;
+                } {
+                    Ok(r) => r,
+                    Err(e) => {
+                        warn!("Point {point} failed: {e}");
+                        point_failed = true;
+                        break;
+                    }
+                };
                 match raw {
                     BenchmarkRecord::Timeout => {
                         did_timeout = true;
                         break;
                     }
                     BenchmarkRecord::Data(s) => {
-                        let v: f64 = s.trim().parse().map_err(|e: std::num::ParseFloatError| {
-                            BenchmarkingError::Measurement(Box::new(e) as Box<dyn Error + 'static>)
-                        })?;
+                        let v: f64 = match s.trim().parse::<f64>() {
+                            Ok(v) => v,
+                            Err(e) => {
+                                warn!("Point {point} failed: {e}");
+                                point_failed = true;
+                                break;
+                            }
+                        };
                         values.push(v);
                     }
                     _ => {}
                 }
             }
 
-            if did_timeout {
+            if point_failed {
+                continue;
+            } else if did_timeout {
                 BenchmarkRecord::Timeout
             } else {
                 let n = values.len() as f64;
@@ -184,10 +199,16 @@ pub fn benchmark(
                 BenchmarkRecord::TimedData { mean, stddev: variance.sqrt() }
             }
         } else {
-            match timeout {
+            match match timeout {
                 Some(t) => exec.execute_with_timeout(point, t),
                 None => exec.execute(point),
-            }?
+            } {
+                Ok(r) => r,
+                Err(e) => {
+                    warn!("Point {point} failed: {e}");
+                    continue;
+                }
+            }
         };
 
         database.insert_data(param_generator.finalize(point), record)?;
