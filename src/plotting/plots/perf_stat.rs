@@ -7,8 +7,8 @@ use plotters::prelude::*;
 use crate::perf_stat::PerfStatData;
 use crate::plotting::PlotError;
 use crate::plotting::core::{
-    BACKGROUND_COLOR, BackendKind, BackendWithKind, BenchmarkDataset, CAPTION_AREA_SIZE, CAPTION_FONT,
-    LABEL_FONT, LEGEND_BORDER_COLOR, LEGEND_BORDER_SIZE, LEGEND_MARGIN, MARGIN_RIGHT, MARGIN_SIZE,
+    BACKGROUND_COLOR, BackendKind, BackendWithKind, BenchmarkDataset, CAPTION_FONT,
+    LABEL_FONT, LEGEND_BORDER_COLOR, LEGEND_BORDER_SIZE, MARGIN_RIGHT, MARGIN_SIZE,
     MARGIN_TOP, Plot,
     Renderable, RenderablePerfStat, TICK_FONT, TITLE_FONT, TITLE_MARGIN_TOP, X_LABEL_AREA_SIZE,
     Y_LABEL_AREA_SIZE,
@@ -28,8 +28,9 @@ impl PerfStatPlot {
     const LEGEND_MARKER_WIDTH: i32 = 30; // color rectangle width
     const LEGEND_MARKER_HEIGHT: i32 = 20; // color rectangle height
     const LEGEND_MARKER_TEXT_GAP: i32 = 10; // gap between marker and text
-    const LEGEND_ENTRY_SPACING: i32 = 16; // vertical gap between legend entries
+    const LEGEND_ENTRY_GAP: i32 = 60; // horizontal gap between entries
     const LEGEND_CHAR_HEIGHT: i32 = LABEL_FONT.1 as i32; // legend text character height
+    const LEGEND_STRIP_HEIGHT: u32 = 100; // height of the dedicated legend row above charts
 
     fn new(
         benchmark_name: String,
@@ -139,7 +140,7 @@ impl PerfStatPlot {
         ))
     }
 
-    fn add_legend<DB: BackendWithKind + DrawingBackend>(
+    fn add_legend_strip<DB: BackendWithKind + DrawingBackend>(
         &self,
         scale_factor: f64,
         area: DrawingArea<DB, Shift>,
@@ -147,78 +148,66 @@ impl PerfStatPlot {
     where
         DB::ErrorType: 'static,
     {
-        let _ = area.dim_in_pixel();
+        let (area_width, area_height) = area.dim_in_pixel();
+        let entry_height = Self::LEGEND_MARKER_HEIGHT.max(Self::LEGEND_CHAR_HEIGHT);
 
-        // For some reason this does not work correctly for svg
-        let max_label_width = self
+        // Compute each entry's text width (scaled for the SVG estimation quirk)
+        let text_widths: Vec<i32> = self
             .results
             .iter()
             .map(|r| {
                 let style = TextStyle::from(LABEL_FONT.into_font());
-                area.estimate_text_size(&r.name, &style)
+                let w = area
+                    .estimate_text_size(&r.name, &style)
                     .expect("failed to estimate text size")
-                    .0 // width
+                    .0;
+                (f64::from(w) * scale_factor) as i32
             })
-            .max()
-            .unwrap_or(50);
+            .collect();
 
-        // So we scale it in this terrible, hacky, heuristic way
-        let text_width = f64::from(max_label_width) * scale_factor;
+        let entry_widths: Vec<i32> = text_widths
+            .iter()
+            .map(|&tw| Self::LEGEND_MARKER_WIDTH + Self::LEGEND_MARKER_TEXT_GAP + tw)
+            .collect();
 
-        let entry_height = Self::LEGEND_MARKER_HEIGHT.max(Self::LEGEND_CHAR_HEIGHT);
+        let total_content_width: i32 = entry_widths.iter().sum::<i32>()
+            + Self::LEGEND_ENTRY_GAP * (self.results.len() as i32 - 1);
 
-        let legend_width = Self::LEGEND_PADDING_X * 2
-            + Self::LEGEND_MARKER_WIDTH
-            + Self::LEGEND_MARKER_TEXT_GAP
-            + text_width as i32;
+        // Center horizontally and vertically within the strip
+        let mut x = (area_width as i32 - total_content_width) / 2;
+        let y = (area_height as i32 - entry_height) / 2;
 
-        let legend_height = Self::LEGEND_PADDING_Y * 2
-            + self.results.len() as i32 * entry_height
-            + (self.results.len() as i32 - 1) * Self::LEGEND_ENTRY_SPACING;
-
-        let legend_left = Y_LABEL_AREA_SIZE as i32 + MARGIN_SIZE as i32 + LEGEND_MARGIN as i32;
-        let legend_top = CAPTION_AREA_SIZE as i32 + MARGIN_TOP as i32 + LEGEND_MARGIN as i32;
-
-        let legend_rect = [
-            (legend_left, legend_top),
-            (legend_left + legend_width, legend_top + legend_height),
+        // Bounding box with padding
+        let box_rect = [
+            (x - Self::LEGEND_PADDING_X, y - Self::LEGEND_PADDING_Y),
+            (
+                x + total_content_width + Self::LEGEND_PADDING_X,
+                y + entry_height + Self::LEGEND_PADDING_Y,
+            ),
         ];
-
-        // background
-        area.draw(&Rectangle::new(legend_rect, BACKGROUND_COLOR.filled()))?;
-
-        // border
+        area.draw(&Rectangle::new(box_rect, BACKGROUND_COLOR.filled()))?;
         area.draw(&Rectangle::new(
-            legend_rect,
+            box_rect,
             LEGEND_BORDER_COLOR.stroke_width(LEGEND_BORDER_SIZE),
         ))?;
 
-        let mut y = legend_top + Self::LEGEND_PADDING_Y;
-        for r in &self.results {
+        for (r, &ew) in self.results.iter().zip(entry_widths.iter()) {
+            let marker_y_offset = (entry_height - Self::LEGEND_MARKER_HEIGHT) / 2;
             area.draw(&Rectangle::new(
                 [
-                    (legend_left + Self::LEGEND_PADDING_X, y),
-                    (
-                        legend_left + Self::LEGEND_PADDING_X + Self::LEGEND_MARKER_WIDTH,
-                        y + Self::LEGEND_MARKER_HEIGHT,
-                    ),
+                    (x, y + marker_y_offset),
+                    (x + Self::LEGEND_MARKER_WIDTH, y + marker_y_offset + Self::LEGEND_MARKER_HEIGHT),
                 ],
                 r.color.filled(),
             ))?;
 
             area.draw(&Text::new(
                 r.name.clone(),
-                (
-                    legend_left
-                        + Self::LEGEND_PADDING_X
-                        + Self::LEGEND_MARKER_WIDTH
-                        + Self::LEGEND_MARKER_TEXT_GAP,
-                    y,
-                ),
+                (x + Self::LEGEND_MARKER_WIDTH + Self::LEGEND_MARKER_TEXT_GAP, y),
                 LABEL_FONT,
             ))?;
 
-            y += entry_height + Self::LEGEND_ENTRY_SPACING;
+            x += ew + Self::LEGEND_ENTRY_GAP;
         }
 
         Ok(())
@@ -241,79 +230,83 @@ impl Plot for PerfStatPlot {
             TITLE_FONT,
         )?;
 
-        let subareas = plot_area.split_evenly((self.events.len(), 1));
+        let (legend_strip, chart_area) = plot_area.split_vertically(Self::LEGEND_STRIP_HEIGHT);
+        let subareas = chart_area.split_evenly((self.events.len(), 1));
 
-        let mut charts: Vec<_> = subareas
-            .into_iter()
-            .enumerate()
-            .map(|(id, area)| {
-                let x_start = *self
-                    .results
-                    .first()
-                    .and_then(|r| r.points.first())
-                    .unwrap_or(&0);
-                let x_end = *self
-                    .results
-                    .first()
-                    .and_then(|r| r.points.last())
-                    .unwrap_or(&1);
-                let (y_min, y_max) =
-                    calc_min_max(self.results.iter().filter_map(|r| r.ranges()[id]))
-                        .map(|(lo, hi)| pad_y_range(lo, hi))
-                        .unwrap_or((0.0, 1.0));
+        {
+            let mut charts: Vec<_> = subareas
+                .iter()
+                .enumerate()
+                .map(|(id, area)| {
+                    let x_start = *self
+                        .results
+                        .first()
+                        .and_then(|r| r.points.first())
+                        .unwrap_or(&0);
+                    let x_end = *self
+                        .results
+                        .first()
+                        .and_then(|r| r.points.last())
+                        .unwrap_or(&1);
+                    let (_, y_max) =
+                        calc_min_max(self.results.iter().filter_map(|r| r.ranges()[id]))
+                            .map(|(lo, hi)| pad_y_range(lo, hi))
+                            .unwrap_or((0.0, 1.0));
+                    let y_min = 0.0_f64;
 
-                let mut chart = ChartBuilder::on(&area)
-                    .caption(self.events[id].clone(), CAPTION_FONT)
-                    .margin_top(MARGIN_TOP)
-                    .margin_right(MARGIN_RIGHT)
-                    .margin_bottom(MARGIN_SIZE)
-                    .margin_left(MARGIN_SIZE)
-                    .x_label_area_size(X_LABEL_AREA_SIZE)
-                    .y_label_area_size(Y_LABEL_AREA_SIZE)
-                    .build_cartesian_2d(x_start..x_end, y_min..y_max)
-                    .map_err(|e| PlotError::Plotters(e.to_string()))?;
+                    let mut chart = ChartBuilder::on(area)
+                        .caption(self.events[id].clone(), CAPTION_FONT)
+                        .margin_top(MARGIN_TOP)
+                        .margin_right(MARGIN_RIGHT)
+                        .margin_bottom(MARGIN_SIZE)
+                        .margin_left(MARGIN_SIZE)
+                        .x_label_area_size(X_LABEL_AREA_SIZE)
+                        .y_label_area_size(Y_LABEL_AREA_SIZE)
+                        .build_cartesian_2d(x_start..x_end, y_min..y_max)
+                        .map_err(|e| PlotError::Plotters(e.to_string()))?;
 
-                chart
-                    .configure_mesh()
-                    .label_style(LABEL_FONT)
-                    .y_labels(5)
-                    .y_desc(format!(
-                        "Value ({})",
-                        if self.units[id].is_empty() {
-                            "unknown unit"
-                        } else {
-                            &self.units[id]
-                        }
-                    ))
-                    .y_label_style(TICK_FONT)
-                    .y_label_formatter(&|v| {
-                        if v.abs() >= 1e6 {
-                            let s = format!("{:.2e}", v);
-                            let (mantissa, exp) = s.split_once('e').unwrap();
-                            let mantissa = mantissa.trim_end_matches('0').trim_end_matches('.');
-                            format!("{mantissa}e{exp}")
-                        } else {
-                            format!("{}", v)
-                        }
-                    })
-                    .x_desc("Input size")
-                    .x_label_style(TICK_FONT)
-                    .draw()?;
+                    chart
+                        .configure_mesh()
+                        .label_style(LABEL_FONT)
+                        .y_labels(5)
+                        .y_desc(format!(
+                            "Value ({})",
+                            if self.units[id].is_empty() {
+                                "unknown unit"
+                            } else {
+                                &self.units[id]
+                            }
+                        ))
+                        .y_label_style(TICK_FONT)
+                        .y_label_formatter(&|v| {
+                            if v.abs() >= 1e6 {
+                                let s = format!("{:.2e}", v);
+                                let (mantissa, exp) = s.split_once('e').unwrap();
+                                let mantissa = mantissa.trim_end_matches('0').trim_end_matches('.');
+                                format!("{mantissa}e{exp}")
+                            } else {
+                                format!("{}", v)
+                            }
+                        })
+                        .x_desc("Input size")
+                        .x_label_style(TICK_FONT)
+                        .draw()?;
 
-                Ok(chart)
-            })
-            .collect::<Result<Vec<_>, PlotError>>()?;
+                    Ok(chart)
+                })
+                .collect::<Result<Vec<_>, PlotError>>()?;
 
-        for r in &self.results {
-            r.add_to_plot(&mut charts)?;
-        }
+            for r in &self.results {
+                r.add_to_plot(&mut charts)?;
+            }
+        } // drop charts, releasing borrows on subareas
 
         let scale_factor = match backend_kind {
             BackendKind::Svg => 0.9,
             _ => 1.0,
         };
 
-        self.add_legend(scale_factor, plot_area)?;
+        self.add_legend_strip(scale_factor, legend_strip)?;
 
         root.present()?;
         Ok(())
