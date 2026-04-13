@@ -272,7 +272,7 @@ impl Plot for PerfStatPlot {
                         .y_desc(format!(
                             "Value ({})",
                             if self.units[id].is_empty() {
-                                "unknown unit"
+                                "count"
                             } else {
                                 &self.units[id]
                             }
