@@ -13,6 +13,10 @@ use wait_timeout::ChildExt;
 pub struct Command {
     program: String,
     arguments: Vec<String>,
+    /// Environment variables set for the spawned process (inherited by wrappers).
+    envs: Vec<(String, String)>,
+    /// Working directory of the spawned process (inherited by wrappers).
+    cwd: Option<std::path::PathBuf>,
 }
 
 impl fmt::Display for Command {
@@ -47,6 +51,8 @@ impl FromStr for Command {
             Ok(Command {
                 program: words.remove(0),
                 arguments: words,
+                envs: Vec::new(),
+                cwd: None,
             })
         }
     }
@@ -58,6 +64,8 @@ impl Command {
         Command {
             program,
             arguments: Vec::new(),
+            envs: Vec::new(),
+            cwd: None,
         }
     }
 
@@ -69,6 +77,8 @@ impl Command {
                 .map(OsStr::to_string_lossy)
                 .map(String::from)
                 .collect(),
+            envs: Vec::new(),
+            cwd: command.get_current_dir().map(std::path::Path::to_owned),
         }
     }
 
@@ -79,11 +89,9 @@ impl Command {
         Command {
             program,
             arguments: arguments.map(|item| item.to_string()).collect(),
+            envs: Vec::new(),
+            cwd: None,
         }
-    }
-
-    pub fn ignore_output(self) -> Self {
-        self.with_arg(">/dev/null".to_owned())
     }
 
     #[must_use]
@@ -101,10 +109,35 @@ impl Command {
         self
     }
 
+    /// Appends another command as arguments (wrapper pattern, e.g. `time -f %e <cmd>`).
+    /// The wrapper takes over the inner command's environment and working directory,
+    /// since the spawned process is the wrapper.
     #[must_use]
-    pub fn with_cmd_arg(self, argument: Command) -> Self {
+    pub fn with_cmd_arg(mut self, argument: Command) -> Self {
+        self.envs.extend(argument.envs);
+        if self.cwd.is_none() {
+            self.cwd = argument.cwd;
+        }
         self.with_arg(argument.program)
             .with_args(argument.arguments.into_iter())
+    }
+
+    #[must_use]
+    pub fn with_env(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.envs.push((key.into(), value.into()));
+        self
+    }
+
+    #[must_use]
+    pub fn with_envs(mut self, envs: impl IntoIterator<Item = (String, String)>) -> Self {
+        self.envs.extend(envs);
+        self
+    }
+
+    #[must_use]
+    pub fn with_cwd(mut self, cwd: impl Into<std::path::PathBuf>) -> Self {
+        self.cwd = Some(cwd.into());
+        self
     }
 
     #[must_use]
@@ -120,7 +153,11 @@ impl Command {
     #[must_use]
     pub fn process(self) -> std::process::Command {
         let mut command = std::process::Command::new(self.program());
-        command.args(self.arguments);
+        command.args(&self.arguments);
+        command.envs(self.envs);
+        if let Some(cwd) = self.cwd {
+            command.current_dir(cwd);
+        }
         command
     }
 }
@@ -197,7 +234,14 @@ impl Display for PrintableOutput {
 
 impl From<&Command> for subprocess::Exec {
     fn from(value: &Command) -> Self {
-        Exec::cmd(value.program()).args(value.args())
+        let mut exec = Exec::cmd(value.program()).args(value.args());
+        for (key, val) in &value.envs {
+            exec = exec.env(key, val);
+        }
+        if let Some(cwd) = &value.cwd {
+            exec = exec.cwd(cwd);
+        }
+        exec
     }
 }
 
