@@ -1,240 +1,160 @@
 # SDB — ScyllaDB Drivers Benchmarker
 
-SDB is a tool for benchmarking, comparing, and visualizing the performance of different implementations.
+SDB is a tool for benchmarking, comparing, and visualizing the performance of ScyllaDB/Cassandra
+drivers. It works in tandem with the
+[scylladb-drivers-benchmarks](https://github.com/scylladb/scylladb-drivers-benchmarks) repository,
+which holds the workload implementations and configuration (see its README for the repository
+layout and the contracts between the two).
+
+SDB is invocable from any working directory — all paths (the driver repository, the benchmarks
+repository, the results database) are passed explicitly.
 
 ## Quick Start
 
 SDB has three main functions:
 
-1. **`run`**: Execute a benchmark run and save the results.
+1. **`run`**: Execute benchmarks for one driver and save the results.
 2. **`plot`**: Visualize and compare results from previous runs.
-3. **`database`**: Access database - print its content or remove it.
+3. **`database`**: Access the results database — print its content or remove entries.
 
 ### Example usage
 
-From inside the `tests/cpp_vs_rust_test/cpp` and `tests/cpp_vs_rust_test/rust` directories execute:
-
 ```sh
-cargo run -- -d ../test.db run regex -b ../config.yml
+# Benchmark a local driver checkout (its repo must contain benchmark-config.yml):
+sdb -d results.db run \
+    --driver-path ~/scylla-rust-driver \
+    --benchmarks-path ~/scylladb-drivers-benchmarks \
+    --scenario insert \
+    time
+
+# Benchmark a published driver version:
+sdb -d results.db run \
+    --driver published:nodejs:cassandra-driver@4.8.0 \
+    --benchmarks-path ~/scylladb-drivers-benchmarks \
+    time
+
+# Compare two branches of the same driver on a plot:
+sdb -d results.db plot insert \
+    -b ~/scylladb-drivers-benchmarks/scenarios/config.yml \
+    --series rust-driver@~/scylla-rust-driver:main=baseline \
+    --series rust-driver@~/scylla-rust-driver:my-feature=candidate \
+    series
+
+# Inspect or clean the database:
+sdb -d results.db database print --driver-name rust-driver
+sdb -d results.db database drop --benchmark-point=400000:6400000
 ```
 
-Then, later to graph the results execute (from `tests/cpp_vs_rust_test`):
+## How a run works
 
-```sh
-cargo run -- -d test.db plot regex -b config.yml \
-  --series regex-cpp@cpp/ \
-  --series regex-rust@rust/ \
-  series
-```
+For every `run` invocation SDB:
 
-Finally it is possible to print data to stdout:
+1. Resolves the **driver under test**: from `--driver-path <repo>` (reading the repo's
+   `benchmark-config.yml`: driver name, api, package, package-path) or from
+   `--driver published:<api>:<package>@<version>`. The stored version identity is the repo's
+   `HEAD` commit hash (suffixed `-dirty` when the working tree has uncommitted changes) or
+   `v<version>`.
+2. Loads `apis/<api>/api-config.yml` from the benchmarks repository. All commands below run with
+   that api directory as their working directory.
+3. Runs the api's **env-prepare** script (links the driver into the benchmark project) and the
+   **build command** — once, unmeasured.
+4. For every selected scenario, for every benchmark point, for each of `num-runs` repetitions,
+   invokes the api's run command three times (parameters passed via env vars —
+   `PHASE`, `BENCHMARK`, `STEP`, `PARAM_MODE`, `DRIVER_PACKAGE`):
+   - `PHASE=prepare` — unmeasured (schema creation, data seeding); a failure aborts the point;
+   - `PHASE=run` — **measured** (wrapped in `time`, `perf stat`, `perf record`, or a custom command);
+   - `PHASE=teardown` — unmeasured, best-effort cleanup.
+5. Stores the result (for `time`: mean and stddev over `num-runs`) in the SQLite database.
+6. Runs the api's **env-cleanup** script, also when benchmarking fails.
 
-```sh
-cargo run -- -d test.db database print
-```
-
-possibly applying filters:
-
-```sh
-cargo run -- -d test.db database print --benchmark-point 400000:6400000
-```
-
-Or remove it:
-
-```sh
-cargo run -- -d test.db database drop --benchmark-point=400000:6400000
-```
+A failing point aborts the run with a non-zero exit status unless `--keep-going` is given
+(then it is logged and simply absent from the database).
 
 ## Logging
 
-By default the application is in logging `info` mode, but this can be changed by setting the `RUST_LOG` environment variable.
-
-SDB uses standard logging modes: `off` to remove any logging, more expressive `debug` and even more verbose `trace`.
-
-### Logging example
-
-```sh
-RUST_LOG=off cargo run -- -d ../test.db run regex -b ../config.yml
-```
-
-## Definitions
-
-1. benchmark — a platform for evaluating implementations, which consists of:
-   - benchmarking points — the sizes for each subsequent measuring run.
-   - timeout — optional, the upper limit of how long a process being measured can execute.
-2. backend — an implementation being compared. It defines how to invoke it, including:
-   - build command — executed once before benchmarking
-   - run command — the command being measured. It should take the size of the run as the first and only argument.
-3. measurement method — the wrapper method, which invokes the backend. The backend run command with all of it's arguments will be passed as separate arguments to the measuring command, without quoting.
-4. command — a program name with specified arguments.
-
-## Supported workflows
-
-### Measurement methods
-
-In general any command printing a single numbers can be passed as a measuring method and plotted on a graph. Both `stdout` and `stderr` are collected together, so the resulting number can be in any of them. This is done to support the unusual behavior of the `time` command.
-There are two special measuring methods that get treated differently:
-
-- `time` - measures the elapsed real time
-- `perf` - captures events given by `perf-stat` (architecture dependant)
-- `flame-graph` - captures and stack-folds the data to be plotted as a flame graph
-
-### Plotting options
-
-Different data requires different plot types to be visualized correctly. Currently supported plot types:
-
-- `series`
-  - used for single value outputs (from custom or `time` measuring)
-  - generates a linear or logarithmic graph
-  - currently supported formats: `png`, `svg` (default)
-- `perf-stat`
-  - used for the results of a `perf` measurement method
-  - generates multiple graphs, one for each requested event
-  - currently supported formats: `png`, `svg` (default)
-- `flamegraph`
-  - used for the results of a `flame-graph` measurement method
-  - generates a single file containing all the generated graphs; if specified it is also possible to generate singular graphs
-  - currently supported formats: `html` (default)
-
-## Configuration files
-
-The benchmark and backend must be specified in the configuration files, in the YAML format. Each file can store a list of configurations.
-
-### Example benchmark configuration file
-
-```YAML
-benchmarks:
-  - name: regex
-    starting-step: 10
-    no-steps: 4
-    step-progress: 10
-    progress-type: multiplicative
-  - name: dictionary
-    starting-step: 1000000
-    no-steps: 6
-    step-progress: 1000000
-    progress-type: additive
-```
-
-### Example backend configuration file
-
-```YAML
-backends:
-  - name: regex-cpp
-    benchmark-name: regex
-    build-command: make regex
-    run-command: ./regex
-  - name: dictionary-cpp
-    benchmark-name: dictionary
-    build-command: make dictionary
-    run-command: ./dictionary
-```
-
-Additionally one may specify the aliasing config to ease the usage of the application, by naming the paths to the global resources used by the benchmarker. Each of them can of course be overwritten by passing a matching command line argument.
-
-The path to the aliasing config should be available in an environment variable named `SDB_CONFIG`. This makes it possible to set the configuration once, permanently.
-
-### Example of a full aliasing config
-
-```YAML
-db-path: /home/abc/sdb/db
-repo-path:
-  rust: /home/abc/scylla-db-rust
-  nodejs: /home/abc/nodejs-rs-driver
-flame-path: /home/abc/FlameGraph/
-store-dir: /home/abc/store/
-benchmark-config: /home/abc/bench.yml
-```
+By default the application logs at `info`; set `RUST_LOG` (`off`, `debug`, `trace`) to change it.
 
 ## In-depth CLI
 
-The benchmarker accepts following options:
+Global option:
 
-- `-d`, `--db-path` — the path to the database location, default is `benchmarker.db` located in home directory.
-
-Subcommand should be provided after database:
+- `-d`, `--db-path` — the path to the results database, default `~/SDB_benchmarker.db`.
 
 ### Run subcommand
 
-Executes, measures, and stores to the database the results of the measurements. It should be invoked from the inside of the repository holding the application being measured. Optionally, a benchmark name can be passed after `run`; if omitted, **all** benchmarks found in the backend config are run in sequence.
-
-- `-b`, `--benchmark-config-path` — the path to the configuration file of the benchmark
-- `-B`, `--backend-config-path` — the path to the configuration file of the backend
-- `-M`, `--benchmark-mode` — `used_cached`(default, uses data from database) or `force-rerun`(overrides database data).
-- The subcommand used profile should be passed next. We support the following:
-  - time (default) — measures lapsed real (wall clock) time used by the process, in seconds.
-  - perf-stat — gathers the performance counter statistics.
-  - command - Custom measuring command. Should output exactly one number on either `stdout` or `stderr`.
-  - flame-graph — Captures the data given by `perf record`, processes it and collapses the stack. It can be customized using the following options:
-    - `-r`, `--flame-repo` — the path to the flame-graph repository of Brendan Gregg.
-    - `-f`, `--frequency` — the frequency at which it the run command be profiled.
-    - `-s`, `--store-dir` — the directory in which to store the folded results.
+- `--driver-path <path>` — local driver repository (must contain `benchmark-config.yml`), **or**
+- `--driver published:<api>:<package>@<version>` — published driver (exactly one of the two is required).
+- `--driver-name <name>` — override for the recorded driver name (default: `driver-name` from
+  `benchmark-config.yml`, or the package name for published drivers). Handy for recording a
+  published version under the same series name as the repository, e.g.
+  `--driver published:rust-v1:scylla@1.7.0 --driver-name rust-driver`.
+- `-p`, `--benchmarks-path <path>` — the benchmarks repository (required).
+- `-s`, `--scenario <name>` — scenario to run; repeatable. Default: all scenarios.
+- `-b`, `--scenarios-config <path>` — override for `<benchmarks-path>/scenarios/config.yml`.
+- `-M`, `--benchmark-mode` — `use-cached` (default; skips points already in the database) or
+  `force-rerun` (deletes and re-measures them).
+- `--keep-going` — continue past failing points instead of aborting.
+- The measurement method is the trailing subcommand:
+  - `time` (default) — elapsed real (wall clock) time of the run phase, in seconds.
+  - `perf-stat` — performance counter statistics.
+  - `command <cmd>` — custom measuring command wrapping the run command; must output exactly one
+    number on `stdout`/`stderr`.
+  - `flame-graph` — captures `perf record` data of the run phase and collapses the stack:
+    - `-r`, `--flame-repo` — path to Brendan Gregg's [FlameGraph](https://github.com/brendangregg/FlameGraph) repository (required).
+    - `-f`, `--frequency` — profiling frequency.
+    - `-s`, `--store-dir` — directory in which to store the folded results (required).
 
 ### Plot subcommand
 
 Visualizes and compares the results of previous `run`s, reading them from the database.
-After `plot` a benchmark name must be passed.
+After `plot` a benchmark name may be passed; if omitted, all benchmarks from the config are
+rendered into a grid.
 
-- `-b`, `--benchmark-setup` — The path to the benchmark configuration file, or a comma-separated list of benchmark points (e.g. `1000,2000,4000`). If omitted, the benchmark is looked up by name in the path given by `benchmark-config` in the aliasing config.
-- `-o`, `--output` — The path where the plot should be saved. The file extension **implies** the output format (see [Plotting options](#plotting-options)). Defaults to `out.svg` for series/perf-stat and `out.html` for flame-graph.
-- `--series <BACKEND@REPO[:REF[=ALIAS]]>` — Adds one data series to the plot. Repeat the flag to overlay multiple series on the same chart.
-  - `BACKEND` — the backend name as stored in the database (e.g. `regex-cpp`).
-  - `REPO` — a filesystem path to a git repository, or a short alias defined in the aliasing config under `repo-path`.
-  - `REF` *(optional)* — a git ref (commit hash, branch, or tag) to use. Defaults to `HEAD`.
-  - `ALIAS` *(optional)* — the label shown on the plot legend. Defaults to `REF`.
-
-  **Examples:**
+- `-b`, `--benchmark-setup` — the path to the scenarios configuration file, or a comma-separated
+  list of benchmark points (e.g. `1000,2000,4000`). Required.
+- `-o`, `--output` — where to save the plot; the file extension implies the format
+  (`png`/`svg` for series and perf-stat, `html` for flame graphs). Defaults to `out.svg` / `out.html`.
+- `--series <DRIVER@REPO[:REF][=ALIAS]>` — adds one data series; repeat to overlay several.
+  - `DRIVER` — the driver name as stored in the database (from `benchmark-config.yml`, or the
+    package name for published drivers).
+  - `REPO` — a filesystem path to a git repository — `REF` (branch, tag, or hash; default `HEAD`)
+    is then resolved with git inside it. If `REPO` is **not** an existing directory it is taken
+    literally as the stored version identity (a full commit hash, `<hash>-dirty`, or `v4.8.0`).
+  - `ALIAS` — the label shown in the plot legend (defaults to `REF`, or a shortened literal id).
 
   ```sh
-  # Two backends, both at HEAD of their respective repositories:
-  --series regex-cpp@./cpp --series regex-rust@./rust
+  # Cross-branch: same driver, two refs of its repository:
+  --series rust-driver@~/scylla-rust-driver:main=baseline \
+  --series rust-driver@~/scylla-rust-driver:my-feature=candidate
 
-  # A specific commit, with a human-readable alias on the plot:
-  --series regex-cpp@./cpp:d7c7310fb60fd659bfa2ff3ff131973a822a91a4=v2.1.0
-
-  # The same backend at two different commits (aliased for clarity):
-  --series regex-cpp@./cpp:HEAD=main --series regex-cpp@./cpp:v1.0.0
-
-  # Using a repo-path alias from the aliasing config:
-  --series regex-cpp@cpp-driver:HEAD
+  # Cross-driver, one of them published (literal identities):
+  --series rust-driver@1a2b3c...=rust --series cassandra-driver@v4.8.0=dsx
   ```
 
-- Plot type (subcommand) and its flags must follow all other options:
-  - `series` — line chart for single-value outputs (`time` or custom command).
-    - `-m`, `--measurement-method` — measurement method: `time` (default), `perf`, `flame-graph`, or a custom command.
-    - `-v`, `--visualization-kind` — `linear` (default) or `log` scale.
+- The plot type (subcommand) follows all other options:
+  - `series` — line chart for single-value outputs.
+    - `-m`, `--measurement-method` — `time` (default), `perf`, or a custom command.
+    - `-v`, `--visualization-kind` — `linear` (default) or `log`.
   - `perf-stat` — one chart per requested `perf` event.
-    - `-e`, `--events <event1,event2,...>` — comma-separated list of `perf` event names (e.g. `task-clock,page-faults`). At least one is required. Event names are platform-dependent.
-  - `flamegraph` — HTML file containing embedded flame graphs.
-    - `-a`, `--artifacts-dir` — directory where individual `.svg` flame graphs are saved. Omit to skip saving them.
-    - `-f`, `--flame-repo` — path to the [FlameGraph](https://github.com/brendangregg/FlameGraph) repository. Required unless set in the aliasing config (`flame-path`).
-
-**Full example — comparing three drivers at a specific commit:**
-
-```sh
-sdb -d results.db plot regex \
-  -b benchmark/runner-config/config.yml \
-  --series regex-cpp@benchmark/runner-config/cpp-driver:d7c7310=v2.1 \
-  --series regex-java@benchmark/runner-config/java-driver:d7c7310=v2.1 \
-  --series regex-rust@benchmark/runner-config/rust-driver:HEAD \
-  series
-```
+    - `-e`, `--events <e1,e2,...>` — required; event names are platform-dependent.
+  - `flame-graph` — HTML file containing embedded flame graphs.
+    - `-a`, `--artifacts-dir` — directory where individual `.svg` flame graphs are saved (optional).
+    - `-f`, `--flame-repo` — path to the FlameGraph repository (required).
 
 ### Database subcommands
 
-Facilitates direct access to the underlying database. This was especially useful in debugging or generally developing this application
+- `print` — outputs the selected data.
+- `drop` — erases the selected data.
 
-There are two possible subcommand for `database`:
+Filters (each accepts a `:`-separated list; absent means unrestricted): `--commit-hash`,
+`--benchmark-name`, `--driver-name`, `--benchmark-point`, `--measurement-method`.
 
-- `drop` — erases the selected data from the database.
-- `print` — outputs the selected data from the database.
+### Results database
 
-The data can be filtered using the following options:
-
-- `--commit-hash` — accepts list of accepted commit hashes divided by `:`, empty (or lack of argument) means it is not restricted.
-- `--benchmark-name` — in same format restricts benchmark names.
-- `--measurement-method` — in same format restricts measurement methods.
-- `--benchmark-point` — in same format restricts benchmark points. Provided elements must be non negative integers.
+One SQLite table keyed by
+`(commit_hash, benchmark_name, driver_name, benchmark_point, measurement_method)`, with
+provenance columns (`api`, `benchmarks_commit`, `timestamp`) recorded for traceability.
+Use the same database file for every run you want to compare on one plot.
 
 ## Authors
 
