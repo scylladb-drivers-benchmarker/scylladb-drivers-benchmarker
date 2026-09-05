@@ -63,7 +63,9 @@ pub enum DriverSpecError {
     #[error(
         desc = "invalid published driver spec {spec:?} - expected published:<api>:<package>@<version>"
     )]
-    InvalidPublishedSpec { spec: String },
+    InvalidPublishedSpec {
+        spec: String,
+    },
     CommitResolution(#[from] Box<FailedToRetrieveCommitHash>),
 }
 
@@ -100,7 +102,8 @@ impl DriverSpec {
         };
         let rest = spec.strip_prefix("published:").ok_or_else(invalid)?;
         let (api, package_at_version) = rest.split_once(':').ok_or_else(invalid)?;
-        let (package, version) = package_at_version.split_once('@').ok_or_else(invalid)?;
+        // Last '@', not the first: scoped npm package names begin with one (`@scylladb/driver`).
+        let (package, version) = package_at_version.rsplit_once('@').ok_or_else(invalid)?;
         if api.is_empty() || package.is_empty() || version.is_empty() {
             return Err(invalid());
         }
@@ -174,8 +177,8 @@ mod tests {
 
     #[test]
     fn parse_published_spec() {
-        let spec = DriverSpec::from_published_spec("published:nodejs:cassandra-driver@4.8.0")
-            .unwrap();
+        let spec =
+            DriverSpec::from_published_spec("published:nodejs:cassandra-driver@4.8.0").unwrap();
         assert_eq!(spec.name, "cassandra-driver");
         assert_eq!(spec.api, "nodejs");
         assert_eq!(spec.package, "cassandra-driver");
@@ -186,6 +189,30 @@ mod tests {
             }
         );
         assert_eq!(spec.commit_id().unwrap().as_str(), "v4.8.0");
+    }
+
+    #[test]
+    fn parse_published_spec_scoped_npm_package() {
+        let spec =
+            DriverSpec::from_published_spec("published:nodejs:@scylladb/driver@0.6.1").unwrap();
+        assert_eq!(spec.api, "nodejs");
+        assert_eq!(spec.package, "@scylladb/driver");
+        assert_eq!(
+            spec.source,
+            DriverSource::Published {
+                version: "0.6.1".to_owned()
+            }
+        );
+    }
+
+    #[test]
+    fn parse_published_spec_maven_coordinates() {
+        let spec = DriverSpec::from_published_spec(
+            "published:java-v4:com.scylladb:java-driver-core@4.19.0.1",
+        )
+        .unwrap();
+        assert_eq!(spec.api, "java-v4");
+        assert_eq!(spec.package, "com.scylladb:java-driver-core");
     }
 
     #[test]
