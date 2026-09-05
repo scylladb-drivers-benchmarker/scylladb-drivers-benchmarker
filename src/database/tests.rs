@@ -5,6 +5,14 @@ use tempfile::NamedTempFile;
 use crate::commit_hash::CommitHash;
 use crate::database::*;
 
+fn test_provenance() -> Provenance {
+    Provenance {
+        api: "test-api".to_owned(),
+        benchmarks_commit: "test-benchmarks-commit".to_owned(),
+    }
+}
+
+
 fn get_db() -> (Database, NamedTempFile) {
     let file = NamedTempFile::new().unwrap();
     (Database::new(file.path()).unwrap(), file)
@@ -25,7 +33,7 @@ fn insert_get(entries: Vec<(BenchmarkParams, BenchmarkRecord)>) {
     let (db, _file) = get_db();
 
     for (p, r) in &entries {
-        db.insert_data(p.clone(), r.clone()).unwrap();
+        db.insert_data(p.clone(), test_provenance(), r.clone()).unwrap();
     }
 
     for (p, r) in &entries {
@@ -81,10 +89,10 @@ fn double_insert() {
     let result1 = BenchmarkRecord::Data("result_result ".to_owned());
     let result2 = BenchmarkRecord::Data("result_result_result ".to_owned());
 
-    db.insert_data(example_param(""), result1.clone()).unwrap();
+    db.insert_data(example_param(""), test_provenance(), result1.clone()).unwrap();
 
-    assert!(db.insert_data(example_param(""), result1).is_err());
-    assert!(db.insert_data(example_param(""), result2).is_err());
+    assert!(db.insert_data(example_param(""), test_provenance(), result1).is_err());
+    assert!(db.insert_data(example_param(""), test_provenance(), result2).is_err());
 }
 
 #[test]
@@ -93,7 +101,7 @@ fn test_data_filtration() {
 
     let commit_hashes = vec!["a", "b"];
     let benchmark_names = vec!["x", "y"];
-    let backend_names = vec!["backend1"];
+    let driver_names = vec!["backend1"];
     let benchmark_points = vec![1, 2];
     let measurement_methods = vec!["cold", "hot"];
 
@@ -101,7 +109,7 @@ fn test_data_filtration() {
     // Test data_filtration (creating WHERE clouse).
     for &ch in &commit_hashes {
         for &bn in &benchmark_names {
-            for &back in &backend_names {
+            for &back in &driver_names {
                 for &bp in &benchmark_points {
                     for &mm in &measurement_methods {
                         let params = BenchmarkParams::new(
@@ -112,15 +120,16 @@ fn test_data_filtration() {
                             mm.into(),
                         );
 
-                        let sql = db.data_filtration(&BenchmarkFilters::filter_exact_param(&params));
-                        let expected_sql = format!(
-                            "WHERE commit_hash IN ('{}') AND benchmark_name IN ('{}') AND backend_name IN ('{}') AND benchmark_point IN ({}) AND measurement_method IN ('{}')",
-                            ch, bn, back, bp, mm
-                        );
+                        let (sql, values) =
+                            Database::data_filtration(&BenchmarkFilters::filter_exact_param(&params));
+                        let expected_sql = "WHERE commit_hash IN (?) AND benchmark_name IN (?) \
+                             AND driver_name IN (?) AND benchmark_point IN (?) \
+                             AND measurement_method IN (?)";
 
                         assert_eq!(sql, expected_sql);
+                        assert_eq!(values.len(), 5);
 
-                        db.insert_data(params, BenchmarkRecord::Data("".to_owned()))
+                        db.insert_data(params, test_provenance(), BenchmarkRecord::Data("".to_owned()))
                             .unwrap();
                     }
                 }
@@ -135,7 +144,7 @@ fn test_data_filtration() {
             BenchmarkFilters {
                 commit_hashes: vec!["a".into()],
                 benchmark_names: vec!["x".into()],
-                backend_names: vec!["backend1".into()],
+                driver_names: vec!["backend1".into()],
                 benchmark_points: vec![1],
                 measurement_methods: vec!["cold".into()],
             },
@@ -146,7 +155,7 @@ fn test_data_filtration() {
             BenchmarkFilters {
                 commit_hashes: vec![],
                 benchmark_names: vec!["y".into()],
-                backend_names: vec![],
+                driver_names: vec![],
                 benchmark_points: vec![2],
                 measurement_methods: vec![
                     "'but_has_funny_chars'''''''".into(),
@@ -161,7 +170,7 @@ fn test_data_filtration() {
             BenchmarkFilters {
                 commit_hashes: vec![],
                 benchmark_names: vec!["x".into()],
-                backend_names: vec![],
+                driver_names: vec![],
                 benchmark_points: vec![],
                 measurement_methods: vec!["cold".into()],
             },

@@ -2,12 +2,20 @@ use fs_err as fs;
 use tempfile::NamedTempFile;
 
 use crate::config::benchmark::BenchmarkData;
-use crate::database::utilities::{BenchmarkFilters, BenchmarkParams, BenchmarkRecord};
+use crate::database::utilities::{Provenance, BenchmarkFilters, BenchmarkParams, BenchmarkRecord};
 use crate::measurement::MeasurementMethod;
 use crate::plotting::PlotError;
 use crate::plotting::core::BenchmarkDataset;
 use crate::utilities::BenchmarkPoint;
 use crate::{CommitHash, Database};
+
+fn test_provenance() -> Provenance {
+    Provenance {
+        api: "test-api".to_owned(),
+        benchmarks_commit: "test-benchmarks-commit".to_owned(),
+    }
+}
+
 
 // Insert record to database, with provided commit_hash, config, point and result
 // Measurement method is always "time".
@@ -20,6 +28,7 @@ fn insert_bench(
 ) {
     db.insert_data(
         BenchmarkParams::new(hash.clone(), conf.name.clone(), "test-backend".to_owned(), step, String::from("time")),
+        test_provenance(),
         BenchmarkRecord::Data(val.to_owned()),
     )
     .unwrap();
@@ -42,6 +51,8 @@ fn init_db() -> TestSetup {
 
     let configs = vec![
         BenchmarkData {
+            workload: String::new(),
+            param_mode: Default::default(),
             name: "benchmark1".to_owned(),
             points: vec![1, 2, 3],
             timeout: None,
@@ -49,6 +60,8 @@ fn init_db() -> TestSetup {
             measure: None,
         },
         BenchmarkData {
+            workload: String::new(),
+            param_mode: Default::default(),
             name: "benchmark2".to_owned(),
             points: vec![10],
             timeout: None,
@@ -132,7 +145,7 @@ macro_rules! drop_and_expect_failure {
         $db.drop_data(&BenchmarkFilters {
             commit_hashes: vec![$hash.as_str().to_owned()],
             benchmark_names: vec![$conf.name.clone()],
-            backend_names: vec![],
+            driver_names: vec![],
             benchmark_points: $drop,
             measurement_methods: vec![$measure.to_string()],
         }).unwrap();
@@ -203,6 +216,8 @@ fn extract_perfstat_dataset() {
     };
 
     let config = BenchmarkData {
+        workload: String::new(),
+        param_mode: Default::default(),
         name: "benchmark_perf".to_owned(),
         points: vec![1, 2],
         timeout: None,
@@ -231,12 +246,14 @@ fn extract_perfstat_dataset() {
 
     db.insert_data(
         BenchmarkParams::new(commit.clone(), config.name.clone(), "test-backend".to_owned(), 1, "perf".to_owned()),
+        test_provenance(),
         BenchmarkRecord::Data(perf_json_1.to_string()),
     )
     .unwrap();
 
     db.insert_data(
         BenchmarkParams::new(commit.clone(), config.name.clone(), "test-backend".to_owned(), 2, "perf".to_owned()),
+        test_provenance(),
         BenchmarkRecord::Data(perf_json_2.to_string()),
     )
     .unwrap();
