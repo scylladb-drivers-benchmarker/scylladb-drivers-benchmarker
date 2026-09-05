@@ -72,7 +72,7 @@ impl OutputExecutor {
 
         let mut command = (self.make_command)(
             output_file.path(),
-            self.run_command.clone().with_arg(point.to_string()),
+            self.run_command.clone().with_env("STEP", point.to_string()),
         )
         .process();
 
@@ -121,7 +121,7 @@ mod test {
 
     #[test]
     fn test_execution_timeout() {
-        let executor = OutputExecutor::new_time(cmd!("sleep"));
+        let executor = OutputExecutor::new_time(cmd!("bash", "-c", "sleep $STEP"));
         let output = executor
             .execute_with_timeout(2, std::time::Duration::from_secs(1))
             .unwrap();
@@ -129,7 +129,7 @@ mod test {
     }
     #[test]
     fn test_execution_in_time() {
-        let executor = OutputExecutor::new_time(cmd!("sleep"));
+        let executor = OutputExecutor::new_time(cmd!("bash", "-c", "sleep $STEP"));
         let output = executor
             .execute_with_timeout(1, std::time::Duration::from_secs(2))
             .unwrap();

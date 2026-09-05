@@ -2,10 +2,11 @@
 //! from arbitrary commands. It performs no validation of those commands
 //! eg. whether the run command they actually interacts with the output of the build command.
 
-use std::str::FromStr;
 use std::time::Duration;
 
-use crate::command::{Command, CommandParsingError, PrintableOutput};
+use log::trace;
+
+use crate::command::{Command, CommandParsingError, OutputWithTimeout, PrintableOutput};
 use crate::database::utilities::BenchmarkRecord;
 use crate::utilities::BenchmarkPoint;
 
@@ -20,8 +21,7 @@ pub enum CompileError {
     CompilationRunning(PrintableOutput),
 }
 
-pub(crate) fn build_source(build_command: &str) -> Result<(), CompileError> {
-    let command = Command::from_str(build_command)?;
+pub(crate) fn build_source(command: Command) -> Result<(), CompileError> {
     let mut command = command.process();
 
     let output = command.output()?;
@@ -29,6 +29,36 @@ pub(crate) fn build_source(build_command: &str) -> Result<(), CompileError> {
         Ok(())
     } else {
         Err(CompileError::CompilationRunning(output.into()))
+    }
+}
+
+#[justerror::Error(desc = "command execution failed")]
+pub enum PlainCommandError {
+    Parsing(#[from] CommandParsingError),
+    Spawning(#[from] std::io::Error),
+    #[error(desc = "the command timed out")]
+    TimedOut,
+    Failed(PrintableOutput),
+}
+
+/// Runs an unmeasured command (env script, prepare/teardown phase),
+/// failing on a non-zero exit status.
+pub(crate) fn run_plain_command(
+    command: Command,
+    timeout: Option<Duration>,
+) -> Result<(), PlainCommandError> {
+    trace!("Executing: {command}");
+    let mut process = command.process();
+    let output = match timeout {
+        Some(t) => process
+            .output_with_timeout(t)?
+            .ok_or(PlainCommandError::TimedOut)?,
+        None => process.output()?,
+    };
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(PlainCommandError::Failed(output.into()))
     }
 }
 

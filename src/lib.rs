@@ -1,8 +1,7 @@
 pub use plotting::{PlotKind, PlotSettings, VisKind};
 
-use crate::benchmarking::{BenchMeasure, BenchmarkMode, BenchmarkingError};
+use crate::benchmarking::{BenchMeasure, BenchmarkMode, BenchmarkingError, EnvCleanupGuard, Session};
 use crate::commit_hash::CommitHash;
-use crate::config::backend::BackendConfig;
 use crate::config::benchmark::BenchmarkData;
 use crate::database::utilities::BenchmarkFilters;
 use crate::database::{Database, DatabaseError};
@@ -11,8 +10,8 @@ use crate::utilities::format_entry;
 
 /// A specific (backend, commit, label) triple identifying one data series to plot.
 #[derive(Clone)]
-pub struct BackendWithCommit {
-    pub backend_name: String,
+pub struct DriverWithCommit {
+    pub driver_name: String,
     pub commit: CommitHash,
     pub tag: String,
 }
@@ -34,30 +33,40 @@ pub enum RunBenchmarksError {
     CommitHash(#[from] Box<commit_hash::FailedToRetrieveCommitHash>),
 }
 
+/// Runs one benchmarking session: env-prepare + build once, then for every
+/// benchmark and point the prepare (unmeasured) / run (measured) / teardown
+/// (unmeasured) phases. Env-cleanup runs at the end, also on failure.
 pub fn run_benchmarks(
     database: &Database,
-    benchmark_config: BenchmarkData,
+    session: &Session,
+    benchmarks: Vec<BenchmarkData>,
     bench_measure: BenchMeasure,
-    backend_config: BackendConfig,
     benchmark_mode: BenchmarkMode,
+    keep_going: bool,
 ) -> Result<(), RunBenchmarksError> {
-    let commit_hash = CommitHash::from_current_repository()?;
+    session.env_prepare()?;
+    let _cleanup = EnvCleanupGuard(session);
 
-    Ok(benchmarking::benchmark(
-        database,
-        commit_hash,
-        benchmark_config,
-        backend_config,
-        bench_measure,
-        benchmark_mode,
-    )?)
+    session.build()?;
+
+    for benchmark_config in benchmarks {
+        benchmarking::benchmark(
+            database,
+            session,
+            benchmark_config,
+            bench_measure.clone(),
+            benchmark_mode,
+            keep_going,
+        )?;
+    }
+    Ok(())
 }
 
 pub fn plot_benchmarks(
     plot_settings: PlotSettings,
     database: &Database,
     benchmarks: Vec<BenchmarkData>,
-    series: Vec<BackendWithCommit>,
+    series: Vec<DriverWithCommit>,
 ) -> Result<(), PlotError> {
     plotting::plot(plot_settings, database, benchmarks, series.into_iter())
 }

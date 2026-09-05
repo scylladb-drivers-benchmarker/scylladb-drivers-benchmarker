@@ -1,11 +1,10 @@
 use clap::Parser;
 use log::error;
-use scylladb_drivers_benchmarker::benchmarking::{BenchMeasure, BenchmarkMode};
-use scylladb_drivers_benchmarker::config::backend::BackendConfig;
+use scylladb_drivers_benchmarker::benchmarking::{BenchMeasure, BenchmarkMode, Session};
 use scylladb_drivers_benchmarker::config::benchmark::BenchmarkData;
 use scylladb_drivers_benchmarker::database::Database;
 use scylladb_drivers_benchmarker::database::utilities::BenchmarkFilters;
-use scylladb_drivers_benchmarker::{BackendWithCommit, PlotKind, PlotSettings, command};
+use scylladb_drivers_benchmarker::{DriverWithCommit, PlotKind, PlotSettings, command};
 
 use crate::parsing::App;
 
@@ -13,15 +12,16 @@ mod parsing;
 pub struct BenchmarkParams {
     pub bench_measure: BenchMeasure,
 
-    pub backend_config: BackendConfig,
-    pub benchmark_config: BenchmarkData,
+    pub session: Session,
+    pub benchmarks: Vec<BenchmarkData>,
 
     pub benchmark_mode: BenchmarkMode,
+    pub keep_going: bool,
 }
 
 pub struct PlotParams {
     pub benchmarks: Vec<BenchmarkData>,
-    pub series: Vec<BackendWithCommit>,
+    pub series: Vec<DriverWithCommit>,
     pub plot_settings: PlotSettings,
 }
 
@@ -48,23 +48,22 @@ fn main() {
     let input = App::parse().finalize().unwrap_or_else(print_error);
 
     match input.params {
-        crate::parsing::Subcommands::Benchmark(params_list) => {
-            for BenchmarkParams {
+        crate::parsing::Subcommands::Benchmark(BenchmarkParams {
+            bench_measure,
+            session,
+            benchmarks,
+            benchmark_mode,
+            keep_going,
+        }) => {
+            scylladb_drivers_benchmarker::run_benchmarks(
+                &input.database,
+                &session,
+                benchmarks,
                 bench_measure,
-                backend_config,
-                benchmark_config,
                 benchmark_mode,
-            } in params_list
-            {
-                scylladb_drivers_benchmarker::run_benchmarks(
-                    &input.database,
-                    benchmark_config,
-                    bench_measure,
-                    backend_config,
-                    benchmark_mode,
-                )
-                .unwrap_or_else(print_error);
-            }
+                keep_going,
+            )
+            .unwrap_or_else(print_error);
         }
         crate::parsing::Subcommands::Plot(PlotParams {
             benchmarks,
