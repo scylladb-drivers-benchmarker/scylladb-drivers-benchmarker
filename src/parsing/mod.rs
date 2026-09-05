@@ -1,4 +1,3 @@
-mod aliasing;
 mod benchmark;
 mod benchmark_setup;
 mod database;
@@ -6,30 +5,27 @@ mod plot;
 #[cfg(test)]
 mod tests;
 
+use std::io;
 use std::path::PathBuf;
-use std::{env, io};
 
 use clap::Parser;
 use log::{info, trace};
+use plot::DriverWithCommitParsingError;
 use scylladb_drivers_benchmarker::config::ConfigError;
+use scylladb_drivers_benchmarker::config::api::ApiConfigError;
+use scylladb_drivers_benchmarker::config::driver::DriverSpecError;
 use scylladb_drivers_benchmarker::database::DatabaseError;
-use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
-use plot::BackendWithCommitParsingError;
 
-use crate::parsing::aliasing::{AliasingConfig, MainConfigError};
 use crate::parsing::benchmark::BenchmarkCommand;
 use crate::parsing::database::{DatabaseArgs, DbPathError, default_db_path};
 use crate::parsing::plot::PlotCommand;
 use crate::{BenchmarkParams, Database, DropDatabaseParams, PlotParams, PrintDatabaseParams};
 
 #[derive(Debug, Parser)]
-#[clap(name = "my-app", version, about)]
+#[clap(name = "scylladb-drivers-benchmarker", version, about)]
 pub(crate) struct App {
     #[arg(short, long)]
     db_path: Option<PathBuf>,
-
-    #[arg(short, long)]
-    aliasing_config_path: Option<PathBuf>,
 
     #[clap(subcommand)]
     subcommand: AppSubcommands,
@@ -48,7 +44,7 @@ pub(crate) struct ParsedParams {
 }
 
 pub(crate) enum Subcommands {
-    Benchmark(Vec<BenchmarkParams>),
+    Benchmark(BenchmarkParams),
     Plot(PlotParams),
     PrintDatabase(PrintDatabaseParams),
     DropDatabase(DropDatabaseParams),
@@ -56,44 +52,35 @@ pub(crate) enum Subcommands {
 
 #[justerror::Error(desc = "Failed to parse or obtain necessary parameters")]
 pub(crate) enum ParsingError {
-    AliasingConfig(#[from] MainConfigError),
     DatabasePathAccess(#[from] DbPathError),
     DatabaseInitialization(#[from] DatabaseError),
-    SeriesError(#[from] BackendWithCommitParsingError),
+    SeriesError(#[from] DriverWithCommitParsingError),
     BenchmarkConfigError(#[from] ConfigError),
-    NoStoreDir {
-        needed_by: MeasurementMethod,
+    DriverSpec(#[from] DriverSpecError),
+    ApiConfig(#[from] ApiConfigError),
+    #[error(desc = "Scenario '{name}' not found in {config_path}")]
+    UnknownScenario {
+        name: String,
+        config_path: PathBuf,
     },
     FailedCanonicalizing(#[from] io::Error),
     #[error(desc = "Given path to store is not a directory")]
     StoreDirNotADir,
     #[error(desc = "Benchmark configuration not found")]
     NoBenchmarkConfiguration,
-    #[error(desc = "Flame graph repository path not provided")]
-    NoFlameGraphRepository,
 }
 
 impl App {
     pub fn finalize(self) -> Result<ParsedParams, ParsingError> {
         info!("Gathering data...");
-        let aliasing_config = self
-            .aliasing_config_path
-            .or_else(|| env::var_os("SDB_CONFIG").map(Into::into))
-            .map_or(Ok(AliasingConfig::default()), |path| {
-                AliasingConfig::read_config(&path)
-            })?;
-
-        let db_path = self
-            .db_path
-            .or(aliasing_config.db_path.clone())
-            .map_or_else(default_db_path, Ok)?;
+        let db_path = self.db_path.map_or_else(default_db_path, Ok)?;
 
         trace!("Database resolved to: {}", db_path.display());
         let database = Database::new(&db_path)?;
 
         let params: Subcommands = match self.subcommand {
-            AppSubcommands::Run(x) => x.finalize(aliasing_config)?,
-            AppSubcommands::Plot(x) => x.finalize(aliasing_config)?,
+            AppSubcommands::Run(x) => x.finalize()?,
+            AppSubcommands::Plot(x) => x.finalize()?,
             AppSubcommands::Database(x) => x.finalize(),
         };
 

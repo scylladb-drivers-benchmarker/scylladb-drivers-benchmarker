@@ -4,17 +4,40 @@ use clap::Parser;
 use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
 
 use crate::parsing::database::InputDatabaseCommand;
-use crate::parsing::plot::{InputPlotKind, InputVisKind, ParsableBackendWithCommit};
+use crate::parsing::plot::{InputPlotKind, InputVisKind, ParsableDriverWithCommit};
 use crate::parsing::{App, AppSubcommands, BenchmarkCommand, PlotCommand};
 
 #[test]
 fn basic_run() {
-    let args = App::parse_from(vec!["scylladb-drivers-benchmarker", "run", "select"]);
+    let args = App::parse_from(vec![
+        "scylladb-drivers-benchmarker",
+        "run",
+        "--driver-path",
+        "/repo/driver",
+        "--benchmarks-path",
+        "/repo/benchmarks",
+        "--scenario",
+        "select",
+        "time",
+    ]);
 
-    let AppSubcommands::Run(BenchmarkCommand { benchmark_name, .. }) = args.subcommand else {
+    let AppSubcommands::Run(BenchmarkCommand {
+        driver_path,
+        driver,
+        benchmarks_path,
+        scenario,
+        keep_going,
+        ..
+    }) = args.subcommand
+    else {
         panic!("Not a run")
     };
-    assert_eq!(benchmark_name, Some("select".to_owned()));
+    assert_eq!(driver_path, Some(PathBuf::from("/repo/driver")));
+    assert_eq!(driver, None);
+    assert_eq!(benchmarks_path, PathBuf::from("/repo/benchmarks"));
+    assert_eq!(scenario, vec!["select".to_owned()]);
+    assert!(!keep_going);
+
     let args = App::parse_from(vec![
         "scylladb-drivers-benchmarker",
         "plot",
@@ -53,14 +76,14 @@ fn basic_run() {
     }
 
     assert_eq!(series.len(), 2);
-    let s0: &ParsableBackendWithCommit = &series[0];
-    assert_eq!(s0.backend_name, "backend-a");
+    let s0: &ParsableDriverWithCommit = &series[0];
+    assert_eq!(s0.driver_name, "backend-a");
     assert_eq!(s0.repo, "/repo/a");
     assert_eq!(s0.git_ref, "branch");
     assert_eq!(s0.display_tag, "branch");
 
-    let s1: &ParsableBackendWithCommit = &series[1];
-    assert_eq!(s1.backend_name, "backend-b");
+    let s1: &ParsableDriverWithCommit = &series[1];
+    assert_eq!(s1.driver_name, "backend-b");
     assert_eq!(s1.repo, "/repo/b");
     assert_eq!(s1.git_ref, "abc123");
     assert_eq!(s1.display_tag, "v1.0");
