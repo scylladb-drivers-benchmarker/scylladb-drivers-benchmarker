@@ -14,6 +14,27 @@ pub enum ProgressType {
     Additive,
 }
 
+/// How the workload interprets the benchmark point value (the STEP env var).
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum ParamMode {
+    /// The point is the number of queries.
+    #[default]
+    Count,
+    /// The point is the concurrency level (query count stays at the workload default).
+    Concurrency,
+}
+
+impl ParamMode {
+    #[must_use]
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ParamMode::Count => "count",
+            ParamMode::Concurrency => "concurrency",
+        }
+    }
+}
+
 fn default_num_runs() -> u32 {
     1
 }
@@ -26,6 +47,11 @@ fn is_default_num_runs(n: &u32) -> bool {
 #[serde(rename_all = "kebab-case")]
 pub struct BenchmarkConfig {
     pub name: String,
+    /// Workload implementation to run; defaults to the scenario name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workload: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub param_mode: Option<ParamMode>,
     pub starting_step: BenchmarkPoint,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub no_steps: Option<BenchmarkPoint>,
@@ -77,8 +103,13 @@ impl Configuration for BenchmarkConfig {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct BenchmarkData {
     pub name: String,
+    /// Workload implementation name (the BENCHMARK env var).
+    pub workload: String,
+    /// How the workload interprets the point value (the PARAM_MODE env var).
+    pub param_mode: ParamMode,
     pub points: Vec<BenchmarkPoint>,
     pub timeout: Option<Duration>,
     pub num_runs: u32,
@@ -89,6 +120,8 @@ impl From<BenchmarkConfig> for BenchmarkData {
     fn from(value: BenchmarkConfig) -> Self {
         BenchmarkData {
             points: value.benchmark_points().collect(),
+            workload: value.workload.unwrap_or_else(|| value.name.clone()),
+            param_mode: value.param_mode.unwrap_or_default(),
             name: value.name,
             timeout: value.timeout,
             num_runs: value.num_runs,
@@ -101,6 +134,8 @@ impl From<BenchmarkConfig> for BenchmarkData {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Default)]
 #[serde(rename_all = "kebab-case")]
 pub struct BenchmarkDefaults {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub param_mode: Option<ParamMode>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub no_steps: Option<BenchmarkPoint>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -132,6 +167,7 @@ impl BenchmarkConfigList {
     fn merged(&self) -> impl Iterator<Item = BenchmarkConfig> + '_ {
         self.configs.iter().map(|c| {
             let mut c = c.clone();
+            if c.param_mode.is_none() { c.param_mode = self.defaults.param_mode; }
             if c.no_steps.is_none() { c.no_steps = self.defaults.no_steps; }
             if c.step_progress.is_none() { c.step_progress = self.defaults.step_progress; }
             if c.progress_type.is_none() { c.progress_type = self.defaults.progress_type; }
@@ -162,6 +198,8 @@ mod tests {
     fn points_additive() {
         let data = BenchmarkConfig {
             name: String::new(),
+            workload: None,
+            param_mode: None,
             starting_step: 7,
             no_steps: Some(3),
             step_progress: Some(2),
@@ -178,6 +216,8 @@ mod tests {
     fn points_multiplicative() {
         let data = BenchmarkConfig {
             name: String::new(),
+            workload: None,
+            param_mode: None,
             starting_step: 3,
             no_steps: Some(3),
             step_progress: Some(2),
@@ -194,6 +234,8 @@ mod tests {
     fn serde_benchmark_config() {
         let config = BenchmarkConfig {
             name: "benchmark_name".to_owned(),
+            workload: None,
+            param_mode: None,
             starting_step: 1,
             no_steps: Some(5),
             step_progress: Some(2),
@@ -223,6 +265,8 @@ timeout: '3s'
     fn serde_benchmark_config_list() {
         let config1 = BenchmarkConfig {
             name: "benchmark_name1".to_owned(),
+            workload: None,
+            param_mode: None,
             starting_step: 1,
             no_steps: Some(5),
             step_progress: Some(2),
@@ -234,6 +278,8 @@ timeout: '3s'
 
         let config2 = BenchmarkConfig {
             name: "benchmark_name2".to_owned(),
+            workload: None,
+            param_mode: None,
             starting_step: 2,
             no_steps: Some(6),
             step_progress: Some(3),
