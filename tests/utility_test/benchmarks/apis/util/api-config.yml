@@ -1,0 +1,5 @@
+api: util
+env-prepare: "true"
+env-cleanup: "true"
+build-command: "true"
+run-command: ./run.sh

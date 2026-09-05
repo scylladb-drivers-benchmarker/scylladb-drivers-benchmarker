@@ -1,10 +1,6 @@
-use std::io::Write;
 use std::path::Path;
 
-use fs::File;
-use fs_err as fs;
 use scylladb_drivers_benchmarker::commit_hash::CommitHash;
-use scylladb_drivers_benchmarker::database::Database;
 use scylladb_drivers_benchmarker::database::utilities::{BenchmarkParams, BenchmarkRecord};
 use scylladb_drivers_benchmarker::utilities::{BenchmarkParamsBuilder, FlatBenchmarkRecord};
 use serial_test::file_serial;
@@ -16,9 +12,17 @@ use crate::utilities::run_utilities::print_flame_graph_information;
 
 mod utilities;
 
-fn check_data(commit_hash: &CommitHash, backend_name: &str, data: Vec<(BenchmarkParams, BenchmarkRecord)>) {
-    let param_builder =
-        BenchmarkParamsBuilder::new(commit_hash.clone(), "regex".to_owned(), backend_name.to_owned(), "time".to_owned());
+fn check_data(
+    commit_hash: &CommitHash,
+    driver_name: &str,
+    data: Vec<(BenchmarkParams, BenchmarkRecord)>,
+) {
+    let param_builder = BenchmarkParamsBuilder::new(
+        commit_hash.clone(),
+        "regex".to_owned(),
+        driver_name.to_owned(),
+        "time".to_owned(),
+    );
 
     assert_eq!(data.len(), 8usize);
     for (params, record) in data {
@@ -38,123 +42,95 @@ fn check_data(commit_hash: &CommitHash, backend_name: &str, data: Vec<(Benchmark
     }
 }
 
-struct CppVsRust {
-    db: Database,
-}
-
-impl CppVsRust {
-    fn new() -> Self {
-        setup_git("./tests/cpp_vs_rust_test/cpp/");
-        setup_git("./tests/cpp_vs_rust_test/rust/");
-        CppVsRust {
-            db: open_clean_db(Path::new("./tests/cpp_vs_rust_test/test.db")),
-        }
-    }
-
-    fn gather_data(&self, path: &str, command: &mut std::process::Command) -> CommitHash {
-        run_safe(command.current_dir(path), |output| {
-            output.status.success() && output.stdout.is_empty() && output.stderr.is_empty()
-        });
-
-        CommitHash::new(Path::new(path), "HEAD".to_owned()).unwrap()
-    }
-
-    fn run(&self, command: &mut std::process::Command) {
-        let hash_cpp = self.gather_data("./tests/cpp_vs_rust_test/cpp/", command);
-        let hash_rust = self.gather_data("./tests/cpp_vs_rust_test/rust/", command);
-        assert!(hash_cpp != hash_rust);
-
-        let db_data = self.db.get_all_data().unwrap();
-
-        let data_cpp = db_data
-            .iter()
-            .filter(|(params, _)| params.commit_hash == hash_cpp)
-            .map(Clone::clone);
-        check_data(&hash_cpp, "regex-cpp", data_cpp.collect());
-
-        let data_rust = db_data
-            .iter()
-            .filter(|(params, _)| params.commit_hash == hash_rust)
-            .map(Clone::clone);
-        check_data(&hash_rust, "regex-rust", data_rust.collect());
-    }
-}
-
-// Compiling rust by two tests in parallel sometimes fails.
-// We chose to serialize those two tests to avoid unpredictable test failures.
-
+/// Runs the tandem: two fixture "drivers" (separate git repos) benchmarked
+/// with the same fixture benchmarks repo, via two different apis.
 #[test]
 #[file_serial]
-fn simple() {
-    let mut command = sdb_command();
-    command
-        .env("RUST_LOG", "off")
-        .arg("-d")
-        .arg("../test.db")
-        .arg("run")
-        .arg("-b")
-        .arg("../config.yml")
-        .arg("regex");
+fn cpp_vs_rust() {
+    let test_dir = Path::new("./tests/cpp_vs_rust_test/");
+    setup_git(test_dir.join("drivers/cpp/"));
+    setup_git(test_dir.join("drivers/rust/"));
+    let db_path = test_dir.join("test.db");
+    let db = open_clean_db(&db_path);
 
-    CppVsRust::new().run(&mut command);
-}
+    let mut hashes = Vec::new();
+    for driver in ["cpp", "rust"] {
+        let driver_path = test_dir.join("drivers").join(driver);
+        run_safe(
+            sdb_command()
+                .env("RUST_LOG", "off")
+                .arg("-d")
+                .arg(&db_path)
+                .arg("run")
+                .arg("--driver-path")
+                .arg(&driver_path)
+                .arg("--benchmarks-path")
+                .arg(test_dir.join("benchmarks"))
+                .arg("--keep-going")
+                .arg("time"),
+            |output| output.status.success() && output.stdout.is_empty() && output.stderr.is_empty(),
+        );
+        hashes.push(CommitHash::new(&driver_path, "HEAD".to_owned()).unwrap());
+    }
+    let (hash_cpp, hash_rust) = (hashes.remove(0), hashes.remove(0));
+    assert!(hash_cpp != hash_rust);
 
-#[test]
-#[file_serial]
-fn aliasing_db() {
-    let path = Path::new(file!()).parent().unwrap().canonicalize().unwrap();
+    let db_data = db.get_all_data().unwrap();
 
-    let db_path = path.join("cpp_vs_rust_test").join("test.db");
-    let config_path = path.join("cpp_vs_rust_test").join("aliasing.yml");
+    let data_cpp = db_data
+        .iter()
+        .filter(|(params, _)| params.commit_hash == hash_cpp)
+        .map(Clone::clone);
+    check_data(&hash_cpp, "regex-cpp", data_cpp.collect());
 
-    let mut config_file = File::create("./tests/cpp_vs_rust_test/aliasing.yml")
-        .expect("Cannot create and write an aliasing file");
-    config_file
-        .write_all(format!("db-path: {db_path:?}\n").as_bytes())
-        .unwrap();
-    let mut command = sdb_command();
-
-    command
-        .env("SDB_CONFIG", config_path)
-        .env("RUST_LOG", "off")
-        .arg("run")
-        .arg("-b")
-        .arg("../config.yml")
-        .arg("regex");
-
-    CppVsRust::new().run(&mut command);
+    let data_rust = db_data
+        .iter()
+        .filter(|(params, _)| params.commit_hash == hash_rust)
+        .map(Clone::clone);
+    check_data(&hash_rust, "regex-rust", data_rust.collect());
 }
 
 #[test]
 fn flame_graph() {
     let test_dir = Path::new("./tests/flame_graph_bench_test/");
     let benchmark_name = "recurse";
-    let config_name = Path::new("flame-path.yml");
     let db = open_clean_db(&test_dir.join("test.db"));
+    setup_git(test_dir.join("driver"));
 
-    print_flame_graph_information(&test_dir.join(config_name));
+    let flame_config_path = test_dir.join("flame-path.yml");
+    print_flame_graph_information(&flame_config_path);
+    // The FlameGraph repository location requires manual setup, as before.
+    let flame_config = std::fs::read_to_string(&flame_config_path)
+        .expect("flame-path.yml with `flame-path: <FlameGraph repo>` is required");
+    let flame_repo = flame_config
+        .lines()
+        .find_map(|l| l.strip_prefix("flame-path:"))
+        .expect("flame-path key missing in flame-path.yml")
+        .trim()
+        .to_owned();
 
     run(sdb_command()
         .env("RUST_LOG", "off")
         .args([
             "-d",
             "./test.db",
-            "-a",
-            Path::new("./").join(config_name).to_str().unwrap(),
             "run",
-            "-b",
-            "./bench.yml",
-            "-B",
-            "./back.yml",
+            "--driver-path",
+            "./driver",
+            "--benchmarks-path",
+            "./benchmarks",
+            "--scenario",
             benchmark_name,
             "flame-graph",
+            "-r",
+            &flame_repo,
             "-s",
             "./store",
         ])
         .current_dir(test_dir));
 
     let param_builder = BenchmarkParamsBuilder::new(
-        CommitHash::new(test_dir, "HEAD".to_owned()).unwrap(),
+        CommitHash::new(&test_dir.join("driver"), "HEAD".to_owned()).unwrap(),
         benchmark_name.to_owned(),
         "recurse-c".to_owned(),
         "flame-graph".to_owned(),
@@ -181,73 +157,41 @@ fn flame_graph() {
     }
 }
 
+/// Custom `command` measurement mode: the measuring command wraps the run
+/// command; here `echo` just prints it.
 #[test]
 fn utility_test() {
-    let path = Path::new(file!())
-        .parent()
-        .unwrap()
-        .canonicalize()
-        .unwrap()
-        .join("utility_test/");
+    let test_dir = Path::new("./tests/utility_test/");
+    setup_git(test_dir.join("driver"));
+    let commit_hash = CommitHash::new(&test_dir.join("driver"), "HEAD".to_owned()).unwrap();
 
-    let dp_path = path.join("db.db");
-    let bc_path = path.join("bconfig.yml");
-    let ac_path = path.join("alias.yml");
+    let db_path = test_dir.join("db.db");
+    let db = open_clean_db(&db_path);
 
-    write!(
-        File::create(&ac_path).unwrap(),
-        "db-path: {dp_path:?}\nbenchmark-config: {bc_path:?}"
-    )
-    .unwrap();
+    run(sdb_command().arg("-d").arg(&db_path).args([
+        "run",
+        "--driver-path",
+        "./tests/utility_test/driver",
+        "--benchmarks-path",
+        "./tests/utility_test/benchmarks",
+        "command",
+        "echo",
+    ]));
 
-    setup_git(&path);
-    let commit_hash = CommitHash::new(&path, "HEAD".to_owned()).unwrap();
-
-    let dp = open_clean_db(&dp_path);
-
-    run(sdb_command()
-        .env("SDB_CONFIG", ac_path)
-        .args(["run", "utility", "-b", "1,5,2", "command", "echo"])
-        .current_dir("./tests/utility_test/"));
-
-    let data = dp.get_all_data().unwrap();
-    assert_eq!(
-        data[0],
+    let expected = |point| {
         (
             BenchmarkParams::new(
                 commit_hash.clone(),
                 "utility".to_owned(),
                 "sleeper".to_owned(),
-                1,
-                "echo".to_owned()
+                point,
+                "echo".to_owned(),
             ),
-            BenchmarkRecord::Data("sleep 1 >/dev/null".to_owned())
-        ),
-    );
-    assert_eq!(
-        data[1],
-        (
-            BenchmarkParams::new(
-                commit_hash.clone(),
-                "utility".to_owned(),
-                "sleeper".to_owned(),
-                2,
-                "echo".to_owned()
-            ),
-            BenchmarkRecord::Data("sleep 2 >/dev/null".to_owned())
+            BenchmarkRecord::Data("./run.sh".to_owned()),
         )
-    );
-    assert_eq!(
-        data[2],
-        (
-            BenchmarkParams::new(
-                commit_hash.clone(),
-                "utility".to_owned(),
-                "sleeper".to_owned(),
-                5,
-                "echo".to_owned()
-            ),
-            BenchmarkRecord::Data("sleep 5 >/dev/null".to_owned())
-        ),
-    );
+    };
+
+    let mut data = db.get_all_data().unwrap();
+    data.sort_by_key(|(params, _)| params.benchmark_point);
+    assert_eq!(data, vec![expected(1), expected(2), expected(4)]);
 }

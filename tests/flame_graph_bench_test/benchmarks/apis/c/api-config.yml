@@ -1,0 +1,5 @@
+api: c
+env-prepare: "true"
+env-cleanup: "true"
+build-command: make main
+run-command: ./run.sh

@@ -1,0 +1,5 @@
+# Fixture driver repository config - see examples/benchmark-config.yml in the
+# benchmarks repository for the commented template.
+driver-name: recurse-c
+api: c
+package: none
