@@ -48,6 +48,31 @@ fn series_plot_runs() {
 }
 
 #[test]
+fn throughput_plot_runs() {
+    let dataset = BenchmarkDataset {
+        points: vec![1, 2, 3],
+        results: vec![
+            // The last value of the first series is missing, and the middle one
+            // of the second series is a zero duration, which has no throughput.
+            vec![Some(Dummy(10.0)), Some(Dummy(20.0)), None],
+            vec![Some(Dummy(5.0)), Some(Dummy(0.0)), Some(Dummy(20.0))],
+        ],
+        std_devs: vec![vec![None; 3], vec![None; 3]],
+        names: vec!["first".to_owned(), "second".to_owned()],
+    };
+    let plot = SeriesPlot::from_dataset(
+        dataset,
+        "TestBenchmark".to_owned(),
+        VisKind::Throughput,
+        "Time [s]",
+    )
+    .unwrap();
+
+    let path = NamedTempFile::new().unwrap().path().with_extension("png");
+    assert!(plot_on_backend(plot, path.to_str().unwrap()).is_ok());
+}
+
+#[test]
 fn series_plot_fails_file_not_found() {
     let result = plot_on_backend(setup_test_plot(), "/this/path/should/not/exist/lmao.png");
 

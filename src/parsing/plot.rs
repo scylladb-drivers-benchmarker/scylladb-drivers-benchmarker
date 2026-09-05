@@ -172,6 +172,7 @@ pub(crate) enum InputPlotKind {
 pub(crate) enum InputVisKind {
     Linear,
     Log,
+    Throughput,
 }
 
 impl InputVisKind {
@@ -179,6 +180,7 @@ impl InputVisKind {
         match self {
             InputVisKind::Linear => VisKind::Linear,
             InputVisKind::Log => VisKind::Log,
+            InputVisKind::Throughput => VisKind::Throughput,
         }
     }
 }
