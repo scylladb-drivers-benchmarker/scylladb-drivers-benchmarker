@@ -87,6 +87,14 @@ impl RenderableSeries {
         self.range
     }
 
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn color(&self) -> RGBAColor {
+        self.color.to_rgba()
+    }
+
     /// Draws this series as columns, `series_index` of `series_count` within
     /// each group.
     pub fn draw_as_column(&mut self, series_index: usize, series_count: usize) {
