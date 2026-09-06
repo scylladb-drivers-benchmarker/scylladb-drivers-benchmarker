@@ -1,6 +1,0 @@
-backends:
-  - name: regex-rust
-    benchmark-name: regex
-    build-command: make regex
-    run-command: ./regex
-

@@ -1,9 +1,8 @@
-use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use clap::Args;
-use scylladb_drivers_benchmarker::BackendWithCommit;
+use scylladb_drivers_benchmarker::DriverWithCommit;
 use scylladb_drivers_benchmarker::commit_hash::{CommitHash, FailedToRetrieveCommitHash};
 use scylladb_drivers_benchmarker::config::benchmark::{BenchmarkConfigList, BenchmarkData};
 use scylladb_drivers_benchmarker::config::config_traits::ConfigurationList;
@@ -11,13 +10,12 @@ use scylladb_drivers_benchmarker::config::open_config;
 use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
 use scylladb_drivers_benchmarker::{PlotSettings, VisKind};
 
-use crate::parsing::aliasing::AliasingConfig;
 use crate::parsing::benchmark_setup::BenchmarkSetup;
 use crate::parsing::{ParsingError, Subcommands};
 use crate::{PlotKind, PlotParams};
 
 #[justerror::Error]
-pub(crate) enum BackendWithCommitParsingError {
+pub(crate) enum DriverWithCommitParsingError {
     #[error(desc = "expected format BACKEND@REPO[:REF] \u{2014} '@' separator is missing")]
     MissingAtSign,
     #[error(desc = "backend name cannot be empty")]
@@ -28,8 +26,8 @@ pub(crate) enum BackendWithCommitParsingError {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct ParsableBackendWithCommit {
-    pub(crate) backend_name: String,
+pub(crate) struct ParsableDriverWithCommit {
+    pub(crate) driver_name: String,
     pub(crate) repo: String,
     /// Git ref passed to `git rev-parse` (branch, tag, or commit hash).
     pub(crate) git_ref: String,
@@ -37,28 +35,38 @@ pub(crate) struct ParsableBackendWithCommit {
     pub(crate) display_tag: String,
 }
 
-impl FromStr for ParsableBackendWithCommit {
-    type Err = BackendWithCommitParsingError;
+impl FromStr for ParsableDriverWithCommit {
+    type Err = DriverWithCommitParsingError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (backend_name, rest) = s
+        let (driver_name, rest) = s
             .split_once('@')
-            .ok_or(BackendWithCommitParsingError::MissingAtSign)?;
-        if backend_name.is_empty() {
-            return Err(BackendWithCommitParsingError::EmptyBackendName);
+            .ok_or(DriverWithCommitParsingError::MissingAtSign)?;
+        if driver_name.is_empty() {
+            return Err(DriverWithCommitParsingError::EmptyBackendName);
         }
         let (repo, ref_with_alias) = match rest.split_once(':') {
             Some((repo, ref_part)) => {
                 if repo.is_empty() {
-                    return Err(BackendWithCommitParsingError::EmptyRepo);
+                    return Err(DriverWithCommitParsingError::EmptyRepo);
                 }
                 (repo, if ref_part.is_empty() { "HEAD" } else { ref_part })
             }
             None => {
-                if rest.is_empty() {
-                    return Err(BackendWithCommitParsingError::EmptyRepo);
+                // No REF part - an =ALIAS may still follow the repo/commit id.
+                let (repo, alias) = match rest.split_once('=') {
+                    Some((repo, alias)) => (repo, Some(alias)),
+                    None => (rest, None),
+                };
+                if repo.is_empty() {
+                    return Err(DriverWithCommitParsingError::EmptyRepo);
                 }
-                (rest, "HEAD")
+                return Ok(ParsableDriverWithCommit {
+                    driver_name: driver_name.to_owned(),
+                    repo: repo.to_owned(),
+                    git_ref: "HEAD".to_owned(),
+                    display_tag: alias.unwrap_or("HEAD").to_owned(),
+                });
             }
         };
         // Split off optional =ALIAS from the REF portion.
@@ -70,8 +78,8 @@ impl FromStr for ParsableBackendWithCommit {
             }
             None => (ref_with_alias.to_owned(), ref_with_alias.to_owned()),
         };
-        Ok(ParsableBackendWithCommit {
-            backend_name: backend_name.to_owned(),
+        Ok(ParsableDriverWithCommit {
+            driver_name: driver_name.to_owned(),
             repo: repo.to_owned(),
             git_ref,
             display_tag,
@@ -79,20 +87,29 @@ impl FromStr for ParsableBackendWithCommit {
     }
 }
 
-impl ParsableBackendWithCommit {
-    fn resolve(
-        self,
-        name_path_map: &HashMap<String, PathBuf>,
-    ) -> Result<BackendWithCommit, BackendWithCommitParsingError> {
-        let repo_path: PathBuf = name_path_map
-            .get(&self.repo)
-            .cloned()
-            .unwrap_or_else(|| PathBuf::from(&self.repo));
-        let commit = CommitHash::new(&repo_path, self.git_ref)?;
-        Ok(BackendWithCommit {
-            backend_name: self.backend_name,
+impl ParsableDriverWithCommit {
+    /// If REPO is an existing directory, the REF is resolved with git inside it.
+    /// Otherwise REPO itself is taken as the literal version identity stored in
+    /// the database (a commit hash, `<hash>-dirty`, or `v<version>` for
+    /// published drivers).
+    fn resolve(self) -> Result<DriverWithCommit, DriverWithCommitParsingError> {
+        let repo_path = Path::new(&self.repo);
+        let (commit, tag) = if repo_path.is_dir() {
+            (CommitHash::new(repo_path, self.git_ref)?, self.display_tag)
+        } else {
+            // Literal identity: default the label to a shortened id
+            // instead of the meaningless "HEAD".
+            let tag = if self.display_tag == "HEAD" {
+                self.repo.chars().take(8).collect()
+            } else {
+                self.display_tag
+            };
+            (CommitHash::new_unchecked(self.repo.clone()), tag)
+        };
+        Ok(DriverWithCommit {
+            driver_name: self.driver_name,
             commit,
-            tag: self.display_tag,
+            tag,
         })
     }
 }
@@ -111,7 +128,7 @@ pub(crate) struct PlotCommand {
     /// ALIAS overrides the label shown on the plot (defaults to REF).
     /// Repeat to overlay multiple backends and/or commits on the same chart.
     #[arg(long, value_name = "BACKEND@REPO[:REF[=ALIAS]]")]
-    pub series: Vec<ParsableBackendWithCommit>,
+    pub series: Vec<ParsableDriverWithCommit>,
 
     /// Path to save the plot image
     #[arg(short, long, value_name = "FILE_PATH")]
@@ -139,7 +156,7 @@ pub(crate) enum InputPlotKind {
         artifacts_dir: Option<PathBuf>,
 
         #[arg(short, long, value_name = "DIR")]
-        flame_repo: Option<PathBuf>,
+        flame_repo: PathBuf,
     },
 
     /// Generate a perf-stat plot
@@ -167,7 +184,7 @@ impl InputVisKind {
 }
 
 impl InputPlotKind {
-    pub fn finalize(self, aliasing_config: AliasingConfig) -> Result<PlotKind, ParsingError> {
+    pub fn finalize(self) -> Result<PlotKind, ParsingError> {
         match self {
             InputPlotKind::Series {
                 measurement_method,
@@ -181,9 +198,7 @@ impl InputPlotKind {
                 flame_repo,
             } => Ok(PlotKind::FlameGraph {
                 artifacts_dir,
-                flame_repo: flame_repo
-                    .or(aliasing_config.flame_path)
-                    .ok_or(ParsingError::NoFlameGraphRepository)?,
+                flame_repo,
             }),
             InputPlotKind::PerfStat { events } => Ok(PlotKind::PerfStat { events }),
         }
@@ -191,11 +206,11 @@ impl InputPlotKind {
 }
 
 impl PlotCommand {
-    pub fn finalize(self, aliasing_config: AliasingConfig) -> Result<Subcommands, ParsingError> {
-        let series: Vec<BackendWithCommit> = self
+    pub fn finalize(self) -> Result<Subcommands, ParsingError> {
+        let series: Vec<DriverWithCommit> = self
             .series
             .into_iter()
-            .map(|s| s.resolve(&aliasing_config.repo_path))
+            .map(|s| s.resolve())
             .collect::<Result<Vec<_>, _>>()?;
 
         let default_output_name = match self.plot_kind {
@@ -212,18 +227,13 @@ impl PlotCommand {
             vec![BenchmarkSetup::finalize(
                 self.benchmark_setup,
                 &benchmark_name,
-                &aliasing_config,
             )?]
         } else {
             let config_path = match &self.benchmark_setup {
                 Some(BenchmarkSetup::Path(path)) => path.clone(),
-                Some(BenchmarkSetup::Points(_)) => {
+                Some(BenchmarkSetup::Points(_)) | None => {
                     return Err(ParsingError::NoBenchmarkConfiguration);
                 }
-                None => aliasing_config
-                    .benchmark_config
-                    .clone()
-                    .ok_or(ParsingError::NoBenchmarkConfiguration)?,
             };
             let config_list: BenchmarkConfigList = open_config(&config_path)?;
             config_list.configs().map(BenchmarkData::from).collect()
@@ -232,10 +242,7 @@ impl PlotCommand {
         Ok(Subcommands::Plot(PlotParams {
             benchmarks,
             series,
-            plot_settings: PlotSettings::new(
-                self.plot_kind.finalize(aliasing_config)?,
-                output_file_name,
-            ),
+            plot_settings: PlotSettings::new(self.plot_kind.finalize()?, output_file_name),
         }))
     }
 }

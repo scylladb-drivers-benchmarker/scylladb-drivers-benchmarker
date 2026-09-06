@@ -16,7 +16,7 @@ use plotters::backend::{BitMapBackend, SVGBackend};
 use log::info;
 use tempfile::NamedTempFile;
 
-use crate::BackendWithCommit;
+use crate::DriverWithCommit;
 use crate::config::benchmark::BenchmarkData;
 use crate::database::Database;
 use crate::measurement::MeasurementMethod;
@@ -81,12 +81,12 @@ fn render_benchmark_to_png_bytes(
     kind: &PlotKind,
     database: &Database,
     benchmark: &BenchmarkData,
-    series: &[BackendWithCommit],
+    series: &[DriverWithCommit],
     size: (u32, u32),
 ) -> Result<Vec<u8>, PlotError> {
     let tmp = NamedTempFile::with_suffix(".png")?;
     let path = tmp.path().to_string_lossy().to_string();
-    let series_iter = series.iter().cloned().map(|s| (s.backend_name, s.commit, s.tag));
+    let series_iter = series.iter().cloned().map(|s| (s.driver_name, s.commit, s.tag));
     match kind {
         PlotKind::Series { measurement_method, visualization_kind } => {
             let dataset: BenchmarkDataset<f64> =
@@ -119,12 +119,12 @@ fn render_benchmark_to_svg_string(
     kind: &PlotKind,
     database: &Database,
     benchmark: &BenchmarkData,
-    series: &[BackendWithCommit],
+    series: &[DriverWithCommit],
     size: (u32, u32),
 ) -> Result<String, PlotError> {
     let tmp = NamedTempFile::with_suffix(".svg")?;
     let path = tmp.path().to_string_lossy().to_string();
-    let series_iter = series.iter().cloned().map(|s| (s.backend_name, s.commit, s.tag));
+    let series_iter = series.iter().cloned().map(|s| (s.driver_name, s.commit, s.tag));
     match kind {
         PlotKind::Series { measurement_method, visualization_kind } => {
             let dataset: BenchmarkDataset<f64> =
@@ -166,7 +166,7 @@ fn plot_grid_png(
     kind: &PlotKind,
     database: &Database,
     benchmarks: Vec<BenchmarkData>,
-    series: &[BackendWithCommit],
+    series: &[DriverWithCommit],
     output: &str,
 ) -> Result<(), PlotError> {
     let rows = benchmarks.len().div_ceil(GRID_COLS) as u32;
@@ -203,7 +203,7 @@ fn plot_grid_svg(
     kind: &PlotKind,
     database: &Database,
     benchmarks: Vec<BenchmarkData>,
-    series: &[BackendWithCommit],
+    series: &[DriverWithCommit],
     output: &str,
 ) -> Result<(), PlotError> {
     let rows = benchmarks.len().div_ceil(GRID_COLS) as u32;
@@ -238,7 +238,7 @@ fn plot_grid(
     plot_settings: PlotSettings,
     database: &Database,
     benchmarks: Vec<BenchmarkData>,
-    series: Vec<BackendWithCommit>,
+    series: Vec<DriverWithCommit>,
 ) -> Result<(), PlotError> {
     let output = &plot_settings.output;
     let extension = output.rsplit('.').next().unwrap_or("").to_owned();
@@ -256,7 +256,7 @@ fn plot_single(
     plot_settings: PlotSettings,
     database: &Database,
     benchmark_config: BenchmarkData,
-    series: impl Iterator<Item = BackendWithCommit>,
+    series: impl Iterator<Item = DriverWithCommit>,
 ) -> Result<(), PlotError> {
     match plot_settings.plot_kind {
         PlotKind::Series {
@@ -266,7 +266,7 @@ fn plot_single(
             let dataset: BenchmarkDataset<f64> = BenchmarkDataset::new(
                 database,
                 &benchmark_config,
-                series.map(|s| (s.backend_name, s.commit, s.tag)),
+                series.map(|s| (s.driver_name, s.commit, s.tag)),
                 &measurement_method,
             )?;
 
@@ -287,7 +287,7 @@ fn plot_single(
             let dataset: BenchmarkDataset<String> = BenchmarkDataset::new(
                 database,
                 &benchmark_config,
-                series.map(|s| (s.backend_name, s.commit, s.tag)),
+                series.map(|s| (s.driver_name, s.commit, s.tag)),
                 &MeasurementMethod::FlameGraph,
             )?;
 
@@ -306,7 +306,7 @@ fn plot_single(
             let dataset: BenchmarkDataset<PerfStatData> = BenchmarkDataset::new(
                 database,
                 &benchmark_config,
-                series.map(|s| (s.backend_name, s.commit, s.tag)),
+                series.map(|s| (s.driver_name, s.commit, s.tag)),
                 &MeasurementMethod::Perf,
             )?;
 
@@ -321,9 +321,9 @@ pub fn plot(
     plot_settings: PlotSettings,
     database: &Database,
     mut benchmarks: Vec<BenchmarkData>,
-    series: impl Iterator<Item = BackendWithCommit>,
+    series: impl Iterator<Item = DriverWithCommit>,
 ) -> Result<(), PlotError> {
-    let series: Vec<BackendWithCommit> = series.collect();
+    let series: Vec<DriverWithCommit> = series.collect();
     if benchmarks.len() == 1 {
         let benchmark_config = benchmarks.remove(0);
         plot_single(plot_settings, database, benchmark_config, series.into_iter())

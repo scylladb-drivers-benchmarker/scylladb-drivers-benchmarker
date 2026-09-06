@@ -35,18 +35,18 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         let mut std_devs = Vec::new();
         let mut names = Vec::new();
 
-        for (backend_name, commit_hash, tag) in series {
+        for (driver_name, commit_hash, tag) in series {
             let (series_values, devs) = Self::get_benchmark_results(
                 database,
                 &commit_hash,
                 benchmark_config,
                 measurement_method,
-                &backend_name,
+                &driver_name,
             )?;
             let label = if tag.is_empty() {
-                backend_name.clone()
+                driver_name.clone()
             } else {
-                format!("{}@{}", backend_name, tag)
+                format!("{}@{}", driver_name, tag)
             };
             names.push(label);
             results.push(series_values);
@@ -66,12 +66,12 @@ impl<T: PlottableValue> BenchmarkDataset<T> {
         commit_hash: &CommitHash,
         benchmark_config: &BenchmarkData,
         measurement_method: &MeasurementMethod,
-        backend_name: &str,
+        driver_name: &str,
     ) -> Result<(Vec<Option<T>>, Vec<Option<f64>>), PlotError> {
         let builder = BenchmarkParamsBuilder {
             commit_hash: commit_hash.clone(),
             benchmark_name: benchmark_config.name.clone(),
-            backend_name: backend_name.to_owned(),
+            driver_name: driver_name.to_owned(),
             measurement_method: measurement_method.to_string(),
         };
 

@@ -4,13 +4,20 @@ use std::path::Path;
 
 use fs_err::exists;
 use scylladb_drivers_benchmarker::commit_hash::CommitHash;
-use scylladb_drivers_benchmarker::database::utilities::{BenchmarkParams, BenchmarkRecord};
+use scylladb_drivers_benchmarker::database::utilities::{BenchmarkParams, BenchmarkRecord, Provenance};
 use scylladb_drivers_benchmarker::database::{self};
 use scylladb_drivers_benchmarker::utilities::FlatBenchmarkRecord;
 use tempfile::Builder;
 
 mod utilities;
 use utilities::run_utilities::{run_no_output, run_only_stdout, sdb_command};
+
+fn test_provenance() -> Provenance {
+    Provenance {
+        api: "test-api".to_owned(),
+        benchmarks_commit: "test-benchmarks-commit".to_owned(),
+    }
+}
 
 fn test_dir() -> &'static Path {
     Path::new("./tests/database_test")
@@ -40,8 +47,12 @@ fn database() {
             "time -f \"%e\"".to_owned(),
         );
 
-        db.insert_data(params.clone(), BenchmarkRecord::Data("value".to_owned()))
-            .unwrap();
+        db.insert_data(
+            params.clone(),
+            test_provenance(),
+            BenchmarkRecord::Data("value".to_owned()),
+        )
+        .unwrap();
     }
 
     let print_output = run_only_stdout(
@@ -107,6 +118,7 @@ fn database_file() {
 
     db.insert_data(
         params.clone(),
+        test_provenance(),
         BenchmarkRecord::FilePath(tmp_file_full_path.clone()),
     )
     .unwrap();

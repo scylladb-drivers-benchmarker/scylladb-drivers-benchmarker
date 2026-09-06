@@ -81,19 +81,18 @@ impl FlameExecutor {
 
     fn commands(&self, point: BenchmarkPoint) -> [command::Command; 3] {
         [
+            // Note: no `-a` - profile only the benchmark process, not the whole system.
             cmd!(
                 "perf",
                 "record",
                 "-F",
                 &self.frequency,
-                "-a",
                 "-g",
                 "-o",
                 "-",
                 "--"
             )
-            .with_cmd_arg(self.run_command.clone())
-            .with_arg(point.to_string()),
+            .with_cmd_arg(self.run_command.clone().with_env("STEP", point.to_string())),
             cmd!("perf", "script", "-i", "-"),
             cmd!(
                 self.flame_repo

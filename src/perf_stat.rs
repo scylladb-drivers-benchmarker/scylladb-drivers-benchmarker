@@ -4,14 +4,13 @@ use serde::{Deserialize, Deserializer};
 
 // Numbers returned by perf-stat can use dot or coma as decimal point, depending on system.
 // This function parses to number, replacing comas with dots.
+// Non-numeric values (e.g. "<not counted>") are reported as 0.
 fn deserialize_perf_numbers<'de, D>(deserializer: D) -> Result<f64, D::Error>
 where
     D: Deserializer<'de>,
 {
     let s: String = Deserialize::deserialize(deserializer)?;
-    s.replace(',', ".")
-        .parse()
-        .map_err(serde::de::Error::custom)
+    Ok(s.replace(',', ".").parse().unwrap_or(0.0))
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -19,10 +18,12 @@ pub struct PerfEvent {
     #[serde(default)]
     pub event: String,
 
-    #[serde(rename = "counter-value", deserialize_with = "deserialize_perf_numbers", default)]
+    // The normalized metric value/unit is plotted (e.g. "CPUs utilized"),
+    // not the raw counter value.
+    #[serde(rename = "metric-value", deserialize_with = "deserialize_perf_numbers", default)]
     pub value: f64,
 
-    #[serde(rename = "unit", default)]
+    #[serde(rename = "metric-unit", default)]
     pub unit: String,
 }
 

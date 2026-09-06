@@ -26,6 +26,10 @@ impl CommandExecutor {
     pub(crate) fn new(command: command::Command, run_command: command::Command) -> Self {
         CommandExecutor(command.with_cmd_arg(run_command))
     }
+
+    fn command_for(&self, point: BenchmarkPoint) -> command::Command {
+        self.0.clone().with_env("STEP", point.to_string())
+    }
 }
 
 impl CommandExecutor {
@@ -42,7 +46,7 @@ impl CommandExecutor {
     }
 
     fn execute(&self, point: BenchmarkPoint) -> Result<BenchmarkRecord, CommandMeasurementError> {
-        let command = self.0.clone().with_arg(point.to_string()).ignore_output();
+        let command = self.command_for(point);
         trace!("Executing the custom command {}", command);
         let output = command.process().output()?;
         Self::handle_output(output)
@@ -53,7 +57,7 @@ impl CommandExecutor {
         point: BenchmarkPoint,
         timeout: Duration,
     ) -> Result<BenchmarkRecord, CommandMeasurementError> {
-        let command = self.0.clone().with_arg(point.to_string());
+        let command = self.command_for(point);
         trace!("Executing the custom command {}", command);
         let result = command.process().output_with_timeout(timeout)?;
         match result {
@@ -103,7 +107,7 @@ mod test {
 
     #[test]
     fn test_execution_timeout() {
-        let executor = new_time(cmd!("sleep"));
+        let executor = new_time(cmd!("bash", "-c", "sleep $STEP"));
         let output = executor
             .execute_with_timeout(2, std::time::Duration::from_secs(1))
             .unwrap();
@@ -111,7 +115,7 @@ mod test {
     }
     #[test]
     fn test_execution_in_time() {
-        let executor = new_time(cmd!("sleep"));
+        let executor = new_time(cmd!("bash", "-c", "sleep $STEP"));
         let output = executor
             .execute_with_timeout(1, std::time::Duration::from_secs(2))
             .unwrap();

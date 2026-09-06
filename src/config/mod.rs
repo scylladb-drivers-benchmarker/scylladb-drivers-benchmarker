@@ -1,5 +1,6 @@
-pub mod backend;
+pub mod api;
 pub mod benchmark;
+pub mod driver;
 pub mod config_traits;
 
 use std::{
@@ -59,18 +60,19 @@ mod tests {
 
     use tempfile::NamedTempFile;
 
-    use crate::config::backend::BackendConfig;
+    use crate::config::benchmark::BenchmarkConfig;
     use crate::config::{ConfigError, find_config};
 
-    fn create_backend_tmp_file() -> NamedTempFile {
+    fn create_benchmark_tmp_file() -> NamedTempFile {
         let mut file = NamedTempFile::with_suffix(".yml").unwrap();
 
         let yaml = r#"
-backends:
-  - name: scylladb-nodejs-rs-driver
-    benchmark-name: select
-    build-command: npm run build
-    run-command: node benchmark/logic/select.js scylladb-nodejs-rs-driver
+benchmarks:
+  - name: select
+    starting-step: 100
+    no-steps: 3
+    step-progress: 2
+    progress-type: multiplicative
             "#;
 
         file.write_all(yaml.trim_start().as_bytes()).unwrap();
@@ -80,28 +82,23 @@ backends:
 
     #[test]
     fn open_config() {
-        let config_file = create_backend_tmp_file();
+        let config_file = create_benchmark_tmp_file();
 
-        let config: BackendConfig = find_config("select", config_file.path()).unwrap();
+        let config: BenchmarkConfig = find_config("select", config_file.path()).unwrap();
 
-        assert_eq!(config.name, Some("scylladb-nodejs-rs-driver".to_owned()));
-        assert_eq!(config.benchmark_name, "select");
-        assert_eq!(config.build_command, Some("npm run build".to_owned()));
-        assert_eq!(
-            config.run_command,
-            "node benchmark/logic/select.js scylladb-nodejs-rs-driver"
-        );
+        assert_eq!(config.name, "select");
+        assert_eq!(config.starting_step, 100);
     }
 
     #[test]
     fn config_error() {
-        let config_file = create_backend_tmp_file();
+        let config_file = create_benchmark_tmp_file();
 
         let benchmark_name = "drop_table";
         let config_path = config_file.path();
 
         let error: ConfigError =
-            find_config::<BackendConfig>(benchmark_name, config_path).unwrap_err();
+            find_config::<BenchmarkConfig>(benchmark_name, config_path).unwrap_err();
         let ConfigError::ConfigurationNotFound {
             path,
             benchmark_name,

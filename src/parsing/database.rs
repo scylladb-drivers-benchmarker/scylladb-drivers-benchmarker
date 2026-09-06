@@ -32,6 +32,9 @@ pub(crate) struct InputDatabaseFilters {
     #[arg(long = "benchmark-name", value_delimiter = ':', num_args(1..))]
     pub benchmark_names: Vec<String>,
 
+    #[arg(long = "driver-name", value_delimiter = ':', num_args(1..))]
+    pub driver_names: Vec<String>,
+
     #[arg(long = "benchmark-point", value_delimiter = ':', num_args(1..))]
     pub benchmark_points: Vec<BenchmarkPoint>,
 
@@ -44,7 +47,7 @@ impl From<InputDatabaseFilters> for BenchmarkFilters {
         BenchmarkFilters {
             commit_hashes: input.commit_hashes,
             benchmark_names: input.benchmark_names,
-            backend_names: vec![],
+            driver_names: input.driver_names,
             benchmark_points: input.benchmark_points,
             measurement_methods: input.measurement_methods,
         }

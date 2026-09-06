@@ -8,7 +8,6 @@ use scylladb_drivers_benchmarker::config::{ConfigError, find_config};
 use scylladb_drivers_benchmarker::utilities::BenchmarkPoint;
 
 use crate::parsing::ParsingError;
-use crate::parsing::aliasing::AliasingConfig;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum BenchmarkSetup {
@@ -24,6 +23,8 @@ impl BenchmarkSetup {
                 points.sort();
                 Ok(BenchmarkData {
                     name: name.to_owned(),
+                    workload: name.to_owned(),
+                    param_mode: Default::default(),
                     points,
                     timeout: None,
                     num_runs: 1,
@@ -60,21 +61,11 @@ impl BenchmarkSetup {
     pub(crate) fn finalize(
         benchmark_setup: Option<Self>,
         benchmark_name: &str,
-        aliasing_config: &AliasingConfig,
     ) -> Result<BenchmarkData, ParsingError> {
         trace!("Finalizing the benchmark setup...");
         if let Some(benchmark_setup) = benchmark_setup {
             trace!("Found literal setup: {:?}", benchmark_setup);
             Ok(benchmark_setup.into_config(benchmark_name)?)
-        } else if let Some(config_path) = &aliasing_config.benchmark_config {
-            trace!("Found config path: {}", config_path.display());
-            match find_config::<BenchmarkConfig>(benchmark_name, config_path) {
-                Ok(config) => Ok(config.into()),
-                Err(ConfigError::ConfigurationNotFound { .. }) => {
-                    Err(ParsingError::NoBenchmarkConfiguration)
-                }
-                Err(err) => Err(err.into()),
-            }
         } else {
             Err(ParsingError::NoBenchmarkConfiguration)
         }
@@ -83,7 +74,6 @@ impl BenchmarkSetup {
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashMap;
     use std::fmt::Debug;
     use std::fs;
     use std::time::Duration;
@@ -94,7 +84,6 @@ mod test {
     use serde::{Deserialize, Serialize};
     use tempfile::NamedTempFile;
 
-    use crate::parsing::aliasing::AliasingConfig;
     use crate::parsing::benchmark_setup::BenchmarkSetup;
 
     fn write_assert<T: Serialize + Debug + Eq + for<'a> Deserialize<'a>>(val: T) -> NamedTempFile {
@@ -107,62 +96,10 @@ mod test {
         file
     }
 
-    struct Configs {
-        wrong_config: NamedTempFile,
-        aconfig: AliasingConfig,
-    }
-
-    fn aliasing_config() -> Configs {
-        let bconfig = BenchmarkConfig {
-            name: "Aliased".to_owned(),
-            starting_step: 100,
-            no_steps: Some(1),
-            step_progress: Some(100),
-            progress_type: Some(ProgressType::Multiplicative),
-            timeout: Some(Duration::from_secs(60 * 60 * 100)), // 100 hours, from_hours may not be available.
-            num_runs: 1,
-            measure: None,
-        };
-        let wrong_config = write_assert(BenchmarkConfigList {
-            configs: vec![bconfig],
-            defaults: BenchmarkDefaults::default(),
-        });
-
-        let aconfig = AliasingConfig {
-            db_path: None,
-            repo_path: HashMap::new(),
-            flame_path: None,
-            store_dir: None,
-            benchmark_config: Some(wrong_config.path().to_owned()),
-        };
-
-        Configs {
-            wrong_config,
-            aconfig,
-        }
-    }
-
-    #[test]
-    fn setup_aliased_config() {
-        let Configs {
-            wrong_config: _wrong_config,
-            aconfig,
-        } = aliasing_config();
-
-        let output = BenchmarkSetup::finalize(None, "Aliased", &aconfig).unwrap();
-        assert_eq!(output.name, "Aliased");
-        assert_eq!(output.points, vec![100]);
-        assert_eq!(output.timeout, Some(Duration::from_secs(60 * 60 * 100))); // 100 hours, from_hours may not be available.
-    }
-
     #[test]
     fn setup_finalize_points() {
-        let output = BenchmarkSetup::finalize(
-            Some(BenchmarkSetup::Points(vec![1, 2, 3])),
-            "bname",
-            &AliasingConfig::default(),
-        )
-        .unwrap();
+        let output =
+            BenchmarkSetup::finalize(Some(BenchmarkSetup::Points(vec![1, 2, 3])), "bname").unwrap();
         assert_eq!(output.name, "bname");
         assert_eq!(output.points, vec![1, 2, 3]);
         assert_eq!(output.timeout, None);
@@ -172,6 +109,8 @@ mod test {
     fn setup_finalize_path() {
         let bconfig = BenchmarkConfig {
             name: "bname".to_owned(),
+            workload: None,
+            param_mode: None,
             starting_step: 1,
             no_steps: Some(3),
             step_progress: Some(1),
@@ -185,15 +124,10 @@ mod test {
             configs: vec![bconfig],
             defaults: BenchmarkDefaults::default(),
         });
-        let Configs {
-            wrong_config: _wrong_config,
-            aconfig,
-        } = aliasing_config();
 
         let output = BenchmarkSetup::finalize(
             Some(BenchmarkSetup::Path(bconfig_file.path().to_owned())),
             "bname",
-            &aconfig,
         )
         .unwrap();
         assert_eq!(output.name, "bname");

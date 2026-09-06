@@ -1,37 +1,33 @@
 use std::path::PathBuf;
 
 use clap::{Args, ValueEnum};
-use scylladb_drivers_benchmarker::benchmarking::{BenchMeasure, BenchmarkMode};
-use scylladb_drivers_benchmarker::config::backend::BackendConfigList;
+use scylladb_drivers_benchmarker::benchmarking::{BenchMeasure, BenchmarkMode, Session};
+use scylladb_drivers_benchmarker::commit_hash::CommitHash;
+use scylladb_drivers_benchmarker::config::api::ApiSetup;
+use scylladb_drivers_benchmarker::config::benchmark::{BenchmarkConfigList, BenchmarkData};
 use scylladb_drivers_benchmarker::config::config_traits::ConfigurationList;
-use scylladb_drivers_benchmarker::config::{find_config, open_config};
+use scylladb_drivers_benchmarker::config::driver::DriverSpec;
+use scylladb_drivers_benchmarker::config::open_config;
 use scylladb_drivers_benchmarker::flame_graph::FlameFrequency;
-use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
 
-use crate::parsing::aliasing::AliasingConfig;
-use crate::parsing::benchmark_setup::BenchmarkSetup;
+use crate::BenchmarkParams;
+use crate::command;
 use crate::parsing::{ParsingError, Subcommands};
-use crate::{BenchmarkParams, command};
 
 #[derive(Debug, Clone, clap::Args)]
 pub(crate) struct FlameOptions {
     #[arg(short = 'r', long)]
-    flame_repo: Option<PathBuf>,
+    flame_repo: PathBuf,
     #[arg(short, long, default_value_t = FlameFrequency::Number(99))]
     frequency: FlameFrequency,
     /// Directory in which to store the results
     #[arg(short, long)]
-    store_dir: Option<PathBuf>,
+    store_dir: PathBuf,
 }
 
 impl FlameOptions {
-    fn finalize(self, aliasing_config: AliasingConfig) -> Result<BenchMeasure, ParsingError> {
-        let mut store_dir =
-            self.store_dir
-                .or(aliasing_config.store_dir)
-                .ok_or(ParsingError::NoStoreDir {
-                    needed_by: MeasurementMethod::FlameGraph,
-                })?;
+    fn finalize(self) -> Result<BenchMeasure, ParsingError> {
+        let mut store_dir = self.store_dir;
 
         if !store_dir.is_absolute() {
             store_dir = store_dir.canonicalize()?;
@@ -42,10 +38,7 @@ impl FlameOptions {
         }
 
         Ok(BenchMeasure::FlameGraph {
-            flame_repo: self
-                .flame_repo
-                .or(aliasing_config.flame_path)
-                .unwrap_or_default(),
+            flame_repo: self.flame_repo,
             frequency: self.frequency,
             store_dir,
         })
@@ -61,11 +54,11 @@ pub(crate) enum MeasureSubcommand {
 }
 
 impl MeasureSubcommand {
-    fn finalize(self, aliasing_config: AliasingConfig) -> Result<BenchMeasure, ParsingError> {
+    fn finalize(self) -> Result<BenchMeasure, ParsingError> {
         match self {
             MeasureSubcommand::Time => Ok(BenchMeasure::Time),
             MeasureSubcommand::PerfStat => Ok(BenchMeasure::PerfStat),
-            MeasureSubcommand::FlameGraph(flame_options) => flame_options.finalize(aliasing_config),
+            MeasureSubcommand::FlameGraph(flame_options) => flame_options.finalize(),
             MeasureSubcommand::Command { command } => Ok(BenchMeasure::Command(command)),
         }
     }
@@ -88,57 +81,108 @@ impl InputBenchmarkMode {
 
 #[derive(Args, Debug)]
 pub(crate) struct BenchmarkCommand {
-    /// Benchmark name to run. If omitted, all benchmarks in the backend config are run.
-    pub benchmark_name: Option<String>,
-    #[arg(short = 'B', long, default_value = "./config.yml")]
-    pub backend_config_path: PathBuf,
-    #[arg(short = 'b', long)]
-    pub benchmark_configuration: Option<BenchmarkSetup>,
+    /// Path to the local repository of the driver under test
+    /// (must contain benchmark-config.yml at its root).
+    #[arg(long, conflicts_with = "driver")]
+    pub driver_path: Option<PathBuf>,
+
+    /// Published driver under test: published:<api>:<package>@<version>,
+    /// e.g. published:nodejs:cassandra-driver@4.8.0
+    #[arg(long, required_unless_present = "driver_path")]
+    pub driver: Option<String>,
+
+    /// Override for the recorded driver name (defaults to `driver-name` from
+    /// benchmark-config.yml, or the package name for published drivers).
+    /// Useful to record a published version under the same name as its
+    /// repository, enabling version-vs-branch comparisons of one series name.
+    #[arg(long)]
+    pub driver_name: Option<String>,
+
+    /// Path to the benchmarks repository
+    /// (containing scenarios/config.yml and apis/<api>/).
+    #[arg(long, short = 'p')]
+    pub benchmarks_path: PathBuf,
+
+    /// Scenario to run; may be repeated. Defaults to all scenarios.
+    #[arg(long, short = 's')]
+    pub scenario: Vec<String>,
+
+    /// Override for the scenarios config
+    /// (default: <benchmarks-path>/scenarios/config.yml).
+    #[arg(long, short = 'b')]
+    pub scenarios_config: Option<PathBuf>,
+
     #[arg(long, short = 'M', value_enum, default_value_t = InputBenchmarkMode::UseCached)]
     pub benchmark_mode: InputBenchmarkMode,
+
+    /// Continue with the remaining points/scenarios when a point fails,
+    /// instead of aborting (the failed point is not recorded).
+    #[arg(long)]
+    pub keep_going: bool,
+
     #[clap(subcommand)]
     pub measure: Option<MeasureSubcommand>,
 }
 
 impl BenchmarkCommand {
-    pub(crate) fn finalize(
-        self,
-        aliasing_config: AliasingConfig,
-    ) -> Result<Subcommands, ParsingError> {
-        let measure = self.measure.unwrap_or(MeasureSubcommand::Time);
-        let bench_measure = measure.finalize(aliasing_config.clone())?;
+    pub(crate) fn finalize(self) -> Result<Subcommands, ParsingError> {
+        let bench_measure = self.measure.unwrap_or(MeasureSubcommand::Time).finalize()?;
         let benchmark_mode = self.benchmark_mode.finalize();
 
-        if let Some(benchmark_name) = self.benchmark_name {
-            let benchmark_config = BenchmarkSetup::finalize(
-                self.benchmark_configuration,
-                &benchmark_name,
-                &aliasing_config,
-            )?;
-            Ok(Subcommands::Benchmark(vec![BenchmarkParams {
-                bench_measure,
-                backend_config: find_config(&benchmark_name, &self.backend_config_path)?,
-                benchmark_config,
-                benchmark_mode,
-            }]))
-        } else {
-            let all_backends: Vec<_> =
-                open_config::<BackendConfigList>(&self.backend_config_path)?.configs().collect();
-            let mut params = Vec::new();
-            for backend in all_backends {
-                let benchmark_config = BenchmarkSetup::finalize(
-                    self.benchmark_configuration.clone(),
-                    &backend.benchmark_name,
-                    &aliasing_config,
-                )?;
-                params.push(BenchmarkParams {
-                    bench_measure: bench_measure.clone(),
-                    backend_config: backend,
-                    benchmark_config,
-                    benchmark_mode,
-                });
-            }
-            Ok(Subcommands::Benchmark(params))
+        let mut driver = match (&self.driver_path, &self.driver) {
+            (Some(path), None) => DriverSpec::from_repo(&path.canonicalize()?)?,
+            (None, Some(spec)) => DriverSpec::from_published_spec(spec)?,
+            // clap guarantees exactly one is present.
+            _ => unreachable!("clap enforces exactly one of --driver-path/--driver"),
+        };
+        if let Some(name) = self.driver_name {
+            driver.name = name;
         }
+        let driver_commit = driver.commit_id()?;
+
+        let benchmarks_path = self.benchmarks_path.canonicalize()?;
+        let api = ApiSetup::load(&benchmarks_path, &driver.api)?;
+        let benchmarks_commit = CommitHash::new(&benchmarks_path, "HEAD".to_owned())
+            .map(|h| h.to_string())
+            .unwrap_or_else(|_| "unknown".to_owned());
+
+        let scenarios_config_path = self
+            .scenarios_config
+            .unwrap_or_else(|| benchmarks_path.join("scenarios").join("config.yml"));
+        let all_scenarios: Vec<BenchmarkData> =
+            open_config::<BenchmarkConfigList>(&scenarios_config_path)?
+                .configs()
+                .map(BenchmarkData::from)
+                .collect();
+
+        let benchmarks = if self.scenario.is_empty() {
+            all_scenarios
+        } else {
+            let mut selected = Vec::new();
+            for name in &self.scenario {
+                let scenario = all_scenarios
+                    .iter()
+                    .find(|b| &b.name == name)
+                    .ok_or_else(|| ParsingError::UnknownScenario {
+                        name: name.clone(),
+                        config_path: scenarios_config_path.clone(),
+                    })?;
+                selected.push(scenario.clone());
+            }
+            selected
+        };
+
+        Ok(Subcommands::Benchmark(BenchmarkParams {
+            bench_measure,
+            session: Session {
+                driver,
+                driver_commit,
+                api,
+                benchmarks_commit,
+            },
+            benchmarks,
+            benchmark_mode,
+            keep_going: self.keep_going,
+        }))
     }
 }

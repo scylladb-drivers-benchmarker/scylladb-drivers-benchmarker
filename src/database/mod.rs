@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use sqlite::{Connection, State, Statement};
 
 use crate::CommitHash;
-use crate::database::utilities::{BenchmarkFilters, BenchmarkParams, BenchmarkRecord};
+use crate::database::utilities::{BenchmarkFilters, BenchmarkParams, BenchmarkRecord, Provenance};
 
 pub struct Database {
     connection: Connection,
@@ -42,9 +42,12 @@ impl Database {
         let expected = vec![
             ("commit_hash".to_owned(), "TEXT".to_owned(), true),
             ("benchmark_name".to_owned(), "TEXT".to_owned(), true),
-            ("backend_name".to_owned(), "TEXT".to_owned(), true),
+            ("driver_name".to_owned(), "TEXT".to_owned(), true),
             ("benchmark_point".to_owned(), "INTEGER".to_owned(), true),
             ("measurement_method".to_owned(), "TEXT".to_owned(), true),
+            ("api".to_owned(), "TEXT".to_owned(), true),
+            ("benchmarks_commit".to_owned(), "TEXT".to_owned(), true),
+            ("timestamp".to_owned(), "TEXT".to_owned(), true),
             ("data_json".to_owned(), "TEXT".to_owned(), true),
         ];
 
@@ -68,58 +71,75 @@ impl Database {
     fn bind_params(stmt: &mut Statement<'_>, params: BenchmarkParams) -> Result<(), DatabaseError> {
         stmt.bind((1, params.commit_hash.as_str()))?;
         stmt.bind((2, params.benchmark_name.as_str()))?;
-        stmt.bind((3, params.backend_name.as_str()))?;
+        stmt.bind((3, params.driver_name.as_str()))?;
         stmt.bind((4, params.benchmark_point as i64))?;
         stmt.bind((5, params.measurement_method.as_str()))?;
         Ok(())
     }
 
-    /// Returns WHERE clause:
-    /// "WHERE `commit_hash` IN (...) AND `benchmark_name` IN (...) ..."
-    /// or empty string if no filters.
-    fn data_filtration(&self, filters: &BenchmarkFilters) -> String {
-        // Helper function to build in clause for one column.
-        fn build_in_clause<T: ToString>(column_name: &str, values: &[T]) -> Option<String> {
-            if values.is_empty() {
-                return None;
+    /// Returns a WHERE clause with `?` placeholders and the values to bind,
+    /// or an empty clause if there are no filters.
+    fn data_filtration(filters: &BenchmarkFilters) -> (String, Vec<sqlite::Value>) {
+        let mut clauses: Vec<String> = Vec::new();
+        let mut values: Vec<sqlite::Value> = Vec::new();
+
+        fn add_in_clause(
+            clauses: &mut Vec<String>,
+            values: &mut Vec<sqlite::Value>,
+            column_name: &str,
+            filter_values: impl ExactSizeIterator<Item = sqlite::Value>,
+        ) {
+            if filter_values.len() == 0 {
+                return;
             }
-
-            let formatted_values: Vec<String> = values
-                .iter()
-                .map(|v| {
-                    let s = v.to_string();
-                    // If numeric, keep as is; if string, wrap in quotes and escape
-                    if s.parse::<i64>().is_ok() {
-                        s
-                    } else {
-                        format!("'{}'", s.replace('\'', "''"))
-                    }
-                })
-                .collect();
-
-            Some(format!(
-                "{} IN ({})",
-                column_name,
-                formatted_values.join(", ")
-            ))
+            let placeholders = vec!["?"; filter_values.len()].join(", ");
+            clauses.push(format!("{column_name} IN ({placeholders})"));
+            values.extend(filter_values);
         }
 
-        let clauses: Vec<String> = [
-            build_in_clause("commit_hash", &filters.commit_hashes),
-            build_in_clause("benchmark_name", &filters.benchmark_names),
-            build_in_clause("backend_name", &filters.backend_names),
-            build_in_clause("benchmark_point", &filters.benchmark_points),
-            build_in_clause("measurement_method", &filters.measurement_methods),
-        ]
-        .into_iter()
-        .flatten()
-        .collect();
+        let strings = |v: &[String]| {
+            v.iter()
+                .map(|s| sqlite::Value::String(s.clone()))
+                .collect::<Vec<_>>()
+                .into_iter()
+        };
+        add_in_clause(&mut clauses, &mut values, "commit_hash", strings(&filters.commit_hashes));
+        add_in_clause(&mut clauses, &mut values, "benchmark_name", strings(&filters.benchmark_names));
+        add_in_clause(&mut clauses, &mut values, "driver_name", strings(&filters.driver_names));
+        add_in_clause(
+            &mut clauses,
+            &mut values,
+            "benchmark_point",
+            filters
+                .benchmark_points
+                .iter()
+                .map(|p| sqlite::Value::Integer(*p as i64))
+                .collect::<Vec<_>>()
+                .into_iter(),
+        );
+        add_in_clause(&mut clauses, &mut values, "measurement_method", strings(&filters.measurement_methods));
 
         if clauses.is_empty() {
-            String::new()
+            (String::new(), values)
         } else {
-            format!("WHERE {}", clauses.join(" AND "))
+            (format!("WHERE {}", clauses.join(" AND ")), values)
         }
+    }
+
+    fn prepare_filtered(
+        &self,
+        query_prefix: &str,
+        query_suffix: &str,
+        filters: &BenchmarkFilters,
+    ) -> Result<Statement<'_>, DatabaseError> {
+        let (clause, values) = Self::data_filtration(filters);
+        let mut stmt = self
+            .connection
+            .prepare(format!("{query_prefix} {clause} {query_suffix}"))?;
+        for (i, value) in values.into_iter().enumerate() {
+            stmt.bind((i + 1, value))?;
+        }
+        Ok(stmt)
     }
 
     pub fn new(path: &Path) -> Result<Database, DatabaseError> {
@@ -132,11 +152,14 @@ impl Database {
             CREATE TABLE IF NOT EXISTS Benchmarks (
                 commit_hash TEXT NOT NULL,
                 benchmark_name TEXT NOT NULL,
-                backend_name TEXT NOT NULL,
+                driver_name TEXT NOT NULL,
                 benchmark_point INTEGER NOT NULL,
                 measurement_method TEXT NOT NULL,
+                api TEXT NOT NULL,
+                benchmarks_commit TEXT NOT NULL,
+                timestamp TEXT NOT NULL,
                 data_json TEXT NOT NULL,
-                UNIQUE(commit_hash, benchmark_name, backend_name, benchmark_point, measurement_method)
+                UNIQUE(commit_hash, benchmark_name, driver_name, benchmark_point, measurement_method)
             );
             ",
         )?;
@@ -154,18 +177,22 @@ impl Database {
     pub fn insert_data(
         &self,
         params: BenchmarkParams,
+        provenance: Provenance,
         result: BenchmarkRecord,
     ) -> Result<(), DatabaseError> {
         let mut stmt = self.connection.prepare(
             "
                 INSERT INTO Benchmarks
-                (commit_hash, benchmark_name, backend_name, benchmark_point, measurement_method, data_json)
-                VALUES (?, ?, ?, ?, ?, ?);
+                (commit_hash, benchmark_name, driver_name, benchmark_point, measurement_method, api, benchmarks_commit, timestamp, data_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
                 ",
         )?;
 
         Database::bind_params(&mut stmt, params)?;
-        stmt.bind::<(usize, &str)>((6, &serde_json::to_string(&result)?))?;
+        stmt.bind((6, provenance.api.as_str()))?;
+        stmt.bind((7, provenance.benchmarks_commit.as_str()))?;
+        stmt.bind((8, utilities::current_timestamp().as_str()))?;
+        stmt.bind::<(usize, &str)>((9, &serde_json::to_string(&result)?))?;
 
         stmt.next()?;
 
@@ -176,16 +203,18 @@ impl Database {
         &self,
         filters: &BenchmarkFilters,
     ) -> Result<Vec<(BenchmarkParams, BenchmarkRecord)>, DatabaseError> {
-        let mut stmt = self
-            .connection
-            .prepare("SELECT * FROM Benchmarks ".to_owned() + &self.data_filtration(filters))?;
+        let mut stmt = self.prepare_filtered(
+            "SELECT commit_hash, benchmark_name, driver_name, benchmark_point, measurement_method, data_json FROM Benchmarks",
+            "",
+            filters,
+        )?;
 
         let mut results = Vec::new();
 
         while let State::Row = stmt.next()? {
             let commit_hash_str: String = stmt.read(0)?;
             let benchmark_name: String = stmt.read(1)?;
-            let backend_name: String = stmt.read(2)?;
+            let driver_name: String = stmt.read(2)?;
             let benchmark_point: u64 = stmt.read::<i64, usize>(3)? as u64;
             let measurement_method: String = stmt.read(4)?;
             let result: BenchmarkRecord = serde_json::from_str(&stmt.read::<String, usize>(5)?)?;
@@ -193,7 +222,7 @@ impl Database {
             let params = BenchmarkParams::new(
                 CommitHash::new_unchecked(commit_hash_str),
                 benchmark_name,
-                backend_name,
+                driver_name,
                 benchmark_point,
                 measurement_method,
             );
@@ -219,8 +248,7 @@ impl Database {
             }
         }
 
-        self.connection
-            .prepare("DELETE FROM Benchmarks ".to_owned() + &self.data_filtration(filters))?
+        self.prepare_filtered("DELETE FROM Benchmarks", "", filters)?
             .next()?;
 
         Ok(())
@@ -234,7 +262,7 @@ impl Database {
 
     /// Returns distinct backend names for a given commit hash, benchmark name,
     /// and measurement method, sorted alphabetically.
-    pub fn get_backend_names(
+    pub fn get_driver_names(
         &self,
         commit_hash: &CommitHash,
         benchmark_name: &str,
@@ -243,22 +271,21 @@ impl Database {
         let filters = BenchmarkFilters {
             commit_hashes: vec![commit_hash.as_str().to_owned()],
             benchmark_names: vec![benchmark_name.to_owned()],
-            backend_names: vec![],
+            driver_names: vec![],
             benchmark_points: vec![],
             measurement_methods: vec![measurement_method.to_owned()],
         };
 
-        let query = format!(
-            "SELECT DISTINCT backend_name FROM Benchmarks {} ORDER BY backend_name",
-            self.data_filtration(&filters)
-        );
-
-        let mut stmt = self.connection.prepare(query)?;
-        let mut backend_names = Vec::new();
+        let mut stmt = self.prepare_filtered(
+            "SELECT DISTINCT driver_name FROM Benchmarks",
+            "ORDER BY driver_name",
+            &filters,
+        )?;
+        let mut driver_names = Vec::new();
         while let State::Row = stmt.next()? {
-            backend_names.push(stmt.read::<String, _>(0)?);
+            driver_names.push(stmt.read::<String, _>(0)?);
         }
-        Ok(backend_names)
+        Ok(driver_names)
     }
 
     pub fn get_result(

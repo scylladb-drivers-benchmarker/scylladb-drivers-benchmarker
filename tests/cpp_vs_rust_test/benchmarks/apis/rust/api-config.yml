@@ -1,0 +1,5 @@
+api: rust
+env-prepare: "true"
+env-cleanup: "true"
+build-command: make regex
+run-command: ./run.sh
