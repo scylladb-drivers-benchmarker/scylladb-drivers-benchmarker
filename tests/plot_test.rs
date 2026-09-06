@@ -278,6 +278,7 @@ fn generate_series_data(
     let params = BenchmarkParams::new(
         commit.clone(),
         "test-bench".to_owned(),
+        "test-backend".to_owned(),
         point,
         "time".to_owned(),
     );
@@ -294,6 +295,7 @@ fn generate_perf_data(
     let params = BenchmarkParams::new(
         commit.clone(),
         "test-bench".to_owned(),
+        "test-backend".to_owned(),
         point,
         "perf".to_owned(),
     );
@@ -354,6 +356,7 @@ fn generate_flame_data(
     let params = BenchmarkParams::new(
         commit.clone(),
         "flame-bench".to_owned(),
+        "test-backend".to_owned(),
         point,
         "flame-graph".to_owned(),
     );

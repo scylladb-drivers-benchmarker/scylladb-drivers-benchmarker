@@ -4,6 +4,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 
 use crate::config::config_traits::{Configuration, ConfigurationList};
+use crate::measurement::MeasurementMethod;
 use crate::utilities::BenchmarkPoint;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
@@ -13,27 +14,46 @@ pub enum ProgressType {
     Additive,
 }
 
+fn default_num_runs() -> u32 {
+    1
+}
+
+fn is_default_num_runs(n: &u32) -> bool {
+    *n == 1
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub struct BenchmarkConfig {
     pub name: String,
     pub starting_step: BenchmarkPoint,
-    pub no_steps: BenchmarkPoint,
-    pub step_progress: BenchmarkPoint,
-    pub progress_type: ProgressType,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub no_steps: Option<BenchmarkPoint>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub step_progress: Option<BenchmarkPoint>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub progress_type: Option<ProgressType>,
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         with = "humantime_serde"
     )]
     pub timeout: Option<Duration>,
+    #[serde(default = "default_num_runs", skip_serializing_if = "is_default_num_runs")]
+    pub num_runs: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub measure: Option<MeasurementMethod>,
 }
 
 impl BenchmarkConfig {
     pub fn benchmark_points(&self) -> impl Iterator<Item = BenchmarkPoint> {
         let mut starting_step = self.starting_step;
-        let step_progress = self.step_progress;
-        let progress_type = self.progress_type;
+        let no_steps = self.no_steps
+            .expect("'no-steps' must be set in the benchmark entry or in the top-level defaults");
+        let step_progress = self.step_progress
+            .expect("'step-progress' must be set in the benchmark entry or in the top-level defaults");
+        let progress_type = self.progress_type
+            .expect("'progress-type' must be set in the benchmark entry or in the top-level defaults");
         iter::from_fn(move || {
             let ret = starting_step;
             match progress_type {
@@ -46,7 +66,7 @@ impl BenchmarkConfig {
             }
             Some(ret)
         })
-        .take(self.no_steps as usize)
+        .take(no_steps as usize)
     }
 }
 
@@ -61,6 +81,8 @@ pub struct BenchmarkData {
     pub name: String,
     pub points: Vec<BenchmarkPoint>,
     pub timeout: Option<Duration>,
+    pub num_runs: u32,
+    pub measure: Option<MeasurementMethod>,
 }
 
 impl From<BenchmarkConfig> for BenchmarkData {
@@ -69,8 +91,28 @@ impl From<BenchmarkConfig> for BenchmarkData {
             points: value.benchmark_points().collect(),
             name: value.name,
             timeout: value.timeout,
+            num_runs: value.num_runs,
+            measure: value.measure,
         }
     }
+}
+
+/// Top-level defaults applied to every benchmark entry that does not set the field explicitly.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Default)]
+#[serde(rename_all = "kebab-case")]
+pub struct BenchmarkDefaults {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub no_steps: Option<BenchmarkPoint>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub step_progress: Option<BenchmarkPoint>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub progress_type: Option<ProgressType>,
+    #[serde(default, skip_serializing_if = "Option::is_none", with = "humantime_serde")]
+    pub timeout: Option<Duration>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub num_runs: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub measure: Option<MeasurementMethod>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -78,13 +120,35 @@ impl From<BenchmarkConfig> for BenchmarkData {
 pub struct BenchmarkConfigList {
     #[serde(rename = "benchmarks")]
     pub configs: Vec<BenchmarkConfig>,
+    #[serde(default, skip_serializing_if = "is_default_benchmark_defaults")]
+    pub defaults: BenchmarkDefaults,
 }
 
+fn is_default_benchmark_defaults(d: &BenchmarkDefaults) -> bool {
+    *d == BenchmarkDefaults::default()
+}
+
+impl BenchmarkConfigList {
+    fn merged(&self) -> impl Iterator<Item = BenchmarkConfig> + '_ {
+        self.configs.iter().map(|c| {
+            let mut c = c.clone();
+            if c.no_steps.is_none() { c.no_steps = self.defaults.no_steps; }
+            if c.step_progress.is_none() { c.step_progress = self.defaults.step_progress; }
+            if c.progress_type.is_none() { c.progress_type = self.defaults.progress_type; }
+            if c.timeout.is_none() { c.timeout = self.defaults.timeout; }
+            if c.num_runs == default_num_runs() {
+                if let Some(n) = self.defaults.num_runs { c.num_runs = n; }
+            }
+            if c.measure.is_none() { c.measure = self.defaults.measure.clone(); }
+            c
+        })
+    }
+}
 impl ConfigurationList for BenchmarkConfigList {
     type ConfigType = BenchmarkConfig;
 
     fn configs(&self) -> impl Iterator<Item = Self::ConfigType> {
-        self.configs.iter().cloned()
+        self.merged().collect::<Vec<_>>().into_iter()
     }
 }
 
@@ -99,10 +163,12 @@ mod tests {
         let data = BenchmarkConfig {
             name: String::new(),
             starting_step: 7,
-            no_steps: 3,
-            step_progress: 2,
-            progress_type: ProgressType::Additive,
+            no_steps: Some(3),
+            step_progress: Some(2),
+            progress_type: Some(ProgressType::Additive),
             timeout: None,
+            num_runs: 1,
+            measure: None,
         };
         let points: Vec<u64> = data.benchmark_points().collect();
         assert_eq!(points, vec![7, 9, 11]);
@@ -113,10 +179,12 @@ mod tests {
         let data = BenchmarkConfig {
             name: String::new(),
             starting_step: 3,
-            no_steps: 3,
-            step_progress: 2,
-            progress_type: ProgressType::Multiplicative,
+            no_steps: Some(3),
+            step_progress: Some(2),
+            progress_type: Some(ProgressType::Multiplicative),
             timeout: None,
+            num_runs: 1,
+            measure: None,
         };
         let points: Vec<u64> = data.benchmark_points().collect();
         assert_eq!(points, vec![3, 6, 12]);
@@ -127,10 +195,12 @@ mod tests {
         let config = BenchmarkConfig {
             name: "benchmark_name".to_owned(),
             starting_step: 1,
-            no_steps: 5,
-            step_progress: 2,
-            progress_type: ProgressType::Multiplicative,
+            no_steps: Some(5),
+            step_progress: Some(2),
+            progress_type: Some(ProgressType::Multiplicative),
             timeout: Some(Duration::from_secs(3)),
+            num_runs: 1,
+            measure: None,
         };
 
         let serialized: String = serde_yml::to_string(&config).unwrap();
@@ -154,23 +224,28 @@ timeout: '3s'
         let config1 = BenchmarkConfig {
             name: "benchmark_name1".to_owned(),
             starting_step: 1,
-            no_steps: 5,
-            step_progress: 2,
-            progress_type: ProgressType::Multiplicative,
+            no_steps: Some(5),
+            step_progress: Some(2),
+            progress_type: Some(ProgressType::Multiplicative),
             timeout: None,
+            num_runs: 1,
+            measure: None,
         };
 
         let config2 = BenchmarkConfig {
             name: "benchmark_name2".to_owned(),
             starting_step: 2,
-            no_steps: 6,
-            step_progress: 3,
-            progress_type: ProgressType::Additive,
+            no_steps: Some(6),
+            step_progress: Some(3),
+            progress_type: Some(ProgressType::Additive),
             timeout: Some(Duration::from_secs(2 * 60)),
+            num_runs: 1,
+            measure: None,
         };
 
         let config_list = BenchmarkConfigList {
             configs: vec![config1, config2],
+            defaults: BenchmarkDefaults::default(),
         };
 
         let serialized: String = serde_yml::to_string(&config_list).unwrap();

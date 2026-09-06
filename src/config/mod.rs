@@ -84,9 +84,9 @@ backends:
 
         let config: BackendConfig = find_config("select", config_file.path()).unwrap();
 
-        assert_eq!(config.name, "scylladb-nodejs-rs-driver");
+        assert_eq!(config.name, Some("scylladb-nodejs-rs-driver".to_owned()));
         assert_eq!(config.benchmark_name, "select");
-        assert_eq!(config.build_command, "npm run build");
+        assert_eq!(config.build_command, Some("npm run build".to_owned()));
         assert_eq!(
             config.run_command,
             "node benchmark/logic/select.js scylladb-nodejs-rs-driver"

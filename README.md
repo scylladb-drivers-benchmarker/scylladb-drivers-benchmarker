@@ -21,7 +21,10 @@ cargo run -- -d ../test.db run regex -b ../config.yml
 Then, later to graph the results execute (from `tests/cpp_vs_rust_test`):
 
 ```sh
-cargo run -- -d test.db plot regex -b config.yml --from=cpp/ --from=rust/ series
+cargo run -- -d test.db plot regex -b config.yml \
+  --series regex-cpp@cpp/ \
+  --series regex-rust@rust/ \
+  series
 ```
 
 Finally it is possible to print data to stdout:
@@ -48,7 +51,7 @@ By default the application is in logging `info` mode, but this can be changed by
 
 SDB uses standard logging modes: `off` to remove any logging, more expressive `debug` and even more verbose `trace`.
 
-### Example usage
+### Logging example
 
 ```sh
 RUST_LOG=off cargo run -- -d ../test.db run regex -b ../config.yml
@@ -153,7 +156,7 @@ Subcommand should be provided after database:
 
 ### Run subcommand
 
-Executes, measures, and stores to the database the results of the measurements. It should be invoked from the inside of the repository holding the application being measured. After `run`, a benchmark named should be passed.
+Executes, measures, and stores to the database the results of the measurements. It should be invoked from the inside of the repository holding the application being measured. Optionally, a benchmark name can be passed after `run`; if omitted, **all** benchmarks found in the backend config are run in sequence.
 
 - `-b`, `--benchmark-config-path` — the path to the configuration file of the benchmark
 - `-B`, `--backend-config-path` — the path to the configuration file of the backend
@@ -169,21 +172,53 @@ Executes, measures, and stores to the database the results of the measurements. 
 
 ### Plot subcommand
 
-Visualizes and compares the results of previous `runs`, reading them from the database.
-After `plot` benchmark name should be passed.
+Visualizes and compares the results of previous `run`s, reading them from the database.
+After `plot` a benchmark name must be passed.
 
-- `-b`, `--benchmark-config-path` — The path to the configuration file of the benchmark
-- `-o`, `--output` — The path where plot should be saved. The output file extension **implies** the selected format to comply with the [plotters](https://docs.rs/plotters/latest/plotters/) API. To see which formats are available for which plot type, see [Plotting options](#plotting-options). The default file name is `out`, with an extension matching the plot type.
-- `--from <repository_path:tag1,tag2,...>` — Specifies which tags should be used in the comparison and to which repository they refer. Including this option multiple times adds more to the comparison. Here tags are used broadly, and include things like branches, tags, `HEAD`, with relative versions of thereof. If the tags are not supplied, the default `HEAD` will be used.
-- Plot type (subcommand) and its possible flags should be provided after the common options:
-  - `series` plot
-    - `-m`, `--measurement-method` — The command used to measure the performance of the benchmark (e.g. time).
-    - `-v`, `--visualization-kind` — Controls the style of the plot line. Can be `linear` for a standard line plot or `log` for a logarithmic plot. This affects the visual representation but does not rescale the underlying data.
-  - `perf-stat` plot - `-e` `--events` `<event1,event2,...>` — List of requested `perf` events eg. `task-clock`, `page-faults` or `cpu_atom/branches/`. The names of events are highly platform dependant.
-    lts
-  - `flamegraph` plot
-    - `-a` `--artifacts_dir` — Directory path where the generated singular flamegraph `svg`'s will be saved. If omitted, the artifacts will not be generated.
-    - `f` `--flame-repo` — the path to the flame-graph repository of Brendan Gregg. This argument is **not** optional.
+- `-b`, `--benchmark-setup` — The path to the benchmark configuration file, or a comma-separated list of benchmark points (e.g. `1000,2000,4000`). If omitted, the benchmark is looked up by name in the path given by `benchmark-config` in the aliasing config.
+- `-o`, `--output` — The path where the plot should be saved. The file extension **implies** the output format (see [Plotting options](#plotting-options)). Defaults to `out.svg` for series/perf-stat and `out.html` for flame-graph.
+- `--series <BACKEND@REPO[:REF[=ALIAS]]>` — Adds one data series to the plot. Repeat the flag to overlay multiple series on the same chart.
+  - `BACKEND` — the backend name as stored in the database (e.g. `regex-cpp`).
+  - `REPO` — a filesystem path to a git repository, or a short alias defined in the aliasing config under `repo-path`.
+  - `REF` *(optional)* — a git ref (commit hash, branch, or tag) to use. Defaults to `HEAD`.
+  - `ALIAS` *(optional)* — the label shown on the plot legend. Defaults to `REF`.
+
+  **Examples:**
+
+  ```sh
+  # Two backends, both at HEAD of their respective repositories:
+  --series regex-cpp@./cpp --series regex-rust@./rust
+
+  # A specific commit, with a human-readable alias on the plot:
+  --series regex-cpp@./cpp:d7c7310fb60fd659bfa2ff3ff131973a822a91a4=v2.1.0
+
+  # The same backend at two different commits (aliased for clarity):
+  --series regex-cpp@./cpp:HEAD=main --series regex-cpp@./cpp:v1.0.0
+
+  # Using a repo-path alias from the aliasing config:
+  --series regex-cpp@cpp-driver:HEAD
+  ```
+
+- Plot type (subcommand) and its flags must follow all other options:
+  - `series` — line chart for single-value outputs (`time` or custom command).
+    - `-m`, `--measurement-method` — measurement method: `time` (default), `perf`, `flame-graph`, or a custom command.
+    - `-v`, `--visualization-kind` — `linear` (default) or `log` scale.
+  - `perf-stat` — one chart per requested `perf` event.
+    - `-e`, `--events <event1,event2,...>` — comma-separated list of `perf` event names (e.g. `task-clock,page-faults`). At least one is required. Event names are platform-dependent.
+  - `flamegraph` — HTML file containing embedded flame graphs.
+    - `-a`, `--artifacts-dir` — directory where individual `.svg` flame graphs are saved. Omit to skip saving them.
+    - `-f`, `--flame-repo` — path to the [FlameGraph](https://github.com/brendangregg/FlameGraph) repository. Required unless set in the aliasing config (`flame-path`).
+
+**Full example — comparing three drivers at a specific commit:**
+
+```sh
+sdb -d results.db plot regex \
+  -b benchmark/runner-config/config.yml \
+  --series regex-cpp@benchmark/runner-config/cpp-driver:d7c7310=v2.1 \
+  --series regex-java@benchmark/runner-config/java-driver:d7c7310=v2.1 \
+  --series regex-rust@benchmark/runner-config/rust-driver:HEAD \
+  series
+```
 
 ### Database subcommands
 

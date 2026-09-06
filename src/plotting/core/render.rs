@@ -8,11 +8,13 @@ use plotters::prelude::*;
 use regex::Regex;
 
 use crate::plotting::PlotError;
-use crate::plotting::core::ArtifactFile;
+use crate::plotting::core::{ArtifactFile, LEGEND_AREA_SIZE};
 use crate::utilities::{BenchmarkPoint, RangedCoordBenchmarkPoint};
 
-const LEGEND_LINE_LENGTH: i32 = 20;
-const CROSS_SIZE: u32 = 5;
+const LINE_STROKE_WIDTH: u32 = 4;
+const CROSS_SIZE: u32 = 10;
+const POINT_RADIUS: u32 = 8;
+const ERROR_BAR_CAP_HALF_PIXELS: i32 = 8;
 
 pub trait Renderable<'a, DB>
 where
@@ -38,6 +40,7 @@ pub struct RenderableSeries {
     pub points: Vec<BenchmarkPoint>,
     name: String,
     series: Vec<Option<f64>>,
+    error_bars: Vec<Option<(f64, f64)>>,
     color: PaletteColor<Palette99>,
     range: Option<(f64, f64)>,
 }
@@ -60,6 +63,7 @@ impl RenderableSeries {
         name: String,
         points: Vec<BenchmarkPoint>,
         series: Vec<Option<f64>>,
+        error_bars: Vec<Option<(f64, f64)>>,
         color: PaletteColor<Palette99>,
         range: Option<(f64, f64)>,
     ) -> Self {
@@ -67,6 +71,7 @@ impl RenderableSeries {
             points,
             name,
             series,
+            error_bars,
             color,
             range,
         }
@@ -100,23 +105,72 @@ where
         let name = self.name.clone();
         let y_max = chart.as_coord_spec().y_spec().range().end;
 
+        // Compute cap half-width once from the axis mapping (same for all points).
+        let cap_half: u64 = {
+            let x_range = chart.as_coord_spec().x_spec().range();
+            let px_start = chart.backend_coord(&(x_range.start, 0.0)).0 as f64;
+            let px_end = chart.backend_coord(&(x_range.end, 0.0)).0 as f64;
+            let data_range = (x_range.end - x_range.start) as f64;
+            if data_range > 0.0 && (px_end - px_start).abs() > 0.0 {
+                let ppu = (px_end - px_start) / data_range;
+                (ERROR_BAR_CAP_HALF_PIXELS as f64 / ppu.abs()).ceil() as u64
+            } else {
+                0
+            }
+        };
+
         let mut line_points: Vec<(BenchmarkPoint, f64)> = Vec::new();
+        let mut crosses = Vec::new();
 
         for (&x, y_opt) in self.points.iter().zip(self.series.iter()) {
             if let Some(y) = y_opt {
                 line_points.push((x, *y));
             } else {
                 line_points.push((x, y_max));
-                chart.draw_series(std::iter::once(Cross::new((x, y_max), CROSS_SIZE, color)))?;
+                crosses.push(Cross::new((x, y_max), CROSS_SIZE, color));
             }
         }
 
+        // Batch all crosses into one draw_series call so only one SeriesAnno is created.
+        if !crosses.is_empty() {
+            chart.draw_series(crosses)?;
+        }
+
         chart
-            .draw_series(LineSeries::new(line_points, color))?
+            .draw_series(LineSeries::new(line_points, color.stroke_width(LINE_STROKE_WIDTH)))?
             .label(name)
             .legend(move |(x, y)| {
-                PathElement::new(vec![(x, y), (x + LEGEND_LINE_LENGTH, y)], color)
+                PathElement::new(
+                    vec![(x, y), (x + LEGEND_AREA_SIZE as i32, y)],
+                    color.stroke_width(LINE_STROKE_WIDTH),
+                )
             });
+
+        // Batch all error bar segments into one draw_series call so only one SeriesAnno is created.
+        let error_bar_segments: Vec<PathElement<(BenchmarkPoint, f64)>> = self
+            .points
+            .iter()
+            .zip(self.error_bars.iter())
+            .filter_map(|(&x, eb_opt)| eb_opt.map(|(y_lo, y_hi)| (x, y_lo, y_hi)))
+            .flat_map(|(x, y_lo, y_hi)| {
+                let style = color.stroke_width(LINE_STROKE_WIDTH);
+                [
+                    PathElement::new(vec![(x, y_lo), (x, y_hi)], style),
+                    PathElement::new(
+                        vec![(x.saturating_sub(cap_half), y_lo), (x + cap_half, y_lo)],
+                        style,
+                    ),
+                    PathElement::new(
+                        vec![(x.saturating_sub(cap_half), y_hi), (x + cap_half, y_hi)],
+                        style,
+                    ),
+                ]
+            })
+            .collect();
+
+        if !error_bar_segments.is_empty() {
+            chart.draw_series(error_bar_segments)?;
+        }
 
         Ok(())
     }
@@ -174,10 +228,12 @@ where
             let y_max = chart.as_coord_spec().y_spec().range().end;
 
             let mut line_points: Vec<(BenchmarkPoint, f64)> = Vec::new();
+            let mut dot_points: Vec<(BenchmarkPoint, f64)> = Vec::new();
 
             for (&x, y_opt) in self.points.iter().zip(self.values[id].iter()) {
                 if let Some(y) = y_opt {
                     line_points.push((x, *y));
+                    dot_points.push((x, *y));
                 } else {
                     line_points.push((x, y_max));
                     chart.draw_series(std::iter::once(Cross::new(
@@ -189,11 +245,20 @@ where
             }
 
             chart
-                .draw_series(LineSeries::new(line_points, color))?
+                .draw_series(LineSeries::new(line_points, color.stroke_width(LINE_STROKE_WIDTH)))?
                 .label(name)
                 .legend(move |(x, y)| {
-                    PathElement::new(vec![(x, y), (x + LEGEND_LINE_LENGTH, y)], color)
+                    PathElement::new(
+                        vec![(x, y), (x + LEGEND_AREA_SIZE as i32, y)],
+                        color.stroke_width(LINE_STROKE_WIDTH),
+                    )
                 });
+
+            chart.draw_series(
+                dot_points
+                    .into_iter()
+                    .map(|p| Circle::new(p, POINT_RADIUS, color.filled())),
+            )?;
         }
 
         Ok(())

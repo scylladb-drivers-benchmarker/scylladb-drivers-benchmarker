@@ -7,8 +7,15 @@ use crate::config::benchmark::BenchmarkData;
 use crate::database::utilities::BenchmarkFilters;
 use crate::database::{Database, DatabaseError};
 use crate::plotting::error::PlotError;
-use crate::repo_with_commits::{RepoNameWithTags, RepoPathWithCommits, SafeRepoNameWithTags};
 use crate::utilities::format_entry;
+
+/// A specific (backend, commit, label) triple identifying one data series to plot.
+#[derive(Clone)]
+pub struct BackendWithCommit {
+    pub backend_name: String,
+    pub commit: CommitHash,
+    pub tag: String,
+}
 pub mod benchmarking;
 pub mod command;
 pub mod commit_hash;
@@ -49,30 +56,10 @@ pub fn run_benchmarks(
 pub fn plot_benchmarks(
     plot_settings: PlotSettings,
     database: &Database,
-    benchmark_config: BenchmarkData,
-    from: Vec<RepoNameWithTags>,
-    resolved: Vec<RepoPathWithCommits>,
+    benchmarks: Vec<BenchmarkData>,
+    series: Vec<BackendWithCommit>,
 ) -> Result<(), PlotError> {
-    let names = from
-        .into_iter()
-        .flat_map(|repo| {
-            let repo: SafeRepoNameWithTags = repo.into();
-
-            repo.tags
-                .into_iter()
-                .map(move |commit| format!("{}@{}", repo.safe_name, commit))
-        })
-        .collect::<Vec<String>>();
-
-    let commit_hashes = resolved.into_iter().flat_map(|repo| repo.git_hashes);
-
-    plotting::plot(
-        plot_settings,
-        database,
-        benchmark_config,
-        commit_hashes,
-        &names,
-    )
+    plotting::plot(plot_settings, database, benchmarks, series.into_iter())
 }
 
 pub fn drop_database(database: &Database, filters: BenchmarkFilters) -> Result<(), DatabaseError> {

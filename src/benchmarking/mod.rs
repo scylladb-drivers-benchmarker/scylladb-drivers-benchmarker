@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use executor::build_source;
-use log::{debug, info, trace};
+use log::{debug, info, trace, warn};
 
 use super::database::{Database, DatabaseError};
 use crate::benchmarking::executor::command_executor::CommandExecutor;
@@ -16,7 +16,7 @@ use crate::command::{Command, CommandParsingError};
 use crate::commit_hash::CommitHash;
 use crate::config::backend::BackendConfig;
 use crate::config::benchmark::BenchmarkData;
-use crate::database::utilities::BenchmarkFilters;
+use crate::database::utilities::{BenchmarkFilters, BenchmarkRecord};
 use crate::flame_graph::FlameFrequency;
 use crate::measurement::MeasurementMethod;
 use crate::utilities::{BenchmarkParamsBuilder, BenchmarkPoint};
@@ -102,17 +102,21 @@ pub fn benchmark(
     bench_measure: BenchMeasure,
     benchmark_mode: BenchmarkMode,
 ) -> Result<(), BenchmarkingError> {
-    info!("Setting up benchmarking...");
+    info!("Setting up benchmarking for '{}' with backend '{}'...", benchmark_config.name, backend_config.resolved_name());
 
     let BenchmarkData {
         name: benchmark_name,
         points,
         timeout,
+        num_runs,
+        measure: _,
     } = benchmark_config;
+
+    let is_time = matches!(bench_measure, BenchMeasure::Time);
 
     let measurement_method: MeasurementMethod = bench_measure.clone().into();
     let param_generator =
-        BenchmarkParamsBuilder::new(commit_hash, benchmark_name, measurement_method.to_string());
+        BenchmarkParamsBuilder::new(commit_hash, benchmark_name, backend_config.resolved_name().to_owned(), measurement_method.to_string());
 
     let points = match benchmark_mode {
         BenchmarkMode::UseCached => filter_points(database, points.into_iter(), &param_generator)?,
@@ -125,7 +129,7 @@ pub fn benchmark(
     }
 
     info!("Building...");
-    build_source(&backend_config.build_command)?;
+    build_source(backend_config.resolved_build_command())?;
 
     let run_command = Command::from_str(&backend_config.run_command)?;
 
@@ -140,18 +144,73 @@ pub fn benchmark(
         BenchMeasure::Command(command) => &CommandExecutor::new(command, run_command),
     };
 
-    let execute = |point| {
-        if let Some(timeout) = timeout {
-            exec.execute_with_timeout(point, timeout)
-        } else {
-            exec.execute(point)
-        }
-    };
-
     let no_points = points.len();
-    for (idx, point) in (1..).zip(points.into_iter()) {
+    for (idx, point) in (1..).zip(points) {
         info!("Measuring [{idx}/{no_points}] in {point}...");
-        let record = execute(point)?;
+
+        let record = if is_time {
+            let mut values: Vec<f64> = Vec::with_capacity(num_runs as usize);
+            let mut did_timeout = false;
+            let mut point_failed = false;
+
+            for run_idx in 0..(num_runs as usize) {
+                if num_runs > 1 {
+                    info!("  Run [{}/{}]...", run_idx + 1, num_runs);
+                }
+                let raw = match match timeout {
+                    Some(t) => exec.execute_with_timeout(point, t),
+                    None => exec.execute(point),
+                } {
+                    Ok(r) => r,
+                    Err(e) => {
+                        warn!("Point {point} failed: {e}");
+                        point_failed = true;
+                        break;
+                    }
+                };
+                match raw {
+                    BenchmarkRecord::Timeout => {
+                        did_timeout = true;
+                        break;
+                    }
+                    BenchmarkRecord::Data(s) => {
+                        let v: f64 = match s.trim().parse::<f64>() {
+                            Ok(v) => v,
+                            Err(e) => {
+                                warn!("Point {point} failed: {e}");
+                                point_failed = true;
+                                break;
+                            }
+                        };
+                        values.push(v);
+                    }
+                    _ => {}
+                }
+            }
+
+            if point_failed {
+                continue;
+            } else if did_timeout {
+                BenchmarkRecord::Timeout
+            } else {
+                let n = values.len() as f64;
+                let mean = values.iter().sum::<f64>() / n;
+                let variance = values.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / n;
+                BenchmarkRecord::TimedData { mean, stddev: variance.sqrt() }
+            }
+        } else {
+            match match timeout {
+                Some(t) => exec.execute_with_timeout(point, t),
+                None => exec.execute(point),
+            } {
+                Ok(r) => r,
+                Err(e) => {
+                    warn!("Point {point} failed: {e}");
+                    continue;
+                }
+            }
+        };
+
         database.insert_data(param_generator.finalize(point), record)?;
     }
     info!("Finished measuring");

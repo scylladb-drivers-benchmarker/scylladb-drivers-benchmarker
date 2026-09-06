@@ -2,7 +2,9 @@ use std::path::PathBuf;
 
 use clap::{Args, ValueEnum};
 use scylladb_drivers_benchmarker::benchmarking::{BenchMeasure, BenchmarkMode};
-use scylladb_drivers_benchmarker::config::find_config;
+use scylladb_drivers_benchmarker::config::backend::BackendConfigList;
+use scylladb_drivers_benchmarker::config::config_traits::ConfigurationList;
+use scylladb_drivers_benchmarker::config::{find_config, open_config};
 use scylladb_drivers_benchmarker::flame_graph::FlameFrequency;
 use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
 
@@ -86,7 +88,8 @@ impl InputBenchmarkMode {
 
 #[derive(Args, Debug)]
 pub(crate) struct BenchmarkCommand {
-    pub benchmark_name: String,
+    /// Benchmark name to run. If omitted, all benchmarks in the backend config are run.
+    pub benchmark_name: Option<String>,
     #[arg(short = 'B', long, default_value = "./config.yml")]
     pub backend_config_path: PathBuf,
     #[arg(short = 'b', long)]
@@ -102,20 +105,40 @@ impl BenchmarkCommand {
         self,
         aliasing_config: AliasingConfig,
     ) -> Result<Subcommands, ParsingError> {
-        let benchmark_config = BenchmarkSetup::finalize(
-            self.benchmark_configuration,
-            &self.benchmark_name,
-            &aliasing_config,
-        )?;
-
         let measure = self.measure.unwrap_or(MeasureSubcommand::Time);
-        let bench_measure = measure.finalize(aliasing_config)?;
+        let bench_measure = measure.finalize(aliasing_config.clone())?;
+        let benchmark_mode = self.benchmark_mode.finalize();
 
-        Ok(Subcommands::Benchmark(BenchmarkParams {
-            bench_measure,
-            backend_config: find_config(&self.benchmark_name, &self.backend_config_path)?,
-            benchmark_config,
-            benchmark_mode: self.benchmark_mode.finalize(),
-        }))
+        if let Some(benchmark_name) = self.benchmark_name {
+            let benchmark_config = BenchmarkSetup::finalize(
+                self.benchmark_configuration,
+                &benchmark_name,
+                &aliasing_config,
+            )?;
+            Ok(Subcommands::Benchmark(vec![BenchmarkParams {
+                bench_measure,
+                backend_config: find_config(&benchmark_name, &self.backend_config_path)?,
+                benchmark_config,
+                benchmark_mode,
+            }]))
+        } else {
+            let all_backends: Vec<_> =
+                open_config::<BackendConfigList>(&self.backend_config_path)?.configs().collect();
+            let mut params = Vec::new();
+            for backend in all_backends {
+                let benchmark_config = BenchmarkSetup::finalize(
+                    self.benchmark_configuration.clone(),
+                    &backend.benchmark_name,
+                    &aliasing_config,
+                )?;
+                params.push(BenchmarkParams {
+                    bench_measure: bench_measure.clone(),
+                    backend_config: backend,
+                    benchmark_config,
+                    benchmark_mode,
+                });
+            }
+            Ok(Subcommands::Benchmark(params))
+        }
     }
 }

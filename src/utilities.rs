@@ -14,6 +14,7 @@ pub type RangedCoordBenchmarkPoint = RangedCoordu64;
 pub struct BenchmarkParamsBuilder {
     pub commit_hash: CommitHash,
     pub benchmark_name: String,
+    pub backend_name: String,
     pub measurement_method: String,
 }
 
@@ -22,11 +23,13 @@ impl BenchmarkParamsBuilder {
     pub fn new(
         commit_hash: CommitHash,
         benchmark_name: String,
+        backend_name: String,
         measurement_method: String,
     ) -> Self {
         BenchmarkParamsBuilder {
             commit_hash,
             benchmark_name,
+            backend_name,
             measurement_method,
         }
     }
@@ -36,16 +39,18 @@ impl BenchmarkParamsBuilder {
         BenchmarkParams::new(
             self.commit_hash.clone(),
             self.benchmark_name.clone(),
+            self.backend_name.clone(),
             benchmark_point,
             self.measurement_method.clone(),
         )
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum FlatBenchmarkRecord {
     Data(String),
     Timeout,
+    TimedData { mean: f64, stddev: f64 },
 }
 
 impl BenchmarkRecord {
@@ -56,6 +61,9 @@ impl BenchmarkRecord {
                 FlatBenchmarkRecord::Data(fs::read_to_string(&path)?)
             }
             BenchmarkRecord::Timeout => FlatBenchmarkRecord::Timeout,
+            BenchmarkRecord::TimedData { mean, stddev } => {
+                FlatBenchmarkRecord::TimedData { mean, stddev }
+            }
         })
     }
 }
@@ -67,6 +75,7 @@ pub fn format_entry(params: &BenchmarkParams, record: &BenchmarkRecord) -> Strin
     let _ = writeln!(out, "--- Benchmark Entry ---");
     let _ = writeln!(out, "Commit Hash:         {}", params.commit_hash);
     let _ = writeln!(out, "Benchmark Name:      {}", params.benchmark_name);
+    let _ = writeln!(out, "Backend Name:        {}", params.backend_name);
     let _ = writeln!(out, "Benchmark Point:     {}", params.benchmark_point);
     let _ = writeln!(out, "Measurement Method:  {}", params.measurement_method);
 
@@ -82,9 +91,23 @@ pub fn format_entry(params: &BenchmarkParams, record: &BenchmarkRecord) -> Strin
         BenchmarkRecord::Timeout => {
             let _ = writeln!(out, "Record Type:         Timeout");
         }
+        BenchmarkRecord::TimedData { mean, stddev } => {
+            let _ = writeln!(out, "Record Type:         TimedData");
+            let _ = writeln!(out, "Mean:                {mean:.6}");
+            let _ = writeln!(out, "Std Dev:             {stddev:.6}");
+        }
     }
 
     out
+}
+
+/// Adds a small padding above and below a y range so data points and error bars
+/// are never clipped by the axis boundary.
+/// Uses 5 % of the span, with a fallback for zero-span ranges.
+pub fn pad_y_range(y_min: f64, y_max: f64) -> (f64, f64) {
+    let span = y_max - y_min;
+    let pad = if span == 0.0 { y_max.abs() * 0.05 + 1.0 } else { span * 0.05 };
+    (y_min - pad, y_max + pad)
 }
 
 /// Calculates the minimum and maximum over an iterator of tuples conforming to the (min, max) constraint.

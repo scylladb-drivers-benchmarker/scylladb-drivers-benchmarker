@@ -35,6 +35,7 @@ fn database() {
         let params = BenchmarkParams::new(
             commit.clone(),
             "test-bench".to_owned(),
+            "test-backend".to_owned(),
             i as u64,
             "time -f \"%e\"".to_owned(),
         );
@@ -99,6 +100,7 @@ fn database_file() {
     let params = BenchmarkParams::new(
         commit.clone(),
         "file-bench".to_owned(),
+        "test-backend".to_owned(),
         0,
         "time -f \"%e\"".to_owned(),
     );
@@ -123,6 +125,7 @@ fn database_file() {
             FlatBenchmarkRecord::Data(s) => {
                 assert_eq!(s, file_content, "Flattened data should match file content");
             }
+            FlatBenchmarkRecord::TimedData { .. } => panic!("Should not be TimedData"),
             FlatBenchmarkRecord::Timeout => panic!("Should not be Timeout"),
         }
     }

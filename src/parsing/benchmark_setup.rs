@@ -26,6 +26,8 @@ impl BenchmarkSetup {
                     name: name.to_owned(),
                     points,
                     timeout: None,
+                    num_runs: 1,
+                    measure: None,
                 })
             }
         }
@@ -87,7 +89,7 @@ mod test {
     use std::time::Duration;
 
     use scylladb_drivers_benchmarker::config::benchmark::{
-        BenchmarkConfig, BenchmarkConfigList, ProgressType,
+        BenchmarkConfig, BenchmarkConfigList, BenchmarkDefaults, ProgressType,
     };
     use serde::{Deserialize, Serialize};
     use tempfile::NamedTempFile;
@@ -114,13 +116,16 @@ mod test {
         let bconfig = BenchmarkConfig {
             name: "Aliased".to_owned(),
             starting_step: 100,
-            no_steps: 1,
-            step_progress: 100,
-            progress_type: ProgressType::Multiplicative,
+            no_steps: Some(1),
+            step_progress: Some(100),
+            progress_type: Some(ProgressType::Multiplicative),
             timeout: Some(Duration::from_secs(60 * 60 * 100)), // 100 hours, from_hours may not be available.
+            num_runs: 1,
+            measure: None,
         };
         let wrong_config = write_assert(BenchmarkConfigList {
             configs: vec![bconfig],
+            defaults: BenchmarkDefaults::default(),
         });
 
         let aconfig = AliasingConfig {
@@ -168,14 +173,17 @@ mod test {
         let bconfig = BenchmarkConfig {
             name: "bname".to_owned(),
             starting_step: 1,
-            no_steps: 3,
-            step_progress: 1,
-            progress_type: ProgressType::Additive,
+            no_steps: Some(3),
+            step_progress: Some(1),
+            progress_type: Some(ProgressType::Additive),
             timeout: Some(Duration::from_secs(3)),
+            num_runs: 1,
+            measure: None,
         };
 
         let bconfig_file = write_assert(BenchmarkConfigList {
             configs: vec![bconfig],
+            defaults: BenchmarkDefaults::default(),
         });
         let Configs {
             wrong_config: _wrong_config,

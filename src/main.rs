@@ -5,8 +5,7 @@ use scylladb_drivers_benchmarker::config::backend::BackendConfig;
 use scylladb_drivers_benchmarker::config::benchmark::BenchmarkData;
 use scylladb_drivers_benchmarker::database::Database;
 use scylladb_drivers_benchmarker::database::utilities::BenchmarkFilters;
-use scylladb_drivers_benchmarker::repo_with_commits::{RepoNameWithTags, RepoPathWithCommits};
-use scylladb_drivers_benchmarker::{PlotKind, PlotSettings, command};
+use scylladb_drivers_benchmarker::{BackendWithCommit, PlotKind, PlotSettings, command};
 
 use crate::parsing::App;
 
@@ -21,11 +20,8 @@ pub struct BenchmarkParams {
 }
 
 pub struct PlotParams {
-    pub benchmark_config: BenchmarkData,
-
-    pub from: Vec<RepoNameWithTags>,
-    pub resolved: Vec<RepoPathWithCommits>,
-
+    pub benchmarks: Vec<BenchmarkData>,
+    pub series: Vec<BackendWithCommit>,
     pub plot_settings: PlotSettings,
 }
 
@@ -52,31 +48,34 @@ fn main() {
     let input = App::parse().finalize().unwrap_or_else(print_error);
 
     match input.params {
-        crate::parsing::Subcommands::Benchmark(BenchmarkParams {
-            bench_measure,
-            backend_config,
-            benchmark_config,
-            benchmark_mode,
-        }) => scylladb_drivers_benchmarker::run_benchmarks(
-            &input.database,
-            benchmark_config,
-            bench_measure,
-            backend_config,
-            benchmark_mode,
-        )
-        .unwrap_or_else(print_error),
+        crate::parsing::Subcommands::Benchmark(params_list) => {
+            for BenchmarkParams {
+                bench_measure,
+                backend_config,
+                benchmark_config,
+                benchmark_mode,
+            } in params_list
+            {
+                scylladb_drivers_benchmarker::run_benchmarks(
+                    &input.database,
+                    benchmark_config,
+                    bench_measure,
+                    backend_config,
+                    benchmark_mode,
+                )
+                .unwrap_or_else(print_error);
+            }
+        }
         crate::parsing::Subcommands::Plot(PlotParams {
-            benchmark_config,
-            from,
-            resolved,
+            benchmarks,
+            series,
             plot_settings,
         }) => {
             scylladb_drivers_benchmarker::plot_benchmarks(
                 plot_settings,
                 &input.database,
-                benchmark_config,
-                from,
-                resolved,
+                benchmarks,
+                series,
             )
         }
         .unwrap_or_else(print_error),

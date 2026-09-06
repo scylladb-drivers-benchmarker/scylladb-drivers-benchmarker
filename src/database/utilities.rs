@@ -9,6 +9,7 @@ use crate::utilities::BenchmarkPoint;
 pub struct BenchmarkParams {
     pub commit_hash: CommitHash,
     pub benchmark_name: String,
+    pub backend_name: String,
     pub benchmark_point: BenchmarkPoint,
     pub measurement_method: String,
 }
@@ -18,24 +19,27 @@ impl BenchmarkParams {
     pub fn new(
         commit_hash: CommitHash,
         benchmark_name: String,
+        backend_name: String,
         benchmark_point: BenchmarkPoint,
         measurement_method: String,
     ) -> BenchmarkParams {
         BenchmarkParams {
             commit_hash,
             benchmark_name,
+            backend_name,
             benchmark_point,
             measurement_method,
         }
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", content = "value")]
 pub enum BenchmarkRecord {
     Data(String),
     FilePath(PathBuf),
     Timeout,
+    TimedData { mean: f64, stddev: f64 },
 }
 
 impl BenchmarkRecord {
@@ -48,6 +52,7 @@ impl BenchmarkRecord {
 pub struct BenchmarkFilters {
     pub commit_hashes: Vec<String>,
     pub benchmark_names: Vec<String>,
+    pub backend_names: Vec<String>,
     pub benchmark_points: Vec<BenchmarkPoint>,
     pub measurement_methods: Vec<String>,
 }
@@ -58,6 +63,7 @@ impl BenchmarkFilters {
         BenchmarkFilters {
             commit_hashes: Vec::new(),
             benchmark_names: Vec::new(),
+            backend_names: Vec::new(),
             benchmark_points: Vec::new(),
             measurement_methods: Vec::new(),
         }
@@ -68,6 +74,7 @@ impl BenchmarkFilters {
         BenchmarkFilters {
             commit_hashes: vec![params.commit_hash.clone().to_string()],
             benchmark_names: vec![params.benchmark_name.clone()],
+            backend_names: vec![params.backend_name.clone()],
             benchmark_points: vec![params.benchmark_point],
             measurement_methods: vec![params.measurement_method.clone()],
         }

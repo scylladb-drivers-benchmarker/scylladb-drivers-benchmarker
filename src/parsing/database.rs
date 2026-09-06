@@ -44,6 +44,7 @@ impl From<InputDatabaseFilters> for BenchmarkFilters {
         BenchmarkFilters {
             commit_hashes: input.commit_hashes,
             benchmark_names: input.benchmark_names,
+            backend_names: vec![],
             benchmark_points: input.benchmark_points,
             measurement_methods: input.measurement_methods,
         }

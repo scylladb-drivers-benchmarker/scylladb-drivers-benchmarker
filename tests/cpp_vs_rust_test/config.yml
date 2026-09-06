@@ -5,3 +5,4 @@ benchmarks:
     step-progress: 2
     progress-type: multiplicative
     timeout: "500ms"
+    num-runs: 5
