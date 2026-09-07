@@ -4,7 +4,7 @@ use clap::Parser;
 use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
 
 use crate::parsing::database::InputDatabaseCommand;
-use crate::parsing::plot::{InputPlotKind, InputVisKind, ParsableDriverWithCommit};
+use crate::parsing::plot::{InputPlotKind, InputQuantity, InputScale, ParsableDriverWithCommit};
 use crate::parsing::{App, AppSubcommands, BenchmarkCommand, PlotCommand};
 
 #[test]
@@ -67,10 +67,12 @@ fn basic_run() {
     match plot_kind {
         InputPlotKind::Series {
             measurement_method,
+            quantity,
             visualization_kind,
         } => {
             assert!(matches!(measurement_method, MeasurementMethod::Time));
-            assert!(matches!(visualization_kind, InputVisKind::Linear));
+            assert!(matches!(quantity, InputQuantity::Time));
+            assert!(matches!(visualization_kind, InputScale::Linear));
         }
         _ => panic!("Expected PlotKind::Series"),
     }

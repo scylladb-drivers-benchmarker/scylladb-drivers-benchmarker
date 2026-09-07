@@ -5,7 +5,7 @@ mod plots;
 #[cfg(test)]
 mod tests;
 
-pub use core::VisKind;
+pub use core::{Quantity, Scale, VisKind};
 use core::{BenchmarkDataset, NullBackend, Plot};
 use std::path::PathBuf;
 

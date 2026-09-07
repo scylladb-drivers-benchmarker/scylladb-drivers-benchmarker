@@ -11,4 +11,6 @@ pub use plot::{
     TITLE_MARGIN_TOP, X_LABEL_AREA_SIZE, Y_LABEL_AREA_SIZE,
 };
 pub use render::{Renderable, RenderableFlameGraph, RenderablePerfStat, RenderableSeries};
-pub use series::{LinearSeries, LogSeries, SeriesValue, ValueTransformation, VisKind};
+pub use series::{
+    LinearSeries, LogSeries, Quantity, Scale, SeriesValue, ValueTransformation, VisKind,
+};

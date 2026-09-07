@@ -1,4 +1,4 @@
-pub use plotting::{PlotKind, PlotSettings, VisKind};
+pub use plotting::{PlotKind, PlotSettings, Quantity, Scale, VisKind};
 
 use crate::benchmarking::{BenchMeasure, BenchmarkMode, BenchmarkingError, EnvCleanupGuard, Session};
 use crate::commit_hash::CommitHash;
