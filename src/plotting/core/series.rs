@@ -8,6 +8,9 @@ use crate::utilities::calc_min_max;
 pub enum VisKind {
     Linear,
     Log,
+    /// Throughput - benchmark point per unit of time - drawn as grouped
+    /// columns: one group per benchmark point, one column per series.
+    Throughput,
 }
 
 impl fmt::Display for VisKind {
@@ -15,6 +18,7 @@ impl fmt::Display for VisKind {
         f.write_str(match self {
             VisKind::Linear => "linear",
             VisKind::Log => "log",
+            VisKind::Throughput => "throughput",
         })
     }
 }

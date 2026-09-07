@@ -15,6 +15,7 @@ const LINE_STROKE_WIDTH: u32 = 4;
 const CROSS_SIZE: u32 = 10;
 const POINT_RADIUS: u32 = 8;
 const ERROR_BAR_CAP_HALF_PIXELS: i32 = 8;
+const LEGEND_MARKER_HALF_HEIGHT: i32 = 12;
 
 pub trait Renderable<'a, DB>
 where
@@ -43,6 +44,10 @@ pub struct RenderableSeries {
     error_bars: Vec<Option<(f64, f64)>>,
     color: PaletteColor<Palette99>,
     range: Option<(f64, f64)>,
+    /// Set to `(series index, series count)` to draw this series as one column
+    /// per point instead of a line. The x axis is then indexed in slots rather
+    /// than benchmark points - see `RenderableSeries::slot`.
+    column: Option<(usize, usize)>,
 }
 
 pub struct RenderablePerfStat {
@@ -74,11 +79,32 @@ impl RenderableSeries {
             error_bars,
             color,
             range,
+            column: None,
         }
     }
 
     pub fn range(&self) -> Option<(f64, f64)> {
         self.range
+    }
+
+    /// Draws this series as columns, `series_index` of `series_count` within
+    /// each group.
+    pub fn draw_as_column(&mut self, series_index: usize, series_count: usize) {
+        self.column = Some((series_index, series_count));
+    }
+
+    /// Slot occupied by this series' column in the `group_index`-th group.
+    /// Each group spans `series_count + 1` slots: one per series, plus one that
+    /// separates it from the next group.
+    #[must_use]
+    pub fn slot(group_index: usize, series_index: usize, series_count: usize) -> u64 {
+        (group_index * (series_count + 1) + series_index) as u64
+    }
+
+    /// Width of one group in slots, including the separating one.
+    #[must_use]
+    pub fn group_width(series_count: usize) -> u64 {
+        (series_count + 1) as u64
     }
 }
 
@@ -104,6 +130,40 @@ where
         let color = self.color.to_rgba();
         let name = self.name.clone();
         let y_max = chart.as_coord_spec().y_spec().range().end;
+
+        if let Some((series_index, series_count)) = self.column {
+            let mut columns = Vec::new();
+            let mut crosses = Vec::new();
+
+            for (group_index, y_opt) in self.series.iter().enumerate() {
+                let slot = Self::slot(group_index, series_index, series_count);
+                match y_opt {
+                    Some(y) => columns.push(Rectangle::new(
+                        [(slot, 0.0), (slot + 1, *y)],
+                        color.filled(),
+                    )),
+                    // A missing point leaves a gap between columns, which alone
+                    // would be hard to tell from a very short column.
+                    None => crosses.push(Cross::new((slot, y_max), CROSS_SIZE, color)),
+                }
+            }
+
+            if !crosses.is_empty() {
+                chart.draw_series(crosses)?;
+            }
+
+            chart
+                .draw_series(columns)?
+                .label(name)
+                .legend(move |(x, y)| {
+                    Rectangle::new(
+                        [(x, y - LEGEND_MARKER_HALF_HEIGHT), (x + LEGEND_AREA_SIZE as i32, y + LEGEND_MARKER_HALF_HEIGHT)],
+                        color.filled(),
+                    )
+                });
+
+            return Ok(());
+        }
 
         // Compute cap half-width once from the axis mapping (same for all points).
         let cap_half: u64 = {
