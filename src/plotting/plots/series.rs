@@ -1,9 +1,10 @@
+use plotters::coord::Shift;
 use plotters::drawing::DrawingArea;
 use plotters::prelude::*;
 use plotters::style::text_anchor::{HPos, Pos, VPos};
 
 use crate::plotting::core::{
-    BACKGROUND_COLOR, BackendWithKind, BenchmarkDataset, LABEL_FONT, LEGEND_AREA_SIZE,
+    BACKGROUND_COLOR, BackendKind, BackendWithKind, BenchmarkDataset, LABEL_FONT, LEGEND_AREA_SIZE,
     LEGEND_BORDER_COLOR, LEGEND_BORDER_SIZE, LEGEND_FONT, LEGEND_MARGIN, LinearSeries, LogSeries,
     MARGIN_RIGHT, MARGIN_SIZE, MARGIN_TOP, Plot, Renderable, RenderableSeries, SeriesValue,
     TICK_FONT, TITLE_FONT, TITLE_MARGIN_TOP, ValueTransformation, X_LABEL_AREA_SIZE,
@@ -14,6 +15,13 @@ use crate::utilities::{calc_min_max, pad_y_range};
 
 /// Vertical gap between the axis and the group labels drawn under it.
 const GROUP_LABEL_OFFSET: i32 = 12;
+
+/// Geometry of the legend strip drawn beside a column chart.
+const LEGEND_SWATCH_WIDTH: i32 = 60;
+const LEGEND_SWATCH_HEIGHT: i32 = 30;
+const LEGEND_TEXT_GAP: i32 = 20;
+const LEGEND_ENTRY_GAP: i32 = 20;
+const LEGEND_PADDING: i32 = 24;
 
 pub struct SeriesPlot {
     benchmark_name: String,
@@ -139,6 +147,77 @@ impl SeriesPlot {
 
         Ok(SeriesPlot::new(benchmark_name, results, visualization_kind, y_label))
     }
+
+    /// Text width estimation on the SVG backend overshoots; the same correction
+    /// the perf-stat legend applies is used here.
+    fn text_scale_factor(backend_kind: BackendKind) -> f64 {
+        match backend_kind {
+            BackendKind::Svg => 0.9,
+            _ => 1.0,
+        }
+    }
+
+    /// Width of the strip that holds the legend, sized to its widest entry but
+    /// never taking more than a third of the image away from the chart.
+    fn legend_strip_width<DB: DrawingBackend>(
+        &self,
+        area: &DrawingArea<DB, Shift>,
+        backend_kind: BackendKind,
+    ) -> Result<i32, PlotError>
+    where
+        DB::ErrorType: 'static,
+    {
+        let scale = Self::text_scale_factor(backend_kind);
+        let style = TextStyle::from(LEGEND_FONT.into_font());
+        let mut widest = 0;
+        for series in &self.results {
+            let (width, _) = area.estimate_text_size(series.name(), &style)?;
+            widest = widest.max((f64::from(width) * scale) as i32);
+        }
+
+        let content = LEGEND_SWATCH_WIDTH + LEGEND_TEXT_GAP + widest + 2 * LEGEND_PADDING;
+        let limit = area.dim_in_pixel().0 as i32 / 3;
+        Ok(content.min(limit))
+    }
+
+    /// Draws the legend into its own strip: a swatch and a label per series,
+    /// stacked and vertically centred.
+    fn draw_legend<DB: DrawingBackend>(
+        &self,
+        area: &DrawingArea<DB, Shift>,
+    ) -> Result<(), PlotError>
+    where
+        DB::ErrorType: 'static,
+    {
+        let (_, area_height) = area.dim_in_pixel();
+        let entry_height = LEGEND_SWATCH_HEIGHT.max(LEGEND_FONT.1 as i32) + LEGEND_ENTRY_GAP;
+        let total = entry_height * self.results.len() as i32;
+        let mut y = (area_height as i32 - total).max(0) / 2;
+
+        for series in &self.results {
+            let swatch_offset = (entry_height - LEGEND_ENTRY_GAP - LEGEND_SWATCH_HEIGHT) / 2;
+            area.draw(&Rectangle::new(
+                [
+                    (LEGEND_PADDING, y + swatch_offset),
+                    (
+                        LEGEND_PADDING + LEGEND_SWATCH_WIDTH,
+                        y + swatch_offset + LEGEND_SWATCH_HEIGHT,
+                    ),
+                ],
+                series.color().filled(),
+            ))?;
+
+            area.draw(&Text::new(
+                series.name().to_owned(),
+                (LEGEND_PADDING + LEGEND_SWATCH_WIDTH + LEGEND_TEXT_GAP, y),
+                LEGEND_FONT,
+            ))?;
+
+            y += entry_height;
+        }
+
+        Ok(())
+    }
 }
 
 impl Plot for SeriesPlot {
@@ -146,6 +225,8 @@ impl Plot for SeriesPlot {
     where
         DB::ErrorType: 'static,
     {
+        // The backend is moved into the drawing area, so its kind is needed first.
+        let backend_kind = backend.kind();
         let root = DrawingArea::from(backend);
         root.fill(&BACKGROUND_COLOR)?;
         let (_, root) = root.split_vertically(TITLE_MARGIN_TOP);
@@ -192,10 +273,21 @@ impl Plot for SeriesPlot {
             VisKind::Linear => "",
         };
 
-        let plot_area = root.titled(
+        let titled_area = root.titled(
             &format!("Benchmark {} Results{}", &self.benchmark_name, log_text),
             TITLE_FONT,
         )?;
+
+        // With a column per driver per group there is no empty corner left for
+        // an overlaid legend, so it gets a strip of its own beside the chart.
+        let (plot_area, legend_area) = if columns {
+            let strip = self.legend_strip_width(&titled_area, backend_kind)?;
+            let width = titled_area.dim_in_pixel().0 as i32;
+            let (plot, legend) = titled_area.split_horizontally(width - strip);
+            (plot, Some(legend))
+        } else {
+            (titled_area, None)
+        };
 
         let mut chart = ChartBuilder::on(&plot_area)
             .margin_top(MARGIN_TOP)
@@ -260,15 +352,19 @@ impl Plot for SeriesPlot {
             }
         }
 
-        charts[0]
-            .configure_series_labels()
-            .position(SeriesLabelPosition::UpperLeft)
-            .border_style(LEGEND_BORDER_COLOR.stroke_width(LEGEND_BORDER_SIZE))
-            .background_style(BACKGROUND_COLOR)
-            .margin(LEGEND_MARGIN)
-            .label_font(LEGEND_FONT)
-            .legend_area_size(LEGEND_AREA_SIZE)
-            .draw()?;
+        if let Some(legend_area) = &legend_area {
+            self.draw_legend(legend_area)?;
+        } else {
+            charts[0]
+                .configure_series_labels()
+                .position(SeriesLabelPosition::UpperLeft)
+                .border_style(LEGEND_BORDER_COLOR.stroke_width(LEGEND_BORDER_SIZE))
+                .background_style(BACKGROUND_COLOR)
+                .margin(LEGEND_MARGIN)
+                .label_font(LEGEND_FONT)
+                .legend_area_size(LEGEND_AREA_SIZE)
+                .draw()?;
+        }
 
         root.present()?;
 
