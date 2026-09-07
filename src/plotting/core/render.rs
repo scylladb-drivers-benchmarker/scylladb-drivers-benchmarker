@@ -140,6 +140,9 @@ where
         let y_max = chart.as_coord_spec().y_spec().range().end;
 
         if let Some((series_index, series_count)) = self.column {
+            // Columns grow from the bottom of the axis, which is zero on a
+            // linear scale but not on a logarithmic one.
+            let baseline = chart.as_coord_spec().y_spec().range().start;
             let mut columns = Vec::new();
             let mut crosses = Vec::new();
 
@@ -147,7 +150,7 @@ where
                 let slot = Self::slot(group_index, series_index, series_count);
                 match y_opt {
                     Some(y) => columns.push(Rectangle::new(
-                        [(slot, 0.0), (slot + 1, *y)],
+                        [(slot, baseline), (slot + 1, *y)],
                         color.filled(),
                     )),
                     // A missing point leaves a gap between columns, which alone

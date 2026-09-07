@@ -4,22 +4,75 @@ use super::data::PlottableValue;
 use crate::plotting::PlotError;
 use crate::utilities::calc_min_max;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum VisKind {
+/// Quantity plotted on the y axis.
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
+pub enum Quantity {
+    /// The measured value itself (e.g. the duration of a run), drawn as a line.
+    #[default]
+    Time,
+    /// Benchmark point per unit of time, derived from the measured duration and
+    /// drawn as grouped columns: one group per benchmark point, one column per
+    /// series.
+    Throughput,
+}
+
+/// Scaling of the y axis.
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
+pub enum Scale {
+    #[default]
     Linear,
     Log,
-    /// Throughput - benchmark point per unit of time - drawn as grouped
-    /// columns: one group per benchmark point, one column per series.
-    Throughput,
+}
+
+/// How a series plot is visualised: *what* is on the y axis, and *how* that
+/// axis is scaled. The two are independent - throughput can be plotted on a
+/// logarithmic axis just as a duration can.
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
+pub struct VisKind {
+    pub quantity: Quantity,
+    pub scale: Scale,
+}
+
+impl VisKind {
+    #[must_use]
+    pub fn new(quantity: Quantity, scale: Scale) -> Self {
+        VisKind { quantity, scale }
+    }
+
+    /// Suffix appended to the plot title, describing what deviates from the
+    /// default of a linearly scaled duration.
+    #[must_use]
+    pub fn title_suffix(self) -> &'static str {
+        match (self.quantity, self.scale) {
+            (Quantity::Time, Scale::Linear) => "",
+            (Quantity::Time, Scale::Log) => " (log scale)",
+            (Quantity::Throughput, Scale::Linear) => " (throughput)",
+            (Quantity::Throughput, Scale::Log) => " (throughput, log scale)",
+        }
+    }
+}
+
+impl fmt::Display for Quantity {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Quantity::Time => "time",
+            Quantity::Throughput => "throughput",
+        })
+    }
+}
+
+impl fmt::Display for Scale {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Scale::Linear => "linear",
+            Scale::Log => "log",
+        })
+    }
 }
 
 impl fmt::Display for VisKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            VisKind::Linear => "linear",
-            VisKind::Log => "log",
-            VisKind::Throughput => "throughput",
-        })
+        write!(f, "{}-{}", self.quantity, self.scale)
     }
 }
 

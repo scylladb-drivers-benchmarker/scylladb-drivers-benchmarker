@@ -38,7 +38,7 @@ sdb -d results.db plot insert \
     -b ~/scylladb-drivers-benchmarks/scenarios/config.yml \
     --series rust-driver@~/scylla-rust-driver:main=baseline \
     --series rust-driver@~/scylla-rust-driver:my-feature=candidate \
-    series
+    series -q throughput
 
 # Inspect or clean the database:
 sdb -d results.db database print --driver-name rust-driver
@@ -132,9 +132,22 @@ rendered into a grid.
   ```
 
 - The plot type (subcommand) follows all other options:
-  - `series` — line chart for single-value outputs.
+  - `series` — chart of single-value outputs.
     - `-m`, `--measurement-method` — `time` (default), `perf`, or a custom command.
-    - `-v`, `--visualization-kind` — `linear` (default) or `log`.
+    - `-q`, `--quantity` — what goes on the y axis:
+      - `throughput` — benchmark point per second, derived from the measured duration, drawn as
+        **grouped columns**: one group per benchmark point, one column per series, with the legend
+        in a strip beside the chart. **This is the recommended view for comparing drivers**: the
+        columns of one group are directly comparable, and throughput is roughly flat in the input
+        size, so a linear axis stays readable even across an order of magnitude between drivers.
+        The unit is points per second — for `ser`/`deser` a point is not a query count, hence the
+        generic name. Error bars are not drawn yet.
+      - `time` (default) — the measured value itself, drawn as one **line** per series against the
+        input size. Use it to see how a driver scales, or when the measured value is not a
+        duration that throughput could be derived from.
+    - `-v`, `--visualization-kind` — scaling of the y axis: `linear` (default) or `log`. Combines
+      freely with `-q`; `-q throughput -v log` is a column chart on a logarithmic axis, whose
+      columns then stand on the bottom of the axis rather than on zero.
   - `perf-stat` — one chart per requested `perf` event.
     - `-e`, `--events <e1,e2,...>` — required; event names are platform-dependent.
   - `flame-graph` — HTML file containing embedded flame graphs.

@@ -5,7 +5,7 @@ use tempfile::NamedTempFile;
 
 use crate::plotting::core::BenchmarkDataset;
 use crate::plotting::plots::{PerfStatPlot, SeriesPlot};
-use crate::plotting::{PlotError, VisKind, plot_on_backend};
+use crate::plotting::{PlotError, Quantity, Scale, VisKind, plot_on_backend};
 
 #[derive(Clone, Debug, PartialOrd, PartialEq)]
 struct Dummy(f64);
@@ -35,7 +35,7 @@ fn setup_test_plot() -> SeriesPlot {
         std_devs: vec![vec![None; 3], vec![None; 3]],
         names: vec!["first".to_owned(), "second".to_owned()],
     };
-    SeriesPlot::from_dataset(dataset, "TestBenchmark".to_owned(), VisKind::Linear, "Time [s]").unwrap()
+    SeriesPlot::from_dataset(dataset, "TestBenchmark".to_owned(), VisKind::default(), "Time [s]").unwrap()
 }
 
 #[test]
@@ -63,7 +63,31 @@ fn throughput_plot_runs() {
     let plot = SeriesPlot::from_dataset(
         dataset,
         "TestBenchmark".to_owned(),
-        VisKind::Throughput,
+        VisKind::new(Quantity::Throughput, Scale::Linear),
+        "Time [s]",
+    )
+    .unwrap();
+
+    let path = NamedTempFile::new().unwrap().path().with_extension("png");
+    assert!(plot_on_backend(plot, path.to_str().unwrap()).is_ok());
+}
+
+#[test]
+fn log_throughput_plot_runs() {
+    let dataset = BenchmarkDataset {
+        points: vec![1, 2, 3],
+        results: vec![
+            vec![Some(Dummy(10.0)), Some(Dummy(20.0)), None],
+            // A zero duration has no throughput, and so no logarithm either.
+            vec![Some(Dummy(5.0)), Some(Dummy(0.0)), Some(Dummy(20.0))],
+        ],
+        std_devs: vec![vec![None; 3], vec![None; 3]],
+        names: vec!["first".to_owned(), "second".to_owned()],
+    };
+    let plot = SeriesPlot::from_dataset(
+        dataset,
+        "TestBenchmark".to_owned(),
+        VisKind::new(Quantity::Throughput, Scale::Log),
         "Time [s]",
     )
     .unwrap();

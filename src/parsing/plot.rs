@@ -8,7 +8,7 @@ use scylladb_drivers_benchmarker::config::benchmark::{BenchmarkConfigList, Bench
 use scylladb_drivers_benchmarker::config::config_traits::ConfigurationList;
 use scylladb_drivers_benchmarker::config::open_config;
 use scylladb_drivers_benchmarker::measurement::MeasurementMethod;
-use scylladb_drivers_benchmarker::{PlotSettings, VisKind};
+use scylladb_drivers_benchmarker::{PlotSettings, Quantity, Scale, VisKind};
 
 use crate::parsing::benchmark_setup::BenchmarkSetup;
 use crate::parsing::{ParsingError, Subcommands};
@@ -146,8 +146,14 @@ pub(crate) enum InputPlotKind {
         #[arg(short, long, default_value_t = MeasurementMethod::Time)]
         measurement_method: MeasurementMethod,
 
-        #[arg(short, long, value_enum, default_value_t = InputVisKind::Linear)]
-        visualization_kind: InputVisKind,
+        /// What is plotted on the y axis: the measured time, or the throughput
+        /// derived from it (drawn as grouped columns, one per series).
+        #[arg(short, long, value_enum, default_value_t = InputQuantity::Time)]
+        quantity: InputQuantity,
+
+        /// Scaling of the y axis.
+        #[arg(short, long, value_enum, default_value_t = InputScale::Linear)]
+        visualization_kind: InputScale,
     },
 
     /// Generate a flame-graph plot
@@ -169,18 +175,31 @@ pub(crate) enum InputPlotKind {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, clap::ValueEnum)]
-pub(crate) enum InputVisKind {
-    Linear,
-    Log,
+pub(crate) enum InputQuantity {
+    Time,
     Throughput,
 }
 
-impl InputVisKind {
-    pub fn finalize(self) -> VisKind {
+#[derive(Debug, PartialEq, Eq, Clone, Copy, clap::ValueEnum)]
+pub(crate) enum InputScale {
+    Linear,
+    Log,
+}
+
+impl InputQuantity {
+    pub fn finalize(self) -> Quantity {
         match self {
-            InputVisKind::Linear => VisKind::Linear,
-            InputVisKind::Log => VisKind::Log,
-            InputVisKind::Throughput => VisKind::Throughput,
+            InputQuantity::Time => Quantity::Time,
+            InputQuantity::Throughput => Quantity::Throughput,
+        }
+    }
+}
+
+impl InputScale {
+    pub fn finalize(self) -> Scale {
+        match self {
+            InputScale::Linear => Scale::Linear,
+            InputScale::Log => Scale::Log,
         }
     }
 }
@@ -190,10 +209,11 @@ impl InputPlotKind {
         match self {
             InputPlotKind::Series {
                 measurement_method,
+                quantity,
                 visualization_kind,
             } => Ok(PlotKind::Series {
                 measurement_method,
-                visualization_kind: visualization_kind.finalize(),
+                visualization_kind: VisKind::new(quantity.finalize(), visualization_kind.finalize()),
             }),
             InputPlotKind::FlameGraph {
                 artifacts_dir,

@@ -6,8 +6,8 @@ use plotters::style::text_anchor::{HPos, Pos, VPos};
 use crate::plotting::core::{
     BACKGROUND_COLOR, BackendKind, BackendWithKind, BenchmarkDataset, LABEL_FONT, LEGEND_AREA_SIZE,
     LEGEND_BORDER_COLOR, LEGEND_BORDER_SIZE, LEGEND_FONT, LEGEND_MARGIN, LinearSeries, LogSeries,
-    MARGIN_RIGHT, MARGIN_SIZE, MARGIN_TOP, Plot, Renderable, RenderableSeries, SeriesValue,
-    TICK_FONT, TITLE_FONT, TITLE_MARGIN_TOP, ValueTransformation, X_LABEL_AREA_SIZE,
+    MARGIN_RIGHT, MARGIN_SIZE, MARGIN_TOP, Plot, Quantity, Renderable, RenderableSeries, Scale,
+    SeriesValue, TICK_FONT, TITLE_FONT, TITLE_MARGIN_TOP, ValueTransformation, X_LABEL_AREA_SIZE,
     Y_LABEL_AREA_SIZE,
 };
 use crate::plotting::{PlotError, VisKind};
@@ -51,11 +51,11 @@ impl SeriesPlot {
         visualization_kind: VisKind,
         y_label: impl Into<String>,
     ) -> Result<Self, PlotError> {
-        let y_label = match visualization_kind {
+        let y_label = match visualization_kind.quantity {
             // The point is not a query count in every benchmark (ser/deser run
             // point^2 queries), so the unit stays generic.
-            VisKind::Throughput => "Throughput [points/s]".to_owned(),
-            _ => y_label.into(),
+            Quantity::Throughput => "Throughput [points/s]".to_owned(),
+            Quantity::Time => y_label.into(),
         };
         let series_count = dataset.names.len();
         let mut results = Vec::new();
@@ -66,29 +66,36 @@ impl SeriesPlot {
             .zip(dataset.results.into_iter().zip(dataset.std_devs.into_iter()))
             .enumerate()
         {
-            let (series, range) = match visualization_kind {
-                VisKind::Throughput => {
+            let (series, range) = match visualization_kind.quantity {
+                Quantity::Throughput => {
                     // The recorded value is a duration; the throughput it stands
                     // for is the benchmark point divided by it. A non-positive
                     // duration would divide to an infinity, so it counts as
                     // missing instead.
-                    let throughput: Vec<Option<f64>> = dataset
+                    let throughput = dataset
                         .points
                         .iter()
                         .zip(series_values.iter())
                         .map(|(point, value)| {
                             let seconds: Option<f64> = value.clone().map(Into::into);
                             seconds.filter(|s| *s > 0.0).map(|s| *point as f64 / s)
-                        })
-                        .collect();
+                        });
+                    // Throughput is positive wherever it is defined at all, so
+                    // the log transformation cannot fail here.
+                    let series: Vec<Option<f64>> = match visualization_kind.scale {
+                        Scale::Linear => throughput.collect(),
+                        Scale::Log => throughput.map(|v| v.map(f64::log10)).collect(),
+                    };
                     let range =
-                        calc_min_max(throughput.iter().filter_map(|&v| v.map(|val| (val, val))));
-                    (throughput, range)
+                        calc_min_max(series.iter().filter_map(|&v| v.map(|val| (val, val))));
+                    (series, range)
                 }
-                VisKind::Linear | VisKind::Log => {
-                    let series: ValueTransformation<T> = match visualization_kind {
-                        VisKind::Log => ValueTransformation::Log(LogSeries { y: series_values }),
-                        _ => ValueTransformation::Linear(LinearSeries { y: series_values }),
+                Quantity::Time => {
+                    let series: ValueTransformation<T> = match visualization_kind.scale {
+                        Scale::Log => ValueTransformation::Log(LogSeries { y: series_values }),
+                        Scale::Linear => {
+                            ValueTransformation::Linear(LinearSeries { y: series_values })
+                        }
                     };
                     (series.series()?, series.range()?)
                 }
@@ -100,19 +107,20 @@ impl SeriesPlot {
                 .copied()
                 .zip(raw_std_devs.iter().copied())
                 .map(|(v_opt, d_opt)| match (v_opt, d_opt) {
-                    (Some(v), Some(d)) => match visualization_kind {
-                        VisKind::Linear => Some((v - d, v + d)),
-                        // Deliberately none yet: under the reciprocal the bounds
-                        // become asymmetric, which is a follow-up.
-                        VisKind::Throughput => None,
-                        VisKind::Log => {
+                    // Deliberately none for throughput yet: under the reciprocal
+                    // the bounds become asymmetric, which is a follow-up.
+                    (Some(v), Some(d)) if visualization_kind.quantity == Quantity::Time => {
+                        match visualization_kind.scale {
+                            Scale::Linear => Some((v - d, v + d)),
+                            Scale::Log => {
                             // v is log10(original); back-transform to apply stddev in linear space
-                            let original = 10f64.powf(v);
-                            let lo = (original - d).max(f64::EPSILON).log10();
-                            let hi = (original + d).log10();
-                            Some((lo, hi))
+                                let original = 10f64.powf(v);
+                                let lo = (original - d).max(f64::EPSILON).log10();
+                                let hi = (original + d).log10();
+                                Some((lo, hi))
+                            }
                         }
-                    },
+                    }
                     _ => None,
                 })
                 .collect();
@@ -139,7 +147,7 @@ impl SeriesPlot {
                 color,
                 expanded_range,
             );
-            if visualization_kind == VisKind::Throughput {
+            if visualization_kind.quantity == Quantity::Throughput {
                 renderable.draw_as_column(id, series_count);
             }
             results.push(renderable);
@@ -231,7 +239,7 @@ impl Plot for SeriesPlot {
         root.fill(&BACKGROUND_COLOR)?;
         let (_, root) = root.split_vertically(TITLE_MARGIN_TOP);
 
-        let columns = self.visualization_kind == VisKind::Throughput;
+        let columns = self.visualization_kind.quantity == Quantity::Throughput;
         let group_points: Vec<u64> = self
             .results
             .first()
@@ -264,17 +272,21 @@ impl Plot for SeriesPlot {
         )
         .map(|(lo, hi)| pad_y_range(lo, hi))
         .unwrap_or((0.0, 1.0));
-        // Columns are read by their height, so they must stand on zero.
-        let y_min = if columns { 0.0 } else { y_min };
-
-        let log_text = match self.visualization_kind {
-            VisKind::Log => " (log scale)",
-            VisKind::Throughput => " (throughput)",
-            VisKind::Linear => "",
+        // Columns are read by their height, so on a linear axis they must stand
+        // on zero. On a log axis they stand on the bottom of the axis instead,
+        // where zero has no place.
+        let y_min = if columns && self.visualization_kind.scale == Scale::Linear {
+            0.0
+        } else {
+            y_min
         };
 
         let titled_area = root.titled(
-            &format!("Benchmark {} Results{}", &self.benchmark_name, log_text),
+            &format!(
+                "Benchmark {} Results{}",
+                &self.benchmark_name,
+                self.visualization_kind.title_suffix()
+            ),
             TITLE_FONT,
         )?;
 

@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use fs::File;
 use fs_err as fs;
-use scylladb_drivers_benchmarker::VisKind;
+use scylladb_drivers_benchmarker::Scale;
 use scylladb_drivers_benchmarker::commit_hash::CommitHash;
 use scylladb_drivers_benchmarker::database::utilities::{BenchmarkParams, BenchmarkRecord, Provenance};
 
@@ -104,7 +104,7 @@ fn plot_series_generic_test(
     output: &Path,
     config: &str,
     expected_output: &Path,
-    vis_kind: VisKind,
+    scale: Scale,
 ) {
     let test_data = setup_initial_data(101, generate_series_data);
 
@@ -119,7 +119,7 @@ fn plot_series_generic_test(
                 config,
             ])
             .args(build_series_args("test-backend", &test_data.repo_hashes))
-            .args(["-o", output.to_str().unwrap(), "series", "-v", &vis_kind.to_string(), "-m", "time"]),
+            .args(["-o", output.to_str().unwrap(), "series", "-v", &scale.to_string(), "-m", "time"]),
     );
 
     check_files_equality(output, expected_output);
@@ -159,15 +159,15 @@ fn plot_series() {
     let output_base = Path::new("./tests/plot_test/");
     let expected_base = Path::new("./tests/plot_test/expected");
 
-    for vis_kind in [VisKind::Linear, VisKind::Log] {
+    for scale in [Scale::Linear, Scale::Log] {
         for format in ["png", "svg"] {
-            let filename = PathBuf::from(format!("series_{vis_kind}.{format}"));
+            let filename = PathBuf::from(format!("series_{scale}.{format}"));
 
             plot_series_generic_test(
                 &output_base.join(&filename),
                 "./tests/plot_test/config.yml",
                 &expected_base.join(&filename),
-                vis_kind,
+                scale,
             );
         }
     }
@@ -178,15 +178,15 @@ fn plot_series_points() {
     let output_base = Path::new("./tests/plot_test/");
     let expected_base = Path::new("./tests/plot_test/expected");
 
-    for vis_kind in [VisKind::Linear, VisKind::Log] {
+    for scale in [Scale::Linear, Scale::Log] {
         for format in ["png", "svg"] {
-            let filename = PathBuf::from(format!("series_points_{vis_kind}.{format}"));
+            let filename = PathBuf::from(format!("series_points_{scale}.{format}"));
 
             plot_series_generic_test(
                 &output_base.join(&filename),
                 "1,20,3",
                 &expected_base.join(&filename),
-                vis_kind,
+                scale,
             );
         }
     }
