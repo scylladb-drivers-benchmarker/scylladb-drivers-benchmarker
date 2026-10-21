@@ -39,9 +39,14 @@ impl FromStr for ParsableDriverWithCommit {
     type Err = DriverWithCommitParsingError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (driver_name, rest) = s
-            .split_once('@')
+        // A leading '@' belongs to the driver name: scoped npm packages, which
+        // are also recorded as driver names, look like `@scylladb/driver`.
+        let separator = s
+            .char_indices()
+            .skip(1)
+            .find_map(|(i, c)| (c == '@').then_some(i))
             .ok_or(DriverWithCommitParsingError::MissingAtSign)?;
+        let (driver_name, rest) = (&s[..separator], &s[separator + 1..]);
         if driver_name.is_empty() {
             return Err(DriverWithCommitParsingError::EmptyBackendName);
         }
@@ -126,6 +131,7 @@ pub(crate) struct PlotCommand {
     /// Format: BACKEND_NAME@REPO_OR_PATH[:REF[=ALIAS]]
     /// REF is a git tag, branch, or commit hash; defaults to HEAD if omitted.
     /// ALIAS overrides the label shown on the plot (defaults to REF).
+    /// A scoped npm name works as BACKEND_NAME, e.g. @scylladb/driver@v0.7.1.
     /// Repeat to overlay multiple backends and/or commits on the same chart.
     #[arg(long, value_name = "BACKEND@REPO[:REF[=ALIAS]]")]
     pub series: Vec<ParsableDriverWithCommit>,
