@@ -115,3 +115,37 @@ fn advanced_database() {
     assert_eq!(filters.benchmark_points, vec![1, 2, 5, 3]);
     assert_eq!(filters.measurement_methods, vec!["m1", "m2", "m4"]);
 }
+
+#[test]
+fn series_with_scoped_driver_name() {
+    let s: ParsableDriverWithCommit = "@scylladb/driver@v0.6.1=nodejs-rs".parse().unwrap();
+    assert_eq!(s.driver_name, "@scylladb/driver");
+    assert_eq!(s.repo, "v0.6.1");
+    assert_eq!(s.display_tag, "nodejs-rs");
+
+    let s: ParsableDriverWithCommit = "@scylladb/driver@/repo/nodejs-rs-driver:main"
+        .parse()
+        .unwrap();
+    assert_eq!(s.driver_name, "@scylladb/driver");
+    assert_eq!(s.repo, "/repo/nodejs-rs-driver");
+    assert_eq!(s.git_ref, "main");
+}
+
+#[test]
+fn series_separator_is_the_first_at_after_the_name() {
+    // An '@' later in the repository path stays part of the path.
+    let s: ParsableDriverWithCommit = "rust-driver@/home/u@host/driver:main".parse().unwrap();
+    assert_eq!(s.driver_name, "rust-driver");
+    assert_eq!(s.repo, "/home/u@host/driver");
+}
+
+#[test]
+fn series_without_separator_is_rejected() {
+    assert!("rust-driver".parse::<ParsableDriverWithCommit>().is_err());
+    // A lone leading '@' starts the name, so the separator is missing.
+    assert!(
+        "@scylladb/driver"
+            .parse::<ParsableDriverWithCommit>()
+            .is_err()
+    );
+}
